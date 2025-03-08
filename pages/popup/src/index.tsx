@@ -34,7 +34,7 @@ function Root() {
 
   return (
     <div className={isDark ? 'dark' : ''}>
-      <div className="App dark:bg-gray-800 bg-slate-50 dark:text-white text-black flex flex-col">
+      <div className="App dark:bg-gray-800 bg-slate-50 dark:text-white text-black flex flex-col h-screen">
         <header className="App-header flex items-center justify-between px-4 py-3">
           <img src={iconUrl} alt="icon" width="34" height="34" />
           <span className="mx-auto text-lg font-semibold">Welcome</span>
@@ -43,11 +43,7 @@ function Root() {
           </div>
         </header>
 
-        <main className="p-4 flex-1 overflow-auto">
-          <h2 className="text-xl mb-4">Main Content</h2>
-          <p>Main Content</p>
-          {appState.onboarded ? <Popup /> : <Onboarding />}
-        </main>
+        <main className="p-4 flex-1 overflow-auto">{appState.onboarded ? <Popup /> : <Onboarding />}</main>
 
         <footer className="App-footer p-4 border-t text-center">Footer</footer>
       </div>

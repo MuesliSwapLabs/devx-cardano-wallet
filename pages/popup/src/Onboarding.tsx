@@ -1,67 +1,49 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { appStateStorage } from '@extension/storage';
+import LegalAndAnalytics from './onboarding/legalAndAnalytics';
+import Step2 from './onboarding/step2'; // Example additional page
 
-const Page1 = () => (
-  <div>
-    <h2>Welcome!</h2>
-    <p>This is step 1.</p>
-  </div>
-);
-const Page2 = () => (
-  <div>
-    <h2>Profile Setup</h2>
-    <p>This is step 2.</p>
-  </div>
-);
-const Page3 = () => (
-  <div>
-    <h2>Preferences</h2>
-    <p>This is step 3.</p>
-  </div>
-);
-const Page4 = () => (
-  <div>
-    <h2>Additional Info</h2>
-    <p>This is step 4.</p>
-  </div>
-);
-const Page5 = () => (
-  <div>
-    <h2>Summary</h2>
-    <p>This is step 5.</p>
-  </div>
-);
+const resetOnboarding = () => {};
 
 const Onboarding = () => {
-  const [step, setStep] = useState(0);
+  // Default step is 0 if not found in storage
+  const [currentStep, setCurrentStep] = useState(0);
 
-  const pages = [<Page1 />, <Page2 />, <Page3 />, <Page4 />, <Page5 />];
-
-  const nextStep = () => {
-    if (step < pages.length - 1) {
-      setStep(step + 1);
-    } else {
-      // Final step reached, mark as onboarded
-      appStateStorage.markOnboarded();
+  // Load onboarding step from storage on mount
+  useEffect(() => {
+    const storedStep = appStateStorage.getItem('onboardingStep');
+    if (storedStep !== undefined) {
+      setCurrentStep(storedStep);
     }
+  }, []);
+
+  // Function to move to the next step & save it in storage
+  const goToNextStep = async () => {
+    const newStep = currentStep + 1;
+    setCurrentStep(newStep);
+    await appStateStorage.setItem('onboardingStep', newStep); // Persist in storage
   };
 
-  const prevStep = () => {
-    if (step > 0) setStep(step - 1);
+  // Function to go back a step (if needed)
+  const goToPreviousStep = async () => {
+    const newStep = Math.max(0, currentStep - 1);
+    setCurrentStep(newStep);
+    await appStateStorage.setItem('onboardingStep', newStep); // Persist in storage
+  };
+
+  // Function to reset onboarding step to 0
+  const resetOnboarding = async () => {
+    await appStateStorage.setItem('onboardingStep', 0); // Reset in storage
+    setCurrentStep(0); // Reset state
   };
 
   return (
-    <div>
-      {/* Render the current page */}
-      {pages[step]}
-
-      <div style={{ marginTop: '20px' }}>
-        {step > 0 && <button onClick={prevStep}>Back</button>}
-        <button onClick={nextStep} style={{ marginLeft: '10px' }}>
-          {step === pages.length - 1 ? 'Finish' : 'Next'}
-        </button>
-      </div>
-    </div>
+    <>
+      {currentStep === 0 && <LegalAndAnalytics goToNextStep={goToNextStep} />}
+      {currentStep === 1 && <Step2 goToNextStep={goToNextStep} goToPreviousStep={goToPreviousStep} />}
+      <button onClick={resetOnboarding}>Reset Onboarding</button>
+      {/* Add more steps dynamically */}
+    </>
   );
 };
 
