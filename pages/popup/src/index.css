@@ -17,6 +17,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  border: 1px solid #444444;
 }
 
 .outer-container {
@@ -37,7 +38,11 @@ body {
 }
 
 .App-header {
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid #444444;
+}
+
+.App-footer {
+  border-top: 1px solid #444444;
 }
 
 button {

@@ -2,7 +2,9 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import '@src/index.css'; // We'll update this CSS below
 import { useStorage } from '@extension/shared';
-import { exampleThemeStorage } from '@extension/storage';
+import { exampleThemeStorage, appStateStorage } from '@extension/storage';
+import Popup from '@src/Popup';
+import Onboarding from '@src/Onboarding';
 
 const ThemeToggle = () => {
   const theme = useStorage(exampleThemeStorage);
@@ -26,6 +28,7 @@ const ThemeToggle = () => {
 
 function Root() {
   const theme = useStorage(exampleThemeStorage);
+  const appState = useStorage(appStateStorage);
   const isDark = theme === 'dark';
   const iconUrl = isDark ? chrome.runtime.getURL('icon-dark.svg') : chrome.runtime.getURL('icon-light.svg');
 
@@ -43,9 +46,10 @@ function Root() {
         <main className="p-4 flex-1 overflow-auto">
           <h2 className="text-xl mb-4">Main Content</h2>
           <p>Main Content</p>
+          {appState.onboarded ? <Popup /> : <Onboarding />}
         </main>
 
-        <footer className="p-4 border-t border-gray-300 text-center">Footer</footer>
+        <footer className="App-footer p-4 border-t text-center">Footer</footer>
       </div>
     </div>
   );
