@@ -1,4 +1,4 @@
-import { METHOD, SENDER, TARGET } from 'lib/config/messaging';
+import { METHOD, SENDER, TARGET } from '../../lib/config/messaging';
 import { MethodCallback } from './types';
 
 const enable_handler: MethodCallback = (request, sendResponse) => {
