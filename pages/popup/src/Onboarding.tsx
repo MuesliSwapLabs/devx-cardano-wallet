@@ -1,28 +1,38 @@
-import { useState, useEffect } from 'react';
-import { appStateStorage } from '@extension/storage';
-import LegalAndAnalytics from './onboarding/legalAndAnalytics';
-import Step2 from './onboarding/step2';
-import Step3 from './onboarding/step3';
-import Step4 from './onboarding/step4';
-import Step5 from './onboarding/step5';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface OnboardingProps {
   currentStep: number;
-  goToPreviousStep: () => void;
-  goToNextStep: () => void;
   finishOnboarding: () => void;
 }
 
-const Onboarding = ({ currentStep, goToPreviousStep, goToNextStep, finishOnboarding }: OnboardingProps) => {
+const Onboarding = ({ currentStep, finishOnboarding }: OnboardingProps) => {
+  const navigate = useNavigate();
+
   return (
-    <>
-      {currentStep === 0 && <LegalAndAnalytics goToNextStep={goToNextStep} />}
-      {currentStep === 1 && <Step2 goToPreviousStep={goToPreviousStep} goToNextStep={goToNextStep} />}
-      {currentStep === 2 && <Step3 goToPreviousStep={goToPreviousStep} goToNextStep={goToNextStep} />}
-      {currentStep === 3 && <Step4 goToPreviousStep={goToPreviousStep} goToNextStep={goToNextStep} />}
-      {currentStep === 4 && <Step5 goToPreviousStep={goToPreviousStep} finishOnboarding={finishOnboarding} />}
-      {/* Add more steps as needed */}
-    </>
+    <div className="flex flex-col items-center">
+      <h1 className="text-2xl font-bold">Onboarding</h1>
+      <p className="mt-2">Select an onboarding step:</p>
+      <div className="mt-4 flex flex-col gap-4">
+        <button
+          onClick={() => navigate('/onboarding/legal-and-analytics')}
+          className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition">
+          Legal & Analytics
+        </button>
+        <button
+          onClick={() => navigate('/onboarding/add-wallet')}
+          className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition">
+          Add Wallet
+        </button>
+        {/* You can add more buttons here for additional steps (e.g. step3, step4, etc.) */}
+      </div>
+      <button
+        onClick={finishOnboarding}
+        className="mt-6 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition">
+        Finish Onboarding
+      </button>
+      <p className="mt-4">Current Step: {currentStep}</p>
+    </div>
   );
 };
 

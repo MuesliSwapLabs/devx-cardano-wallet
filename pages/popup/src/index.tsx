@@ -1,10 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import '@src/index.css'; // We'll update this CSS below
 import { useStorage } from '@extension/shared';
 import { exampleThemeStorage, appStateStorage } from '@extension/storage';
 import Popup from '@src/Popup';
 import Onboarding from '@src/Onboarding';
+import AddWallet from './onboarding/addWallet';
+import LegalAndAnalytics from './onboarding/legalAndAnalytics';
 
 const ThemeToggle = () => {
   const theme = useStorage(exampleThemeStorage);
@@ -53,7 +56,8 @@ function Root() {
   };
 
   const finishOnboarding = async () => {
-    goToNextStep();
+    // Optionally advance step then mark onboarded
+    await goToNextStep();
     await appStateStorage.setItem('onboarded', true);
   };
 
@@ -65,37 +69,41 @@ function Root() {
   };
 
   return (
-    <div className={isDark ? 'dark' : ''}>
-      <div className="App dark:bg-gray-800 bg-slate-50 dark:text-white text-black flex flex-col h-screen">
-        <header className="App-header flex items-center justify-between px-4 py-3">
-          <img src={iconUrl} alt="icon" width="34" height="34" />
-          <span className="mx-auto text-lg font-semibold">Welcome</span>
-          <div className="scale-50 flex items-center">
-            <ThemeToggle />
-          </div>
-        </header>
+    <Router>
+      <div className={isDark ? 'dark' : ''}>
+        <div className="App dark:bg-gray-800 bg-slate-50 dark:text-white text-black flex flex-col h-screen">
+          <header className="App-header flex items-center justify-between px-4 py-3">
+            <img src={iconUrl} alt="icon" width="34" height="34" />
+            <span className="mx-auto text-lg font-semibold">{appState.onboarded ? 'Welcome' : 'Onboarding'}</span>
+            <div className="scale-50 flex items-center">
+              <ThemeToggle />
+            </div>
+          </header>
 
-        <main className="p-4 flex-1 overflow-auto">
-          {appState.onboarded ? (
-            <Popup />
-          ) : (
-            // Pass currentStep and goToNextStep as props to Onboarding
-            <Onboarding
-              currentStep={currentStep}
-              goToPreviousStep={goToPreviousStep}
-              goToNextStep={goToNextStep}
-              finishOnboarding={finishOnboarding}
-            />
-          )}
-        </main>
+          <main className="p-4 flex-1 overflow-auto">
+            <Routes>
+              {/* If the user is onboarded, show the Popup */}
+              <Route path="/" element={appState.onboarded ? <Popup /> : <Navigate to="/onboarding" replace />} />
+              {/* Onboarding routes */}
+              <Route
+                path="/onboarding"
+                element={<Onboarding currentStep={currentStep} finishOnboarding={finishOnboarding} />}
+              />
+              <Route path="/onboarding/legal-and-analytics" element={<LegalAndAnalytics />} />
+              <Route path="/onboarding/add-wallet" element={<AddWallet />} />
+              {/* Fallback route */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </main>
 
-        <footer className="App-footer p-4 border-t text-center">
-          Current Step: {currentStep}
-          <br />
-          <button onClick={resetOnboarding}>Reset Onboarding</button>
-        </footer>
+          <footer className="App-footer p-4 border-t text-center">
+            Current Step: {currentStep}
+            <br />
+            <button onClick={resetOnboarding}>Reset Onboarding</button>
+          </footer>
+        </div>
       </div>
-    </div>
+    </Router>
   );
 }
 

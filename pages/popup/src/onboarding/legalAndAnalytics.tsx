@@ -1,11 +1,11 @@
 import { appStateStorage } from '@extension/storage';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-interface LegalAndAnalyticsProps {
-  goToNextStep: () => void;
-}
+interface LegalAndAnalyticsProps {}
 
-function LegalAndAnalytics({ goToNextStep }: LegalAndAnalyticsProps) {
+function LegalAndAnalytics({}: LegalAndAnalyticsProps) {
+  const navigate = useNavigate();
   const warningIconUrl = chrome.runtime.getURL('warning.svg');
 
   // Local state for checkbox
@@ -34,7 +34,7 @@ function LegalAndAnalytics({ goToNextStep }: LegalAndAnalyticsProps) {
       setShowError(true); // Show error if checkbox is not checked
       return;
     }
-    goToNextStep(); // Proceed to next step if checkbox is checked
+    alert('not implemented'); // Proceed to next step if checkbox is checked
   };
 
   return (
@@ -78,6 +78,11 @@ function LegalAndAnalytics({ goToNextStep }: LegalAndAnalyticsProps) {
           className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
           onClick={handleAgreeClick}>
           I Agree
+        </button>
+        <button
+          className="bg-gray-300 py-2 px-4 rounded hover:bg-gray-400 transition"
+          onClick={() => navigate('/onboarding')}>
+          Back to Onboarding
         </button>
       </div>
     </div>
