@@ -1,48 +1,27 @@
 import { useState, useEffect } from 'react';
 import { appStateStorage } from '@extension/storage';
 import LegalAndAnalytics from './onboarding/legalAndAnalytics';
-import Step2 from './onboarding/step2'; // Example additional page
+import Step2 from './onboarding/step2';
+import Step3 from './onboarding/step3';
+import Step4 from './onboarding/step4';
+import Step5 from './onboarding/step5';
 
-const resetOnboarding = () => {};
+interface OnboardingProps {
+  currentStep: number;
+  goToPreviousStep: () => void;
+  goToNextStep: () => void;
+  finishOnboarding: () => void;
+}
 
-const Onboarding = () => {
-  // Default step is 0 if not found in storage
-  const [currentStep, setCurrentStep] = useState(0);
-
-  // Load onboarding step from storage on mount
-  useEffect(() => {
-    const storedStep = appStateStorage.getItem('onboardingStep');
-    if (storedStep !== undefined) {
-      setCurrentStep(storedStep);
-    }
-  }, []);
-
-  // Function to move to the next step & save it in storage
-  const goToNextStep = async () => {
-    const newStep = currentStep + 1;
-    setCurrentStep(newStep);
-    await appStateStorage.setItem('onboardingStep', newStep); // Persist in storage
-  };
-
-  // Function to go back a step (if needed)
-  const goToPreviousStep = async () => {
-    const newStep = Math.max(0, currentStep - 1);
-    setCurrentStep(newStep);
-    await appStateStorage.setItem('onboardingStep', newStep); // Persist in storage
-  };
-
-  // Function to reset onboarding step to 0
-  const resetOnboarding = async () => {
-    await appStateStorage.setItem('onboardingStep', 0); // Reset in storage
-    setCurrentStep(0); // Reset state
-  };
-
+const Onboarding = ({ currentStep, goToPreviousStep, goToNextStep, finishOnboarding }: OnboardingProps) => {
   return (
     <>
       {currentStep === 0 && <LegalAndAnalytics goToNextStep={goToNextStep} />}
-      {currentStep === 1 && <Step2 goToNextStep={goToNextStep} goToPreviousStep={goToPreviousStep} />}
-      <button onClick={resetOnboarding}>Reset Onboarding</button>
-      {/* Add more steps dynamically */}
+      {currentStep === 1 && <Step2 goToPreviousStep={goToPreviousStep} goToNextStep={goToNextStep} />}
+      {currentStep === 2 && <Step3 goToPreviousStep={goToPreviousStep} goToNextStep={goToNextStep} />}
+      {currentStep === 3 && <Step4 goToPreviousStep={goToPreviousStep} goToNextStep={goToNextStep} />}
+      {currentStep === 4 && <Step5 goToPreviousStep={goToPreviousStep} finishOnboarding={finishOnboarding} />}
+      {/* Add more steps as needed */}
     </>
   );
 };

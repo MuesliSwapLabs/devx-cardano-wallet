@@ -24,8 +24,8 @@ function LegalAndAnalytics({ goToNextStep }: LegalAndAnalyticsProps) {
   const handleCheckboxChange = async () => {
     const newValue = !acceptedWarning;
     setAcceptedWarning(newValue);
-    await appStateStorage.setItem('acceptedWarning', newValue);
     setShowError(false); // Hide error when checkbox is checked
+    await appStateStorage.setItem('acceptedWarning', newValue); // Persist the change
   };
 
   // Handle clicking "I Agree"
@@ -60,7 +60,7 @@ function LegalAndAnalytics({ goToNextStep }: LegalAndAnalyticsProps) {
 
       {/* Legal & Analytics Section */}
       <h2 className="text-3xl font-bold mt-12 mb-2">Legal & Analytics</h2>
-      <p className="mb-4">
+      <p className="mb-1">
         By clicking "I agree," you agree to our
         <a href="#" className="text-blue-600 hover:underline ml-1">
           Terms of Service

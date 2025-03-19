@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import '@src/index.css'; // We'll update this CSS below
 import { useStorage } from '@extension/shared';
@@ -32,6 +32,38 @@ function Root() {
   const isDark = theme === 'dark';
   const iconUrl = isDark ? chrome.runtime.getURL('icon-dark.svg') : chrome.runtime.getURL('icon-light.svg');
 
+  // Single source of truth for onboardingStep
+  const [currentStep, setCurrentStep] = useState(() => {
+    const storedStep = appStateStorage.getItem('onboardingStep');
+    return storedStep !== undefined ? storedStep : 0;
+  });
+
+  // Function to move to the previous step
+  const goToPreviousStep = async () => {
+    const newStep = Math.max(0, currentStep - 1);
+    setCurrentStep(newStep);
+    await appStateStorage.setItem('onboardingStep', newStep);
+  };
+
+  // Function to update the step globally
+  const goToNextStep = async () => {
+    const newStep = currentStep + 1;
+    setCurrentStep(newStep);
+    await appStateStorage.setItem('onboardingStep', newStep);
+  };
+
+  const finishOnboarding = async () => {
+    goToNextStep();
+    await appStateStorage.setItem('onboarded', true);
+  };
+
+  // Function to reset onboarding step to 0
+  const resetOnboarding = async () => {
+    await appStateStorage.setItem('onboardingStep', 0);
+    appStateStorage.unmarkOnboarded();
+    setCurrentStep(0);
+  };
+
   return (
     <div className={isDark ? 'dark' : ''}>
       <div className="App dark:bg-gray-800 bg-slate-50 dark:text-white text-black flex flex-col h-screen">
@@ -43,9 +75,25 @@ function Root() {
           </div>
         </header>
 
-        <main className="p-4 flex-1 overflow-auto">{appState.onboarded ? <Popup /> : <Onboarding />}</main>
+        <main className="p-4 flex-1 overflow-auto">
+          {appState.onboarded ? (
+            <Popup />
+          ) : (
+            // Pass currentStep and goToNextStep as props to Onboarding
+            <Onboarding
+              currentStep={currentStep}
+              goToPreviousStep={goToPreviousStep}
+              goToNextStep={goToNextStep}
+              finishOnboarding={finishOnboarding}
+            />
+          )}
+        </main>
 
-        <footer className="App-footer p-4 border-t text-center">Footer</footer>
+        <footer className="App-footer p-4 border-t text-center">
+          Current Step: {currentStep}
+          <br />
+          <button onClick={resetOnboarding}>Reset Onboarding</button>
+        </footer>
       </div>
     </div>
   );

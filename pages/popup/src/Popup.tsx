@@ -38,12 +38,7 @@ const Popup = () => {
       });
   };
 
-  return (
-    <div>
-      ONBOARDED YEEY
-      <button onClick={appStateStorage.unmarkOnboarded}>Redo onboarding</button>
-    </div>
-  );
+  return <div>ONBOARDED YEEY</div>;
 };
 
 const ToggleButton = (props: ComponentPropsWithoutRef<'button'>) => {

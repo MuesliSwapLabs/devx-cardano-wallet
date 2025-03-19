@@ -1,14 +1,14 @@
 import React from 'react';
 
-interface Step2Props {
+interface Step4Props {
   goToPreviousStep: () => void;
   goToNextStep: () => void;
 }
 
-const Page2 = ({ goToPreviousStep, goToNextStep }: Step2Props) => (
+const Page4 = ({ goToPreviousStep, goToNextStep }: Step4Props) => (
   <div>
     <h2>Welcome!</h2>
-    <p>This is step 2.</p>
+    <p>This is step 4.</p>
     <div className="flex space-x-4 mt-4">
       <button onClick={goToPreviousStep} className="bg-gray-300 py-2 px-4 rounded hover:bg-gray-400 transition">
         Back
@@ -20,4 +20,4 @@ const Page2 = ({ goToPreviousStep, goToNextStep }: Step2Props) => (
   </div>
 );
 
-export default Page2;
+export default Page4;
