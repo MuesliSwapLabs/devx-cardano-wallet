@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface CreateNewWalletProps {}
 
@@ -6,6 +7,8 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
   const [walletName, setWalletName] = useState('');
   const [walletPassword, setWalletPassword] = useState('');
   const [error, setError] = useState('');
+
+  const navigate = useNavigate();
 
   const handleCreate = () => {
     if (!walletName.trim()) {
@@ -17,9 +20,8 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
     alert(`New wallet created: ${walletName}`);
   };
 
-  const handleAbort = () => {
-    // Replace alert with your abort logic if needed
-    alert('Abort');
+  const handleCancel = () => {
+    navigate('/onboarding/add-wallet');
   };
 
   return (
@@ -38,13 +40,13 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
           id="walletName"
           value={walletName}
           onChange={e => setWalletName(e.target.value)}
-          className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+          className="mt-1 block w-full border border-gray-300 rounded-md p-2 dark:text-black"
           placeholder="My Wallet"
         />
         {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
       </div>
 
-      <div className="mt-4 w-full max-w-sm">
+      <div className="mt-4 w-full max-w-sm  dark:text-black-700">
         <label htmlFor="walletPassword" className="block text-sm font-medium text-gray-700">
           Optional Password
         </label>
@@ -53,18 +55,20 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
           id="walletPassword"
           value={walletPassword}
           onChange={e => setWalletPassword(e.target.value)}
-          className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+          className="mt-1 block w-full border border-gray-300 rounded-md p-2 dark:text-black"
           placeholder="Optional password"
         />
       </div>
 
       {/* Navigation Buttons */}
       <div className="mt-6 flex space-x-4">
-        <button onClick={handleCreate} className="bg-gray-300 py-2 px-4 rounded hover:bg-gray-400 transition">
+        <button
+          onClick={handleCreate}
+          className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition">
           Create
         </button>
-        <button onClick={handleAbort} className="bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700 transition">
-          Abort
+        <button onClick={handleCancel} className="bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700 transition">
+          Cancel
         </button>
       </div>
     </div>

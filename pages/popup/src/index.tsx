@@ -8,6 +8,9 @@ import Popup from '@src/Popup';
 import Onboarding from '@src/Onboarding';
 import AddWallet from './onboarding/addWallet';
 import LegalAndAnalytics from './onboarding/legalAndAnalytics';
+import CreateNewWallet from './onboarding/createNewWallet';
+
+import { getCurrentPrice } from '@extension/shared/wallet';
 
 const ThemeToggle = () => {
   const theme = useStorage(exampleThemeStorage);
@@ -40,6 +43,20 @@ function Root() {
     const storedStep = appStateStorage.getItem('onboardingStep');
     return storedStep !== undefined ? storedStep : 0;
   });
+
+  // price and update function are just for demonstration purposes
+  const [price, setPrice] = useState(() => {
+    // Use the shared function to get the default value
+    return getCurrentPrice();
+  });
+
+  // Update price by making a request to the background script
+  const updatePrice = async () => {
+    chrome.runtime.sendMessage({ type: 'checkCurrentPrice', price }, response => {
+      console.log('Response:', response);
+      setPrice(response.price);
+    });
+  };
 
   // Function to move to the previous step
   const goToPreviousStep = async () => {
@@ -82,24 +99,29 @@ function Root() {
 
           <main className="p-4 flex-1 overflow-auto">
             <Routes>
-              {/* If the user is onboarded, show the Popup */}
+              {/* "/" - Onboarding vs. Popup*/}
               <Route path="/" element={appState.onboarded ? <Popup /> : <Navigate to="/onboarding" replace />} />
+
               {/* Onboarding routes */}
-              <Route
-                path="/onboarding"
-                element={<Onboarding currentStep={currentStep} finishOnboarding={finishOnboarding} />}
-              />
+              <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/onboarding/legal-and-analytics" element={<LegalAndAnalytics />} />
               <Route path="/onboarding/add-wallet" element={<AddWallet />} />
+              <Route path="/onboarding/create-new-wallet" element={<CreateNewWallet />} />
+
               {/* Fallback route */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>
 
           <footer className="App-footer p-4 border-t text-center">
-            Current Step: {currentStep}
-            <br />
-            <button onClick={resetOnboarding}>Reset Onboarding</button>
+            Price: {String(price)}
+            <button
+              className="bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+              onClick={() => {
+                updatePrice();
+              }}>
+              Update price
+            </button>
           </footer>
         </div>
       </div>

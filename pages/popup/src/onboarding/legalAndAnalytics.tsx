@@ -34,7 +34,9 @@ function LegalAndAnalytics({}: LegalAndAnalyticsProps) {
       setShowError(true); // Show error if checkbox is not checked
       return;
     }
-    alert('not implemented'); // Proceed to next step if checkbox is checked
+
+    appStateStorage.setItem('onboarding:LegalAndAnalyticsAccepted', true);
+    navigate('/onboarding/add-wallet');
   };
 
   return (
