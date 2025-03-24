@@ -38,7 +38,17 @@ const Popup = () => {
       });
   };
 
-  return <div>ONBOARDED YEEY</div>;
+  const resetOnboarding = () => {
+    appStateStorage.unmarkOnboarded();
+  };
+
+  return (
+    <div>
+      <div>ONBOARDED YEEY</div>
+      <div>onboarded: {appState.onboarded}</div>
+      <button onClick={resetOnboarding}>Reset Onboarding</button>
+    </div>
+  );
 };
 
 const ToggleButton = (props: ComponentPropsWithoutRef<'button'>) => {

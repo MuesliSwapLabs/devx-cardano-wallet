@@ -18,6 +18,15 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
     setError('');
     // Replace alert with your wallet creation logic as needed
     alert(`New wallet created: ${walletName}`);
+    const newWallet = {
+      name: walletName,
+      password: walletPassword,
+    };
+    console.log('Creating new wallet:', newWallet);
+    chrome.runtime.sendMessage({ type: 'createNewWallet', newWallet }, response => {
+      console.log('Response:', response);
+      navigate('/onboarding/create-new-wallet-success');
+    });
   };
 
   const handleCancel = () => {

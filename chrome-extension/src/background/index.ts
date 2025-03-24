@@ -1,6 +1,6 @@
 import 'webextension-polyfill';
 import { exampleThemeStorage } from '@extension/storage';
-import { getCurrentPrice } from '@extension/shared/wallet';
+import { getCurrentPrice, createNewWallet } from '@extension/shared/wallet';
 
 exampleThemeStorage.get().then(theme => {
   console.log('theme', theme);
@@ -20,6 +20,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'checkCurrentPrice') {
     const result = getCurrentPrice();
     sendResponse({ price: result });
+  }
+  return true;
+});
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'createNewWallet') {
+    const newWallet = createNewWallet(message.newWallet.name, message.newWallet.password);
+    // TODO: Persist wallet to storage. Maybe we don't do that here but in the
+    // receiver? Who knows.
+    sendResponse({ wallet: newWallet });
   }
   return true;
 });

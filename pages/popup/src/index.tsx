@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import '@src/index.css'; // We'll update this CSS below
@@ -9,6 +9,7 @@ import Onboarding from '@src/Onboarding';
 import AddWallet from './onboarding/addWallet';
 import LegalAndAnalytics from './onboarding/legalAndAnalytics';
 import CreateNewWallet from './onboarding/createNewWallet';
+import CreateNewWalletSuccess from './onboarding/createNewWalletSuccess';
 
 import { getCurrentPrice } from '@extension/shared/wallet';
 
@@ -38,11 +39,22 @@ function Root() {
   const isDark = theme === 'dark';
   const iconUrl = isDark ? chrome.runtime.getURL('icon-dark.svg') : chrome.runtime.getURL('icon-light.svg');
 
-  // Single source of truth for onboardingStep
-  const [currentStep, setCurrentStep] = useState(() => {
-    const storedStep = appStateStorage.getItem('onboardingStep');
-    return storedStep !== undefined ? storedStep : 0;
+  // Note: getItem() uses the storage's snapshot function, which basically
+  // does some kind of caching. This is important to achieve reactivity later on.
+  const [onboarded, setOnboarded] = useState(() => {
+    return appStateStorage.getItem('onboarded') ?? false;
   });
+
+  // To make the storage's member var "onboarded" reactive, we use the
+  // subscribe() method.
+  useEffect(() => {
+    const unsubscribe = appStateStorage.subscribe(() => {
+      const newOnboarded = appStateStorage.getItem('onboarded') ?? false;
+      setOnboarded(newOnboarded);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // price and update function are just for demonstration purposes
   const [price, setPrice] = useState(() => {
@@ -58,40 +70,13 @@ function Root() {
     });
   };
 
-  // Function to move to the previous step
-  const goToPreviousStep = async () => {
-    const newStep = Math.max(0, currentStep - 1);
-    setCurrentStep(newStep);
-    await appStateStorage.setItem('onboardingStep', newStep);
-  };
-
-  // Function to update the step globally
-  const goToNextStep = async () => {
-    const newStep = currentStep + 1;
-    setCurrentStep(newStep);
-    await appStateStorage.setItem('onboardingStep', newStep);
-  };
-
-  const finishOnboarding = async () => {
-    // Optionally advance step then mark onboarded
-    await goToNextStep();
-    await appStateStorage.setItem('onboarded', true);
-  };
-
-  // Function to reset onboarding step to 0
-  const resetOnboarding = async () => {
-    await appStateStorage.setItem('onboardingStep', 0);
-    appStateStorage.unmarkOnboarded();
-    setCurrentStep(0);
-  };
-
   return (
     <Router>
       <div className={isDark ? 'dark' : ''}>
         <div className="App dark:bg-gray-800 bg-slate-50 dark:text-white text-black flex flex-col h-screen">
           <header className="App-header flex items-center justify-between px-4 py-3">
             <img src={iconUrl} alt="icon" width="34" height="34" />
-            <span className="mx-auto text-lg font-semibold">{appState.onboarded ? 'Welcome' : 'Onboarding'}</span>
+            <span className="mx-auto text-lg font-semibold">{onboarded ? 'Welcome' : 'Onboarding'}</span>
             <div className="scale-50 flex items-center">
               <ThemeToggle />
             </div>
@@ -100,13 +85,14 @@ function Root() {
           <main className="p-4 flex-1 overflow-auto">
             <Routes>
               {/* "/" - Onboarding vs. Popup*/}
-              <Route path="/" element={appState.onboarded ? <Popup /> : <Navigate to="/onboarding" replace />} />
+              <Route path="/" element={onboarded ? <Popup /> : <Navigate to="/onboarding" replace />} />
 
               {/* Onboarding routes */}
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/onboarding/legal-and-analytics" element={<LegalAndAnalytics />} />
               <Route path="/onboarding/add-wallet" element={<AddWallet />} />
               <Route path="/onboarding/create-new-wallet" element={<CreateNewWallet />} />
+              <Route path="/onboarding/create-new-wallet-success" element={<CreateNewWalletSuccess />} />
 
               {/* Fallback route */}
               <Route path="*" element={<Navigate to="/" replace />} />
