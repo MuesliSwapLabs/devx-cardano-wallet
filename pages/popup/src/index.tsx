@@ -10,6 +10,10 @@ import AddWallet from './onboarding/addWallet';
 import LegalAndAnalytics from './onboarding/legalAndAnalytics';
 import CreateNewWallet from './onboarding/createNewWallet';
 import CreateNewWalletSuccess from './onboarding/createNewWalletSuccess';
+import SpoofWallet from './onboarding/spoofWallet';
+import SpoofWalletSuccess from './onboarding/spoofWalletSuccess';
+import ImportWalletFromSeedPhrase from './onboarding/importWalletFromSeedPhrase';
+import ImportWalletFromSeedPhraseSuccess from './onboarding/importWalletFromSeedPhraseSuccess';
 
 import { getCurrentPrice } from '@extension/shared/wallet';
 
@@ -91,8 +95,18 @@ function Root() {
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/onboarding/legal-and-analytics" element={<LegalAndAnalytics />} />
               <Route path="/onboarding/add-wallet" element={<AddWallet />} />
+
               <Route path="/onboarding/create-new-wallet" element={<CreateNewWallet />} />
               <Route path="/onboarding/create-new-wallet-success" element={<CreateNewWalletSuccess />} />
+
+              <Route path="/onboarding/spoof-wallet" element={<SpoofWallet />} />
+              <Route path="/onboarding/spoof-wallet-success" element={<SpoofWalletSuccess />} />
+
+              <Route path="/onboarding/import-wallet-from-seed-phrase" element={<ImportWalletFromSeedPhrase />} />
+              <Route
+                path="/onboarding/import-wallet-from-seed-phrase-success"
+                element={<ImportWalletFromSeedPhraseSuccess />}
+              />
 
               {/* Fallback route */}
               <Route path="*" element={<Navigate to="/" replace />} />

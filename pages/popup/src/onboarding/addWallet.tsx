@@ -29,7 +29,7 @@ const AddWallet = ({}: AddWalletProps) => {
         <h3 className="text-center text-base text-gray-500">Existing Wallet</h3>
         <div className="mt-2 flex flex-col space-y-4 items-center">
           <button
-            onClick={() => alert('not implemented')}
+            onClick={() => navigate('/onboarding/import-wallet-from-seed-phrase')}
             className="bg-gray-300 py-2 px-4 rounded hover:bg-gray-400 transition">
             Import from Seed Phrase
           </button>
@@ -39,7 +39,7 @@ const AddWallet = ({}: AddWalletProps) => {
             Import from DevX File
           </button>
           <button
-            onClick={() => alert('not implemented')}
+            onClick={() => navigate('/onboarding/spoof-wallet')}
             className="bg-gray-300 py-2 px-4 rounded hover:bg-gray-400 transition">
             Spoof Wallet
           </button>
