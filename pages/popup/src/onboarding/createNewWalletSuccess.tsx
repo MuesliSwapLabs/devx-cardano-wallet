@@ -28,7 +28,7 @@ function CreateNewWalletSuccess() {
       {/* Warning Section */}
       <div className="flex flex-row items-center text-green-600 font-bold mb-4">
         {/* <img src={warningIconUrl} alt="Warning icon" width="40" height="40" /> */}
-        <h2 className="text-3xl mt-2">SUCCESS2</h2>
+        <h2 className="text-3xl mt-2">SUCCESS</h2>
       </div>
       <p className="text-center mb-4">Your wallet was successfully created.</p>
       <p className="text-center mb-4">Expoert the seed phrase or the whole wallet (includes seed phrase)</p>

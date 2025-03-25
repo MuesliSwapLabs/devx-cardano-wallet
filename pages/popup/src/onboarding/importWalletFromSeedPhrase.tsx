@@ -85,7 +85,7 @@ const ImportNewWallet = () => {
   }[step];
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center h-full">
       <h2 className="text-xl font-medium mb-1">Import Wallet</h2>
       <p className="text-white text-sm mb-6">
         Step {step}/3 — {stepSubtitle}
@@ -167,7 +167,7 @@ const ImportNewWallet = () => {
       )}
 
       {/* Navigation Buttons */}
-      <div className="mt-6 flex space-x-4">
+      <div className="mt-auto space-x-4">
         <CancelButton onClick={handleCancel}>Cancel</CancelButton>
         {step > 1 && <SecondaryButton onClick={handleBack}>Back</SecondaryButton>}
         {step < 3 && <PrimaryButton onClick={handleNext}>Next</PrimaryButton>}
