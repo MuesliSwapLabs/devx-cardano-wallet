@@ -24,8 +24,8 @@ function CreateNewWalletSuccess() {
         {/* <img src={warningIconUrl} alt="Warning icon" width="40" height="40" /> */}
         <h2 className="text-3xl mt-2">SUCCESS</h2>
       </div>
-      <p className="text-center mb-4">Your wallet was successfully created.</p>
-      <p className="text-center mb-4">Expoert the seed phrase or the whole wallet (includes seed phrase)</p>
+      <p className="text-center mb-4">Your successfully spoofed the wallet.</p>
+      <p className="text-center mb-4">Export the account (doesn't include seed phrase!)</p>
       <p className="text-center mb-4">You can do that later on at any time</p>
 
       {/* Buttons */}
