@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { PrimaryButton, SecondaryButton, CancelButton } from '@src/components/buttons';
+
 const ImportNewWallet = () => {
   const [step, setStep] = useState(1); // 1 = word count, 2 = phrase, 3 = name/password
   const [wordCount, setWordCount] = useState<15 | 24>(15);
@@ -166,28 +168,10 @@ const ImportNewWallet = () => {
 
       {/* Navigation Buttons */}
       <div className="mt-6 flex space-x-4">
-        {step > 1 && (
-          <button onClick={handleBack} className="bg-gray-300 py-2 px-4 rounded hover:bg-gray-400 transition">
-            Back
-          </button>
-        )}
-        {step < 3 && (
-          <button
-            onClick={handleNext}
-            className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition">
-            Next
-          </button>
-        )}
-        {step === 3 && (
-          <button
-            onClick={handleImport}
-            className="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition">
-            Import
-          </button>
-        )}
-        <button onClick={handleCancel} className="bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700 transition">
-          Cancel
-        </button>
+        <CancelButton onClick={handleCancel}>Cancel</CancelButton>
+        {step > 1 && <SecondaryButton onClick={handleBack}>Back</SecondaryButton>}
+        {step < 3 && <PrimaryButton onClick={handleNext}>Next</PrimaryButton>}
+        {step === 3 && <PrimaryButton onClick={handleImport}>Import</PrimaryButton>}
       </div>
     </div>
   );

@@ -2,6 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import { useStorage } from '@extension/shared';
 import { appStateStorage } from '@extension/storage';
 
+import { PrimaryButton, SecondaryButton } from '@src/components/buttons';
+
 function CreateNewWalletSuccess() {
   const navigate = useNavigate();
   //const warningIconUrl = chrome.runtime.getURL('warning.svg');
@@ -34,22 +36,18 @@ function CreateNewWalletSuccess() {
       <p className="text-center mb-4">You can do that later on at any time</p>
 
       {/* Buttons */}
-      <div className="mt-auto pt-6 flex flex-col justify-between space-y-4">
-        <button
-          className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
-          onClick={handleExportSeedPhraseClick}>
+      <div className="w-full mt-auto space-y-2">
+        <SecondaryButton onClick={handleExportSeedPhraseClick} className="w-3/5">
           Export Seed Phrase
-        </button>
-        <button
-          className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
-          onClick={handleExportAccountClick}>
+        </SecondaryButton>
+        <SecondaryButton onClick={handleExportAccountClick} className="w-3/5">
           Export Account
-        </button>
-        <button
-          className="bg-gray-300 py-2 px-4 rounded hover:bg-gray-400 transition"
-          onClick={handleFinishOnboardingClick}>
+        </SecondaryButton>
+      </div>
+      <div className="w-full mt-auto space-y-2">
+        <PrimaryButton onClick={handleFinishOnboardingClick} className="w-3/5">
           Finish Onboarding
-        </button>
+        </PrimaryButton>
       </div>
     </div>
   );

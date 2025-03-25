@@ -2,6 +2,8 @@ import { appStateStorage } from '@extension/storage';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { PrimaryButton } from '@src/components/buttons';
+
 interface LegalAndAnalyticsProps {}
 
 function LegalAndAnalytics({}: LegalAndAnalyticsProps) {
@@ -40,7 +42,7 @@ function LegalAndAnalytics({}: LegalAndAnalyticsProps) {
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex flex-col items-center h-full">
       {/* Warning Section */}
       <div className="flex flex-col items-center text-red-600 font-bold mb-4">
         <img src={warningIconUrl} alt="Warning icon" width="40" height="40" />
@@ -61,7 +63,7 @@ function LegalAndAnalytics({}: LegalAndAnalyticsProps) {
       </div>
 
       {/* Legal & Analytics Section */}
-      <h2 className="text-3xl font-bold mt-12 mb-2">Legal & Analytics</h2>
+      <h2 className="text-xl font-bold mt-12">Legal & Analytics</h2>
       <p className="mb-1">
         By clicking "I agree," you agree to our
         <a href="#" className="text-blue-600 hover:underline ml-1">
@@ -75,17 +77,17 @@ function LegalAndAnalytics({}: LegalAndAnalyticsProps) {
       </p>
 
       {/* Buttons */}
-      <div className="mt-auto pt-6 flex justify-between space-x-3">
-        <button
-          className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
-          onClick={handleAgreeClick}>
+      <div className="w-full mt-auto pt-6 flex justify-between">
+        <PrimaryButton onClick={handleAgreeClick} className="w-full">
           I Agree
-        </button>
+        </PrimaryButton>
+        {/*
         <button
           className="bg-gray-300 py-2 px-4 rounded hover:bg-gray-400 transition"
           onClick={() => navigate('/onboarding')}>
           Back to Onboarding
         </button>
+        */}
       </div>
     </div>
   );

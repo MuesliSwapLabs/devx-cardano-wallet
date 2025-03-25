@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { PrimaryButton, CancelButton } from '@src/components/buttons';
+
 const SpoofWallet = () => {
   const [walletName, setWalletName] = useState('');
   const [walletPassword, setWalletPassword] = useState('');
@@ -49,7 +51,7 @@ const SpoofWallet = () => {
   };
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center h-full">
       {/* Title & Subtitle */}
       <h2 className="text-xl font-medium">Spoof Wallet</h2>
       <p className="text-center text-lg text-gray-600 mt-2">Spoof a wallet!</p>
@@ -102,15 +104,9 @@ const SpoofWallet = () => {
       </div>
 
       {/* Navigation Buttons */}
-      <div className="mt-6 flex space-x-4">
-        <button onClick={handleCancel} className="bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700 transition">
-          Cancel
-        </button>
-        <button
-          onClick={handleSpoofWallet}
-          className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition">
-          Spoof Wallet
-        </button>
+      <div className="mt-auto flex space-x-4">
+        <CancelButton onClick={handleCancel}>Cancel</CancelButton>
+        <PrimaryButton onClick={handleSpoofWallet}>Spoof Wallet</PrimaryButton>
       </div>
     </div>
   );
