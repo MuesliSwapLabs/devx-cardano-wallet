@@ -9,10 +9,11 @@ const ImportNewWallet = () => {
   const [seedWords, setSeedWords] = useState<string[]>(Array(15).fill(''));
   const [walletName, setWalletName] = useState('');
   const [walletPassword, setWalletPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [skipPassword, setSkipPassword] = useState(false);
   const [seedWordError, setSeedWordError] = useState(false);
   const [walletNameError, setWalletNameError] = useState(false);
-  const [passwordError, setPasswordError] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
   const [isStepValid, setIsStepValid] = useState(true); // For Next button state
 
   const navigate = useNavigate();
@@ -29,10 +30,19 @@ const ImportNewWallet = () => {
     } else if (step === 3) {
       // Check if wallet name is filled and password requirements are met
       const nameValid = walletName.trim() !== '';
-      const passwordValid = skipPassword || walletPassword.trim() !== '';
+      const passwordsMatch = walletPassword === confirmPassword;
+      const passwordValid = skipPassword || (walletPassword.trim() !== '' && passwordsMatch);
+
       setIsStepValid(nameValid && passwordValid);
+
+      // Clear or set password error message based on input
+      if (!skipPassword && walletPassword && confirmPassword && !passwordsMatch) {
+        setPasswordError('Passwords do not match. Please check and try again.');
+      } else {
+        setPasswordError('');
+      }
     }
-  }, [step, seedWords, walletName, walletPassword, skipPassword]);
+  }, [step, seedWords, walletName, walletPassword, confirmPassword, skipPassword]);
 
   const handleWordCountChange = (count: 15 | 24) => {
     setWordCount(count);
@@ -49,10 +59,11 @@ const ImportNewWallet = () => {
   const handlePasswordToggle = () => {
     setSkipPassword(!skipPassword);
     if (!skipPassword) {
-      // Clear password when skipping
+      // Clear passwords when skipping
       setWalletPassword('');
+      setConfirmPassword('');
     }
-    setPasswordError(false);
+    setPasswordError('');
   };
 
   const handleNext = () => {
@@ -70,15 +81,22 @@ const ImportNewWallet = () => {
         return;
       }
 
-      if (!skipPassword && !walletPassword.trim()) {
-        setPasswordError(true);
-        return;
+      if (!skipPassword) {
+        if (!walletPassword.trim()) {
+          setPasswordError('Password is required unless disabled.');
+          return;
+        }
+
+        if (walletPassword !== confirmPassword) {
+          setPasswordError('Passwords do not match. Please check and try again.');
+          return;
+        }
       }
     }
 
     setSeedWordError(false);
     setWalletNameError(false);
-    setPasswordError(false);
+    setPasswordError('');
     setStep(prev => prev + 1);
   };
 
@@ -92,9 +110,16 @@ const ImportNewWallet = () => {
       return;
     }
 
-    if (!skipPassword && !walletPassword.trim()) {
-      setPasswordError(true);
-      return;
+    if (!skipPassword) {
+      if (!walletPassword.trim()) {
+        setPasswordError('Password is required unless disabled.');
+        return;
+      }
+
+      if (walletPassword !== confirmPassword) {
+        setPasswordError('Passwords do not match. Please check and try again.');
+        return;
+      }
     }
 
     const seedPhrase = seedWords;
@@ -176,7 +201,7 @@ const ImportNewWallet = () => {
         <div className="w-full max-w-sm">
           <div className="mb-4">
             <label htmlFor="walletName" className="block text-sm font-medium text-gray-700">
-              Wallet Name
+              Wallet Name <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -184,7 +209,7 @@ const ImportNewWallet = () => {
               value={walletName}
               onChange={e => setWalletName(e.target.value)}
               className={`mt-1 block w-full border rounded-md p-2 dark:text-black ${
-                walletNameError && !walletName.trim() ? 'border-red-500' : 'border-gray-300'
+                walletNameError ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="My Wallet"
             />
@@ -202,11 +227,28 @@ const ImportNewWallet = () => {
               onChange={e => setWalletPassword(e.target.value)}
               disabled={skipPassword}
               className={`mt-1 block w-full border ${
-                passwordError && !skipPassword && !walletPassword.trim() ? 'border-red-500' : 'border-gray-300'
+                passwordError ? 'border-red-500' : 'border-gray-300'
               } rounded-md p-2 dark:text-black ${skipPassword ? 'bg-gray-100' : ''}`}
               placeholder={skipPassword ? 'Password disabled' : 'Enter password'}
             />
-            {passwordError && <p className="text-red-500 text-sm mt-1">Password is required unless disabled</p>}
+          </div>
+
+          <div className="mb-2">
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+              Confirm Password {!skipPassword && <span className="text-red-500">*</span>}
+            </label>
+            <input
+              type="password"
+              id="confirmPassword"
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              disabled={skipPassword}
+              className={`mt-1 block w-full border ${
+                passwordError ? 'border-red-500' : 'border-gray-300'
+              } rounded-md p-2 dark:text-black ${skipPassword ? 'bg-gray-100' : ''}`}
+              placeholder={skipPassword ? 'Password disabled' : 'Confirm password'}
+            />
+            {passwordError && <p className="text-red-500 text-sm mt-1">{passwordError}</p>}
           </div>
 
           {/* Password Skip Option */}

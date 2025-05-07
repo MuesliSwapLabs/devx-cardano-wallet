@@ -7,32 +7,51 @@ interface CreateNewWalletProps {}
 const CreateNewWallet = ({}: CreateNewWalletProps) => {
   const [walletName, setWalletName] = useState('');
   const [walletPassword, setWalletPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [skipPassword, setSkipPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [isFormValid, setIsFormValid] = useState(false);
   const navigate = useNavigate();
 
   // Check form validity whenever inputs change
   useEffect(() => {
     const nameValid = walletName.trim() !== '';
-    const passwordValid = skipPassword || walletPassword.trim() !== '';
+    const passwordsMatch = walletPassword === confirmPassword;
+    const passwordValid = skipPassword || (walletPassword.trim() !== '' && passwordsMatch);
+
     setIsFormValid(nameValid && passwordValid);
-  }, [walletName, walletPassword, skipPassword]);
+
+    // Clear or set password error message based on input
+    if (!skipPassword && walletPassword && confirmPassword && !passwordsMatch) {
+      setPasswordError('Passwords do not match. Please check and try again.');
+    } else {
+      setPasswordError('');
+    }
+  }, [walletName, walletPassword, confirmPassword, skipPassword]);
 
   const handleCreate = () => {
+    // Check for empty wallet name
     if (!walletName.trim()) {
-      setError('Wallet name is required.');
+      setNameError('Wallet name is required.');
       return;
     }
 
+    // Check for password requirement
     if (!skipPassword && !walletPassword.trim()) {
-      setError('Password is required unless disabled.');
+      setPasswordError('Password is required unless disabled.');
       return;
     }
 
-    setError('');
-    // Replace alert with your wallet creation logic as needed
-    alert(`New wallet created: ${walletName}`);
+    // Final password match check before submission
+    if (!skipPassword && walletPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match. Please check and try again.');
+      return;
+    }
+
+    setNameError('');
+
+    // Create wallet data
     const newWallet = {
       name: walletName,
       password: skipPassword ? '' : walletPassword,
@@ -53,9 +72,11 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
   const handlePasswordToggle = () => {
     setSkipPassword(!skipPassword);
     if (!skipPassword) {
-      // Clear password when skipping
+      // Clear passwords when skipping
       setWalletPassword('');
+      setConfirmPassword('');
     }
+    setPasswordError('');
   };
 
   return (
@@ -67,16 +88,17 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
       {/* Input Section */}
       <div className="mt-4 w-full max-w-sm">
         <label htmlFor="walletName" className="block text-sm font-medium text-gray-700">
-          Enter Wallet Name
+          Enter Wallet Name <span className="text-red-500">*</span>
         </label>
         <input
           type="text"
           id="walletName"
           value={walletName}
           onChange={e => setWalletName(e.target.value)}
-          className="mt-1 block w-full border border-gray-300 rounded-md p-2 dark:text-black"
+          className={`mt-1 block w-full border ${nameError ? 'border-red-500' : 'border-gray-300'} rounded-md p-2 dark:text-black`}
           placeholder="My Wallet"
         />
+        {nameError && <p className="text-red-500 text-sm mt-1">{nameError}</p>}
       </div>
 
       <div className="mt-4 w-full max-w-sm">
@@ -89,9 +111,25 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
           value={walletPassword}
           onChange={e => setWalletPassword(e.target.value)}
           disabled={skipPassword}
-          className={`mt-1 block w-full border border-gray-300 rounded-md p-2 dark:text-black ${skipPassword ? 'bg-gray-100' : ''}`}
+          className={`mt-1 block w-full border ${passwordError ? 'border-red-500' : 'border-gray-300'} rounded-md p-2 dark:text-black ${skipPassword ? 'bg-gray-100' : ''}`}
           placeholder={skipPassword ? 'Password disabled' : 'Enter password'}
         />
+      </div>
+
+      <div className="mt-2 w-full max-w-sm">
+        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+          Confirm Password {!skipPassword && <span className="text-red-500">*</span>}
+        </label>
+        <input
+          type="password"
+          id="confirmPassword"
+          value={confirmPassword}
+          onChange={e => setConfirmPassword(e.target.value)}
+          disabled={skipPassword}
+          className={`mt-1 block w-full border ${passwordError ? 'border-red-500' : 'border-gray-300'} rounded-md p-2 dark:text-black ${skipPassword ? 'bg-gray-100' : ''}`}
+          placeholder={skipPassword ? 'Password disabled' : 'Confirm password'}
+        />
+        {passwordError && <p className="text-red-500 text-sm mt-1">{passwordError}</p>}
       </div>
 
       {/* Password Skip Option */}
@@ -103,8 +141,6 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
           </span>
         </label>
       </div>
-
-      {error && <p className="text-red-500 text-sm mt-3 w-full max-w-sm">{error}</p>}
 
       {/* Navigation Buttons */}
       <div className="mt-auto flex space-x-4">
