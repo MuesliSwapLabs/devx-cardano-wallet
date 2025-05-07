@@ -8,30 +8,30 @@ interface LegalAndAnalyticsProps {}
 function LegalAndAnalytics({}: LegalAndAnalyticsProps) {
   const navigate = useNavigate();
   const warningIconUrl = chrome.runtime.getURL('warning.svg');
-  // Local state for checkbox
-  const [acceptedWarning, setAcceptedWarning] = useState(false);
+  const [countdown, setCountdown] = useState(4);
+  const [buttonEnabled, setButtonEnabled] = useState(false);
 
-  // Load stored value on component mount
+  // Start countdown on component mount
   useEffect(() => {
-    const storedValue = appStateStorage.getItem('acceptedWarning');
-    if (storedValue !== undefined) {
-      setAcceptedWarning(storedValue);
-    }
-  }, []);
+    const timer = setInterval(() => {
+      setCountdown(prevCount => {
+        if (prevCount <= 1) {
+          clearInterval(timer);
+          setButtonEnabled(true);
+          return 0;
+        }
+        return prevCount - 1;
+      });
+    }, 1000);
 
-  // Toggle function that updates storage
-  const handleCheckboxChange = async () => {
-    const newValue = !acceptedWarning;
-    setAcceptedWarning(newValue);
-    await appStateStorage.setItem('acceptedWarning', newValue); // Persist the change
-  };
+    // Clean up timer on unmount
+    return () => clearInterval(timer);
+  }, []);
 
   // Handle clicking "I Agree"
   const handleAgreeClick = () => {
-    if (acceptedWarning) {
-      appStateStorage.setItem('onboarding:LegalAndAnalyticsAccepted', true);
-      navigate('/onboarding/add-wallet');
-    }
+    appStateStorage.setItem('onboarding:LegalAndAnalyticsAccepted', true);
+    navigate('/onboarding/add-wallet');
   };
 
   return (
@@ -41,22 +41,16 @@ function LegalAndAnalytics({}: LegalAndAnalyticsProps) {
         <img src={warningIconUrl} alt="Warning icon" width="40" height="40" />
         <h2 className="text-3xl mt-2">WARNING</h2>
       </div>
-      <p className="text-center mb-4">
-        DevX is a wallet aimed towards development and is not meant to be used for trading!
+
+      <p className="text-center mb-4">DevX is a wallet aimed at developers and is not meant to be used for trading!</p>
+
+      <p className="text-center mb-6">
+        We assume no liability for damages arising from the use of this product/service.
       </p>
 
-      {/* Checkbox */}
-      <div className="flex flex-col">
-        <label className="flex items-center space-x-2 cursor-pointer">
-          <input type="checkbox" className="w-4 h-4" checked={acceptedWarning} onChange={handleCheckboxChange} />
-          <span className="text-sm">I understand the warning above.</span>
-        </label>
-      </div>
-
-      {/* Legal & Analytics Section */}
-      <h2 className="text-xl font-bold mt-12">Legal & Analytics</h2>
-      <p className="mb-1">
-        By clicking "I agree," you agree to our
+      {/* Legal Text */}
+      <p className="mt-12 mb-1 text-center">
+        By continuing, you agree to our
         <a href="#" className="text-blue-600 hover:underline ml-1">
           Terms of Service
         </a>{' '}
@@ -67,17 +61,14 @@ function LegalAndAnalytics({}: LegalAndAnalyticsProps) {
         .
       </p>
 
-      {/* Button with conditional styling */}
-      <div className="w-full mt-auto pt-6 flex justify-between">
-        <button
+      {/* Button centered with countdown */}
+      <div className="w-full mt-auto pt-6 flex justify-center">
+        <PrimaryButton
           onClick={handleAgreeClick}
-          className={`w-full py-2 px-4 rounded transition ${
-            acceptedWarning
-              ? 'bg-blue-600 text-white hover:bg-blue-700'
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-          }`}>
-          I Agree
-        </button>
+          disabled={!buttonEnabled}
+          className={!buttonEnabled ? 'opacity-50 cursor-not-allowed' : ''}>
+          {buttonEnabled ? 'I Agree' : `I Agree (${countdown})`}
+        </PrimaryButton>
       </div>
     </div>
   );
