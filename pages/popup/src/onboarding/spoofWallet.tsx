@@ -4,13 +4,9 @@ import { PrimaryButton, CancelButton } from '@src/components/buttons';
 
 const SpoofWallet = () => {
   const [walletName, setWalletName] = useState('');
-  const [walletPassword, setWalletPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [walletAddress, setWalletAddress] = useState('');
-  const [skipPassword, setSkipPassword] = useState(false);
   const [walletNameError, setWalletNameError] = useState('');
   const [walletAddressError, setWalletAddressError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
   const [isFormValid, setIsFormValid] = useState(false);
 
   const navigate = useNavigate();
@@ -19,28 +15,10 @@ const SpoofWallet = () => {
   useEffect(() => {
     const nameValid = walletName.trim() !== '';
     const addressValid = walletAddress.trim() !== '';
-    const passwordsMatch = walletPassword === confirmPassword;
-    const passwordValid = skipPassword || (walletPassword.trim() !== '' && passwordsMatch);
 
-    setIsFormValid(nameValid && addressValid && passwordValid);
-
-    // Clear or set password error message based on input
-    if (!skipPassword && walletPassword && confirmPassword && !passwordsMatch) {
-      setPasswordError('Passwords do not match. Please check and try again.');
-    } else {
-      setPasswordError('');
-    }
-  }, [walletName, walletAddress, walletPassword, confirmPassword, skipPassword]);
-
-  const handlePasswordToggle = () => {
-    setSkipPassword(!skipPassword);
-    if (!skipPassword) {
-      // Clear passwords when skipping
-      setWalletPassword('');
-      setConfirmPassword('');
-    }
-    setPasswordError('');
-  };
+    // Both fields are mandatory
+    setIsFormValid(nameValid && addressValid);
+  }, [walletName, walletAddress]);
 
   const handleSpoofWallet = () => {
     let hasError = false;
@@ -59,23 +37,12 @@ const SpoofWallet = () => {
       setWalletAddressError('');
     }
 
-    if (!skipPassword) {
-      if (!walletPassword.trim()) {
-        setPasswordError('Password is required unless disabled.');
-        hasError = true;
-      } else if (walletPassword !== confirmPassword) {
-        setPasswordError('Passwords do not match. Please check and try again.');
-        hasError = true;
-      }
-    }
-
     if (hasError) return;
 
     const spoofedWallet = {
       name: walletName,
-      password: skipPassword ? '' : walletPassword,
       address: walletAddress,
-      hasPassword: !skipPassword,
+      hasPassword: false,
     };
 
     //TODO: Implement
@@ -127,53 +94,6 @@ const SpoofWallet = () => {
           placeholder="Wallet Address"
         />
         {walletAddressError && <p className="text-red-500 text-sm mt-1">{walletAddressError}</p>}
-      </div>
-
-      {/* Wallet Password */}
-      <div className="mt-4 w-full max-w-sm">
-        <label htmlFor="walletPassword" className="block text-sm font-medium text-gray-700">
-          Password {!skipPassword && <span className="text-red-500">*</span>}
-        </label>
-        <input
-          type="password"
-          id="walletPassword"
-          value={walletPassword}
-          onChange={e => setWalletPassword(e.target.value)}
-          disabled={skipPassword}
-          className={`mt-1 block w-full border ${
-            passwordError ? 'border-red-500' : 'border-gray-300'
-          } rounded-md p-2 dark:text-black ${skipPassword ? 'bg-gray-100' : ''}`}
-          placeholder={skipPassword ? 'Password disabled' : 'Enter password'}
-        />
-      </div>
-
-      {/* Confirm Password */}
-      <div className="mt-2 w-full max-w-sm">
-        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-          Confirm Password {!skipPassword && <span className="text-red-500">*</span>}
-        </label>
-        <input
-          type="password"
-          id="confirmPassword"
-          value={confirmPassword}
-          onChange={e => setConfirmPassword(e.target.value)}
-          disabled={skipPassword}
-          className={`mt-1 block w-full border ${
-            passwordError ? 'border-red-500' : 'border-gray-300'
-          } rounded-md p-2 dark:text-black ${skipPassword ? 'bg-gray-100' : ''}`}
-          placeholder={skipPassword ? 'Password disabled' : 'Confirm password'}
-        />
-        {passwordError && <p className="text-red-500 text-sm mt-1">{passwordError}</p>}
-      </div>
-
-      {/* Password Skip Option */}
-      <div className="mt-2 w-full max-w-sm">
-        <label className="flex items-center space-x-2 cursor-pointer">
-          <input type="checkbox" checked={skipPassword} onChange={handlePasswordToggle} className="w-4 h-4" />
-          <span className="text-sm text-gray-700">
-            I understand the security risks — create wallet without a password
-          </span>
-        </label>
       </div>
 
       {/* Navigation Buttons */}
