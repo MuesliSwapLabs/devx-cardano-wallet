@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { PrimaryButton, SecondaryButton, CancelButton } from '@src/components/buttons';
@@ -9,10 +9,30 @@ const ImportNewWallet = () => {
   const [seedWords, setSeedWords] = useState<string[]>(Array(15).fill(''));
   const [walletName, setWalletName] = useState('');
   const [walletPassword, setWalletPassword] = useState('');
+  const [skipPassword, setSkipPassword] = useState(false);
   const [seedWordError, setSeedWordError] = useState(false);
   const [walletNameError, setWalletNameError] = useState(false);
+  const [passwordError, setPasswordError] = useState(false);
+  const [isStepValid, setIsStepValid] = useState(true); // For Next button state
 
   const navigate = useNavigate();
+
+  // Check if current step is valid whenever form inputs change
+  useEffect(() => {
+    if (step === 1) {
+      // Step 1 is always valid as a selection is pre-made
+      setIsStepValid(true);
+    } else if (step === 2) {
+      // Check if all seed words are filled
+      const allFilled = seedWords.every(word => word.trim() !== '');
+      setIsStepValid(allFilled);
+    } else if (step === 3) {
+      // Check if wallet name is filled and password requirements are met
+      const nameValid = walletName.trim() !== '';
+      const passwordValid = skipPassword || walletPassword.trim() !== '';
+      setIsStepValid(nameValid && passwordValid);
+    }
+  }, [step, seedWords, walletName, walletPassword, skipPassword]);
 
   const handleWordCountChange = (count: 15 | 24) => {
     setWordCount(count);
@@ -24,6 +44,15 @@ const ImportNewWallet = () => {
     const updated = [...seedWords];
     updated[index] = value.trim();
     setSeedWords(updated);
+  };
+
+  const handlePasswordToggle = () => {
+    setSkipPassword(!skipPassword);
+    if (!skipPassword) {
+      // Clear password when skipping
+      setWalletPassword('');
+    }
+    setPasswordError(false);
   };
 
   const handleNext = () => {
@@ -40,10 +69,16 @@ const ImportNewWallet = () => {
         setWalletNameError(true);
         return;
       }
+
+      if (!skipPassword && !walletPassword.trim()) {
+        setPasswordError(true);
+        return;
+      }
     }
 
     setSeedWordError(false);
     setWalletNameError(false);
+    setPasswordError(false);
     setStep(prev => prev + 1);
   };
 
@@ -57,12 +92,18 @@ const ImportNewWallet = () => {
       return;
     }
 
+    if (!skipPassword && !walletPassword.trim()) {
+      setPasswordError(true);
+      return;
+    }
+
     const seedPhrase = seedWords;
     console.log('Importing with:', {
       wordCount,
       seedPhrase,
       walletName,
-      walletPassword,
+      walletPassword: skipPassword ? '' : walletPassword,
+      hasPassword: !skipPassword,
     });
 
     // Simulate import
@@ -150,18 +191,32 @@ const ImportNewWallet = () => {
             {walletNameError && <p className="text-red-500 text-sm mt-1">Wallet name is required</p>}
           </div>
 
-          <div>
+          <div className="mb-2">
             <label htmlFor="walletPassword" className="block text-sm font-medium text-gray-700">
-              Optional Password
+              Password {!skipPassword && <span className="text-red-500">*</span>}
             </label>
             <input
               type="password"
               id="walletPassword"
               value={walletPassword}
               onChange={e => setWalletPassword(e.target.value)}
-              className="mt-1 block w-full border border-gray-300 rounded-md p-2 dark:text-black"
-              placeholder="Optional password"
+              disabled={skipPassword}
+              className={`mt-1 block w-full border ${
+                passwordError && !skipPassword && !walletPassword.trim() ? 'border-red-500' : 'border-gray-300'
+              } rounded-md p-2 dark:text-black ${skipPassword ? 'bg-gray-100' : ''}`}
+              placeholder={skipPassword ? 'Password disabled' : 'Enter password'}
             />
+            {passwordError && <p className="text-red-500 text-sm mt-1">Password is required unless disabled</p>}
+          </div>
+
+          {/* Password Skip Option */}
+          <div className="mb-4">
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input type="checkbox" checked={skipPassword} onChange={handlePasswordToggle} className="w-4 h-4" />
+              <span className="text-sm text-gray-700">
+                I understand the security risks — create wallet without a password
+              </span>
+            </label>
           </div>
         </div>
       )}
@@ -170,8 +225,22 @@ const ImportNewWallet = () => {
       <div className="mt-auto space-x-4">
         <CancelButton onClick={handleCancel}>Cancel</CancelButton>
         {step > 1 && <SecondaryButton onClick={handleBack}>Back</SecondaryButton>}
-        {step < 3 && <PrimaryButton onClick={handleNext}>Next</PrimaryButton>}
-        {step === 3 && <PrimaryButton onClick={handleImport}>Import</PrimaryButton>}
+        {step < 3 && (
+          <PrimaryButton
+            onClick={handleNext}
+            disabled={!isStepValid}
+            className={!isStepValid ? 'opacity-50 cursor-not-allowed' : ''}>
+            Next
+          </PrimaryButton>
+        )}
+        {step === 3 && (
+          <PrimaryButton
+            onClick={handleImport}
+            disabled={!isStepValid}
+            className={!isStepValid ? 'opacity-50 cursor-not-allowed' : ''}>
+            Import
+          </PrimaryButton>
+        )}
       </div>
     </div>
   );

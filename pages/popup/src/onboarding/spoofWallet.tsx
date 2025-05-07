@@ -1,16 +1,36 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
 import { PrimaryButton, CancelButton } from '@src/components/buttons';
 
 const SpoofWallet = () => {
   const [walletName, setWalletName] = useState('');
   const [walletPassword, setWalletPassword] = useState('');
   const [walletAddress, setWalletAddress] = useState('');
+  const [skipPassword, setSkipPassword] = useState(false);
   const [walletNameError, setWalletNameError] = useState('');
   const [walletAddressError, setWalletAddressError] = useState('');
+  const [walletPasswordError, setWalletPasswordError] = useState('');
+  const [isFormValid, setIsFormValid] = useState(false);
 
   const navigate = useNavigate();
+
+  // Check form validity whenever input changes
+  useEffect(() => {
+    const nameValid = walletName.trim() !== '';
+    const addressValid = walletAddress.trim() !== '';
+    const passwordValid = skipPassword || walletPassword.trim() !== '';
+
+    setIsFormValid(nameValid && addressValid && passwordValid);
+  }, [walletName, walletAddress, walletPassword, skipPassword]);
+
+  const handlePasswordToggle = () => {
+    setSkipPassword(!skipPassword);
+    if (!skipPassword) {
+      // Clear password when skipping
+      setWalletPassword('');
+    }
+    setWalletPasswordError('');
+  };
 
   const handleSpoofWallet = () => {
     let hasError = false;
@@ -29,12 +49,20 @@ const SpoofWallet = () => {
       setWalletAddressError('');
     }
 
+    if (!skipPassword && !walletPassword.trim()) {
+      setWalletPasswordError('Password is required unless disabled.');
+      hasError = true;
+    } else {
+      setWalletPasswordError('');
+    }
+
     if (hasError) return;
 
     const spoofedWallet = {
       name: walletName,
-      password: walletPassword,
+      password: skipPassword ? '' : walletPassword,
       address: walletAddress,
+      hasPassword: !skipPassword,
     };
 
     //TODO: Implement
@@ -66,7 +94,7 @@ const SpoofWallet = () => {
           id="walletName"
           value={walletName}
           onChange={e => setWalletName(e.target.value)}
-          className="mt-1 block w-full border border-gray-300 rounded-md p-2 dark:text-black"
+          className={`mt-1 block w-full border ${walletNameError ? 'border-red-500' : 'border-gray-300'} rounded-md p-2 dark:text-black`}
           placeholder="My Wallet"
         />
         {walletNameError && <p className="text-red-500 text-sm mt-1">{walletNameError}</p>}
@@ -82,7 +110,7 @@ const SpoofWallet = () => {
           id="walletAddress"
           value={walletAddress}
           onChange={e => setWalletAddress(e.target.value)}
-          className="mt-1 block w-full border border-gray-300 rounded-md p-2 dark:text-black"
+          className={`mt-1 block w-full border ${walletAddressError ? 'border-red-500' : 'border-gray-300'} rounded-md p-2 dark:text-black`}
           placeholder="Wallet Address"
         />
         {walletAddressError && <p className="text-red-500 text-sm mt-1">{walletAddressError}</p>}
@@ -91,22 +119,41 @@ const SpoofWallet = () => {
       {/* Wallet Password */}
       <div className="mt-4 w-full max-w-sm">
         <label htmlFor="walletPassword" className="block text-sm font-medium text-gray-700">
-          Optional Password
+          Password {!skipPassword && <span className="text-red-500">*</span>}
         </label>
         <input
           type="password"
           id="walletPassword"
           value={walletPassword}
           onChange={e => setWalletPassword(e.target.value)}
-          className="mt-1 block w-full border border-gray-300 rounded-md p-2 dark:text-black"
-          placeholder="Optional password"
+          disabled={skipPassword}
+          className={`mt-1 block w-full border ${
+            walletPasswordError ? 'border-red-500' : 'border-gray-300'
+          } rounded-md p-2 dark:text-black ${skipPassword ? 'bg-gray-100' : ''}`}
+          placeholder={skipPassword ? 'Password disabled' : 'Enter password'}
         />
+        {walletPasswordError && <p className="text-red-500 text-sm mt-1">{walletPasswordError}</p>}
+      </div>
+
+      {/* Password Skip Option */}
+      <div className="mt-2 w-full max-w-sm">
+        <label className="flex items-center space-x-2 cursor-pointer">
+          <input type="checkbox" checked={skipPassword} onChange={handlePasswordToggle} className="w-4 h-4" />
+          <span className="text-sm text-gray-700">
+            I understand the security risks — create wallet without a password
+          </span>
+        </label>
       </div>
 
       {/* Navigation Buttons */}
       <div className="mt-auto flex space-x-4">
         <CancelButton onClick={handleCancel}>Cancel</CancelButton>
-        <PrimaryButton onClick={handleSpoofWallet}>Spoof Wallet</PrimaryButton>
+        <PrimaryButton
+          onClick={handleSpoofWallet}
+          disabled={!isFormValid}
+          className={!isFormValid ? 'opacity-50 cursor-not-allowed' : ''}>
+          Spoof Wallet
+        </PrimaryButton>
       </div>
     </div>
   );

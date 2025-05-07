@@ -1,7 +1,6 @@
 import { appStateStorage } from '@extension/storage';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
 import { PrimaryButton } from '@src/components/buttons';
 
 interface LegalAndAnalyticsProps {}
@@ -9,10 +8,8 @@ interface LegalAndAnalyticsProps {}
 function LegalAndAnalytics({}: LegalAndAnalyticsProps) {
   const navigate = useNavigate();
   const warningIconUrl = chrome.runtime.getURL('warning.svg');
-
   // Local state for checkbox
   const [acceptedWarning, setAcceptedWarning] = useState(false);
-  const [showError, setShowError] = useState(false); // Track if error message should show
 
   // Load stored value on component mount
   useEffect(() => {
@@ -26,19 +23,15 @@ function LegalAndAnalytics({}: LegalAndAnalyticsProps) {
   const handleCheckboxChange = async () => {
     const newValue = !acceptedWarning;
     setAcceptedWarning(newValue);
-    setShowError(false); // Hide error when checkbox is checked
     await appStateStorage.setItem('acceptedWarning', newValue); // Persist the change
   };
 
   // Handle clicking "I Agree"
   const handleAgreeClick = () => {
-    if (!acceptedWarning) {
-      setShowError(true); // Show error if checkbox is not checked
-      return;
+    if (acceptedWarning) {
+      appStateStorage.setItem('onboarding:LegalAndAnalyticsAccepted', true);
+      navigate('/onboarding/add-wallet');
     }
-
-    appStateStorage.setItem('onboarding:LegalAndAnalyticsAccepted', true);
-    navigate('/onboarding/add-wallet');
   };
 
   return (
@@ -52,14 +45,12 @@ function LegalAndAnalytics({}: LegalAndAnalyticsProps) {
         DevX is a wallet aimed towards development and is not meant to be used for trading!
       </p>
 
-      {/* Checkbox + Error Message */}
+      {/* Checkbox */}
       <div className="flex flex-col">
         <label className="flex items-center space-x-2 cursor-pointer">
           <input type="checkbox" className="w-4 h-4" checked={acceptedWarning} onChange={handleCheckboxChange} />
           <span className="text-sm">I understand the warning above.</span>
         </label>
-
-        {showError && <p className="text-red-500 text-sm mt-1">Click the box before continuing.</p>}
       </div>
 
       {/* Legal & Analytics Section */}
@@ -76,18 +67,17 @@ function LegalAndAnalytics({}: LegalAndAnalyticsProps) {
         .
       </p>
 
-      {/* Buttons */}
+      {/* Button with conditional styling */}
       <div className="w-full mt-auto pt-6 flex justify-between">
-        <PrimaryButton onClick={handleAgreeClick} className="w-full">
-          I Agree
-        </PrimaryButton>
-        {/*
         <button
-          className="bg-gray-300 py-2 px-4 rounded hover:bg-gray-400 transition"
-          onClick={() => navigate('/onboarding')}>
-          Back to Onboarding
+          onClick={handleAgreeClick}
+          className={`w-full py-2 px-4 rounded transition ${
+            acceptedWarning
+              ? 'bg-blue-600 text-white hover:bg-blue-700'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }`}>
+          I Agree
         </button>
-        */}
       </div>
     </div>
   );
