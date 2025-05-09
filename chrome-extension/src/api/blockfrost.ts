@@ -1,5 +1,7 @@
 // chrome-extension/src/wallet/blockfrost.ts
 
+// blockforst api wrapper
+
 /**
  * Simulates creating a new wallet using Blockfrost.
  * @param walletName - The name of the wallet to be created.

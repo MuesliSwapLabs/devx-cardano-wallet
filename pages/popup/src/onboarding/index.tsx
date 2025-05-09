@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { appStateStorage } from '@extension/storage';
 import { getCurrentPrice } from '@extension/shared/wallet';
 
-import { PrimaryButton } from './components/buttons';
+import { PrimaryButton } from '../components/buttons';
 
 const Onboarding = () => {
   const navigate = useNavigate();
