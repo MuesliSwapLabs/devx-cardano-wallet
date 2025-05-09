@@ -1,3 +1,21 @@
+# Introduction
+The original README from the forked repo can be found below. Here we quickly
+explain how I (Pascal) interpreted the structure of this boilerplate and how I
+implemented the frontend with dummy "backend" functions.
+
+- `chrom-extension/src`: Holds chrome extension background scripts aka "service 
+workers". They run code in the background. E.g. it allows to run a "create wallet"
+action in the background and do 10 retries while the user can keep using the
+extension. Or we might fetch the price of the assets every 10 seconds etc.. They
+are decoupled from frontend(s) like the popup and use a messaging system to
+communicate between each other.
+- `
+
+
+
+
+
+# Original README.mdCardanoAddress
 <div align="center">
 
 <picture>
