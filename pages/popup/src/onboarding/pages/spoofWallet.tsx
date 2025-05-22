@@ -1,47 +1,27 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Formik, Form, Field, ErrorMessage } from 'formik';
+import * as Yup from 'yup';
 import { PrimaryButton, CancelButton } from '@src/components/buttons';
 
 const SpoofWallet = () => {
-  const [walletName, setWalletName] = useState('');
-  const [walletAddress, setWalletAddress] = useState('');
-  const [walletNameError, setWalletNameError] = useState('');
-  const [walletAddressError, setWalletAddressError] = useState('');
-  const [isFormValid, setIsFormValid] = useState(false);
-
   const navigate = useNavigate();
 
-  // Check form validity whenever input changes
-  useEffect(() => {
-    const nameValid = walletName.trim() !== '';
-    const addressValid = walletAddress.trim() !== '';
+  // Validation schema
+  const validationSchema = Yup.object({
+    walletName: Yup.string().required('Wallet name is required.'),
+    walletAddress: Yup.string().required('Wallet address is required.'),
+  });
 
-    // Both fields are mandatory
-    setIsFormValid(nameValid && addressValid);
-  }, [walletName, walletAddress]);
+  // Initial form values
+  const initialValues = {
+    walletName: '',
+    walletAddress: '',
+  };
 
-  const handleSpoofWallet = () => {
-    let hasError = false;
-
-    if (!walletName.trim()) {
-      setWalletNameError('Wallet name is required.');
-      hasError = true;
-    } else {
-      setWalletNameError('');
-    }
-
-    if (!walletAddress.trim()) {
-      setWalletAddressError('Wallet address is required.');
-      hasError = true;
-    } else {
-      setWalletAddressError('');
-    }
-
-    if (hasError) return;
-
+  const handleSpoofWallet = values => {
     const spoofedWallet = {
-      name: walletName,
-      address: walletAddress,
+      name: values.walletName,
+      address: values.walletAddress,
       hasPassword: false,
     };
 
@@ -49,7 +29,6 @@ const SpoofWallet = () => {
     // chrome.runtime.sendMessage({ type: 'SpoofWallet', spoofedWallet }, response => {
     //   navigate('/onboarding/spoof-wallet-success');
     // });
-
     alert('Not implemented yet. Redirecting to success anyway.');
     navigate('/onboarding/spoof-wallet-success'); // remove this line when implementing the above
   };
@@ -64,48 +43,53 @@ const SpoofWallet = () => {
       <h2 className="text-xl font-medium">Spoof Wallet</h2>
       <p className="text-center text-lg text-gray-600 mt-2">Spoof a wallet!</p>
 
-      {/* Wallet Name */}
-      <div className="mt-4 w-full max-w-sm">
-        <label htmlFor="walletName" className="block text-sm font-medium text-gray-700">
-          Wallet Name <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          id="walletName"
-          value={walletName}
-          onChange={e => setWalletName(e.target.value)}
-          className={`mt-1 block w-full border ${walletNameError ? 'border-red-500' : 'border-gray-300'} rounded-md p-2 dark:text-black`}
-          placeholder="My Wallet"
-        />
-        {walletNameError && <p className="text-red-500 text-sm mt-1">{walletNameError}</p>}
-      </div>
+      <Formik initialValues={initialValues} validationSchema={validationSchema} onSubmit={handleSpoofWallet}>
+        {({ errors, touched }) => (
+          <Form className="w-full max-w-sm flex flex-col flex-1">
+            {/* Wallet Name */}
+            <div className="mt-4 w-full">
+              <label htmlFor="walletName" className="block text-sm font-medium text-gray-700">
+                Wallet Name <span className="text-red-500">*</span>
+              </label>
+              <Field
+                type="text"
+                id="walletName"
+                name="walletName"
+                className={`mt-1 block w-full border ${
+                  errors.walletName && touched.walletName ? 'border-red-500' : 'border-gray-300'
+                } rounded-md p-2 dark:text-black`}
+                placeholder="My Wallet"
+              />
+              <ErrorMessage name="walletName" component="p" className="text-red-500 text-sm mt-1" />
+            </div>
 
-      {/* Wallet Address */}
-      <div className="mt-4 w-full max-w-sm">
-        <label htmlFor="walletAddress" className="block text-sm font-medium text-gray-700">
-          Wallet Address <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          id="walletAddress"
-          value={walletAddress}
-          onChange={e => setWalletAddress(e.target.value)}
-          className={`mt-1 block w-full border ${walletAddressError ? 'border-red-500' : 'border-gray-300'} rounded-md p-2 dark:text-black`}
-          placeholder="Wallet Address"
-        />
-        {walletAddressError && <p className="text-red-500 text-sm mt-1">{walletAddressError}</p>}
-      </div>
+            {/* Wallet Address */}
+            <div className="mt-4 w-full">
+              <label htmlFor="walletAddress" className="block text-sm font-medium text-gray-700">
+                Wallet Address <span className="text-red-500">*</span>
+              </label>
+              <Field
+                type="text"
+                id="walletAddress"
+                name="walletAddress"
+                className={`mt-1 block w-full border ${
+                  errors.walletAddress && touched.walletAddress ? 'border-red-500' : 'border-gray-300'
+                } rounded-md p-2 dark:text-black`}
+                placeholder="Wallet Address"
+              />
+              <ErrorMessage name="walletAddress" component="p" className="text-red-500 text-sm mt-1" />
+            </div>
 
-      {/* Navigation Buttons */}
-      <div className="mt-auto flex space-x-4">
-        <CancelButton onClick={handleCancel}>Cancel</CancelButton>
-        <PrimaryButton
-          onClick={handleSpoofWallet}
-          disabled={!isFormValid}
-          className={!isFormValid ? 'opacity-50 cursor-not-allowed' : ''}>
-          Spoof Wallet
-        </PrimaryButton>
-      </div>
+            {/* Navigation Buttons */}
+            <div className="mt-auto flex justify-center space-x-4">
+              <CancelButton type="button" onClick={handleCancel}>
+                Cancel
+              </CancelButton>
+              <PrimaryButton type="submit">Spoof Wallet</PrimaryButton>
+            </div>
+          </Form>
+        )}
+      </Formik>
     </div>
   );
 };
