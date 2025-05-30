@@ -5,6 +5,8 @@ import { HashRouter as Router, Routes, Route, Navigate, useParams, useNavigate, 
 import '@src/index.css';
 import { useStorage } from '@extension/shared';
 import { exampleThemeStorage, appStateStorage } from '@extension/storage';
+
+import ThemeToggle from './components/themeToggle';
 import Popup from './wallet';
 import Onboarding from './onboarding';
 import AddWallet from './onboarding/pages/addWallet';
@@ -15,26 +17,6 @@ import SpoofWallet from './onboarding/pages/spoofWallet';
 import SpoofWalletSuccess from './onboarding/pages/spoofWalletSuccess';
 import ImportWalletFromSeedPhrase from './onboarding/pages/importWalletFromSeedPhrase';
 import ImportWalletFromSeedPhraseSuccess from './onboarding/pages/importWalletFromSeedPhraseSuccess';
-
-const ThemeToggle = () => {
-  const theme = useStorage(exampleThemeStorage);
-  const isDark = theme === 'dark';
-
-  return (
-    <label
-      htmlFor="theme-toggle"
-      className="relative inline-block h-8 w-14 cursor-pointer rounded-full bg-gray-300 transition dark:bg-gray-600">
-      <input
-        type="checkbox"
-        id="theme-toggle"
-        className="peer sr-only"
-        checked={isDark}
-        onChange={() => exampleThemeStorage.toggle()}
-      />
-      <span className="absolute inset-y-0 start-0 m-1 size-6 rounded-full bg-white transition-all peer-checked:translate-x-6"></span>
-    </label>
-  );
-};
 
 function OnboardingApp() {
   const theme = useStorage(exampleThemeStorage);
@@ -47,9 +29,7 @@ function OnboardingApp() {
       <header className="App-header flex items-center justify-between px-4 py-3">
         <img src={iconUrl} alt="icon" width="34" height="34" />
         <span className="mx-auto text-lg font-semibold">Onboarding</span>
-        <div className="scale-50 flex items-center">
-          <ThemeToggle />
-        </div>
+        <ThemeToggle />
       </header>
 
       {/* Onboarding Routes */}
