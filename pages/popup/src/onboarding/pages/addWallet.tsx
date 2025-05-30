@@ -10,7 +10,7 @@ const AddWallet = () => {
     <div className="flex flex-col items-center h-full">
       {/* Title & Subtitle */}
       <h2 className="text-xl font-medium">Add Wallet</h2>
-      <p className="text-center text text-white-800 mt-2">Create/spoof a new wallet or import an existing account!</p>
+      <p className="mt-2">Create/spoof a new wallet or import an existing account!</p>
 
       {/* New Wallet Section */}
       <div className="mt-10 w-full items-center">
@@ -40,7 +40,7 @@ const AddWallet = () => {
 
           {/* Help Icon positioned absolute to the right */}
           <div
-            className="absolute right-[-24px] w-5 h-5 rounded-full bg-transparent border border-white flex items-center justify-center text-white cursor-help"
+            className="absolute right-[-24px] w-4 h-4 rounded-full bg-transparent border border-black text-black dark:border-white dark:text-white flex items-center justify-center cursor-help"
             onMouseEnter={() => setShowTooltip(true)}
             onMouseLeave={() => setShowTooltip(false)}>
             ?
@@ -48,12 +48,11 @@ const AddWallet = () => {
 
           {/* Tooltip */}
           {showTooltip && (
-            <div className="absolute right-[-28px] top-[-80px] w-64 bg-gray-800 text-white p-2 rounded shadow-lg z-10">
+            <div className="absolute right-[-42px] top-[-77px] w-64 bg-gray-800 text-white p-2 dark:border dark:border-white rounded shadow-lg z-10">
               <p className="text-sm">
-                Create a wallet that appears to have funds without actually having them. Useful for development and
-                testing without real assets.
+                Spoof an existing wallet, giving you read-only access to its funds and transactions.
               </p>
-              <div className="absolute bottom-[-6px] right-[20px] w-3 h-3 bg-gray-800 transform rotate-45"></div>
+              <div className="absolute bottom-[-6px] right-[20px] w-3 h-3 bg-gray-800 dark:border-b dark:border-r dark:border-b-white dark:border-r-white transform rotate-45"></div>
             </div>
           )}
         </div>
