@@ -26,7 +26,8 @@ function OnboardingApp() {
   return (
     <>
       {/* Hardcoded Onboarding Header */}
-      <header className="App-header flex items-center justify-between px-4 py-3 relative">
+      {/* Added border-b, border-gray-300, dark:border-gray-600 */}
+      <header className="flex items-center justify-between px-4 py-3 relative border-b border-gray-300 dark:border-gray-600">
         <img src={iconUrl} alt="icon" width="34" height="34" />
         <span className="absolute left-1/2 transform -translate-x-1/2 text-2xl font-semibold">Onboarding</span>
         <ThemeToggle />
@@ -53,7 +54,8 @@ function OnboardingApp() {
       </main>
 
       {/* Hardcoded Onboarding Footer with progress indicator */}
-      <footer className="App-footer p-4 border-t text-center">
+      {/* Added border-t, border-gray-300, dark:border-gray-600 */}
+      <footer className="p-4 border-t border-gray-300 dark:border-gray-600 text-center">
         <div className="flex justify-center items-center">
           <div className="text-sm">Onboarding Progress</div>
           <div className="w-32 h-2 bg-gray-200 dark:bg-gray-700 rounded-full ml-3">
@@ -148,7 +150,8 @@ function MainAppLayout() {
   return (
     <>
       {/* Main App Header with wallet selector */}
-      <header className="App-header flex items-center justify-between px-4 py-3">
+      {/* Added border-b, border-gray-300, dark:border-gray-600 */}
+      <header className="flex items-center justify-between px-4 py-3 border-b border-gray-300 dark:border-gray-600">
         <img src={iconUrl} alt="icon" width="34" height="34" />
 
         <div className="flex items-center mx-auto">
@@ -189,7 +192,8 @@ function MainAppLayout() {
       </main>
 
       {/* Main App Footer with navigation tabs */}
-      <footer className="App-footer p-4 border-t flex justify-center space-x-4">
+      {/* Added border-t, border-gray-300, dark:border-gray-600 */}
+      <footer className="p-4 border-t border-gray-300 dark:border-gray-600 flex justify-center space-x-4">
         <Link
           to={`/wallet/${walletId}/assets`}
           className={`px-6 py-2 rounded-md transition ${
@@ -236,6 +240,7 @@ function Root() {
   return (
     <Router>
       <div className={isDark ? 'dark' : ''}>
+        {/* Added border, border-gray-300, dark:border-gray-600 to the main App div */}
         <div className="App dark:bg-gray-800 bg-slate-50 dark:text-white text-black flex flex-col h-screen">
           {onboarded ? (
             <Routes>
