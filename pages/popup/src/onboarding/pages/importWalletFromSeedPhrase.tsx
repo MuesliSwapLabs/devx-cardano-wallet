@@ -312,7 +312,7 @@ const ImportNewWallet = () => {
   return (
     <div className="flex flex-col items-center h-full">
       <h2 className="text-xl font-medium mb-1">Import Wallet</h2>
-      <p className="text-white text-sm mb-6">
+      <p className="text-sm mb-6">
         Step {step}/3 — {stepSubtitle}
       </p>
 
@@ -326,24 +326,10 @@ const ImportNewWallet = () => {
             {/* Step 1: Choose Word Count */}
             {step === 1 && (
               <div className="flex flex-col items-center">
-                <p className="text-center text-gray-600 mb-4">How many words does your seed phrase have?</p>
+                <p className="text-center mb-4">How many words does your seed phrase have?</p>
                 <div className="flex space-x-4">
-                  <button
-                    type="button"
-                    onClick={() => handleWordCountChange(15)}
-                    className={`py-2 px-4 rounded border ${
-                      wordCount === 15 ? 'bg-blue-600 text-white' : 'border-gray-400'
-                    }`}>
-                    15 Words
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleWordCountChange(24)}
-                    className={`py-2 px-4 rounded border ${
-                      wordCount === 24 ? 'bg-blue-600 text-white' : 'border-gray-400'
-                    }`}>
-                    24 Words
-                  </button>
+                  <SecondaryButton onClick={() => handleWordCountChange(15)}>15 Words</SecondaryButton>
+                  <SecondaryButton onClick={() => handleWordCountChange(24)}>24 Words</SecondaryButton>
                 </div>
               </div>
             )}
@@ -351,7 +337,7 @@ const ImportNewWallet = () => {
             {/* Step 2: Enter Seed Phrase */}
             {step === 2 && (
               <div className="w-full">
-                <p className="text-center text-gray-600 mb-4">Enter your {wordCount}-word seed phrase</p>
+                <p className="text-center mb-4">Enter your {wordCount}-word seed phrase</p>
                 <div className="grid grid-cols-3 gap-2 relative">
                   {Array.from({ length: wordCount }).map((_, idx) => {
                     const fieldName = `word_${idx}`;
@@ -364,7 +350,7 @@ const ImportNewWallet = () => {
                         <Field
                           name={fieldName}
                           type="text"
-                          className={`p-2 rounded border w-full ${
+                          className={`p-1 rounded border w-full ${
                             validWords[idx]
                               ? 'bg-blue-100 border-transparent'
                               : hasError
@@ -491,7 +477,7 @@ const ImportNewWallet = () => {
             {step === 3 && (
               <div className="w-full">
                 <div className="mb-4">
-                  <label htmlFor="walletName" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="walletName" className="block text-sm font-medium">
                     Wallet Name <span className="text-red-500">*</span>
                   </label>
                   <Field
@@ -507,7 +493,7 @@ const ImportNewWallet = () => {
                 </div>
 
                 <div className="mb-2">
-                  <label htmlFor="walletPassword" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="walletPassword" className="block text-sm font-medium">
                     Password {!values.skipPassword && <span className="text-red-500">*</span>}
                   </label>
                   <Field
@@ -524,7 +510,7 @@ const ImportNewWallet = () => {
                 </div>
 
                 <div className="mb-2">
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium">
                     Confirm Password {!values.skipPassword && <span className="text-red-500">*</span>}
                   </label>
                   <Field
@@ -560,9 +546,7 @@ const ImportNewWallet = () => {
                         }
                       }}
                     />
-                    <span className="text-sm text-gray-700">
-                      I understand the security risks — create wallet without a password
-                    </span>
+                    <span className="text-sm">I understand the security risks — create wallet without a password</span>
                   </label>
                 </div>
               </div>

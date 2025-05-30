@@ -59,15 +59,15 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
     <div className="flex flex-col items-center h-full">
       {/* Title & Subtitle */}
       <h2 className="text-xl font-medium">New Wallet</h2>
-      <p className="text-center text-lg text-gray-600 mt-2">Create a new wallet!</p>
+      <p className="text-center text-sm mt-2">Create a new wallet!</p>
 
       {/* Formik Form */}
       <Formik initialValues={initialValues} validationSchema={validationSchema} onSubmit={handleSubmit}>
         {({ values, errors, touched, setFieldValue, setFieldError, setFieldTouched }) => (
-          <Form className="mt-4 w-full h-fullmax-w-sm">
+          <Form className="flex flex-col mt-4 w-full max-w-sm h-full">
             {/* Wallet Name Field */}
             <div className="mb-4">
-              <label htmlFor="walletName" className="block text-xs font-medium text-gray-500 text-left mb-1">
+              <label htmlFor="walletName" className="block text-xs font-medium text-left mb-1">
                 Wallet Name <span className="text-red-500">*</span>
               </label>
               <Field
@@ -84,7 +84,7 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
 
             {/* Wallet Password Field */}
             <div className="mb-4">
-              <label htmlFor="walletPassword" className="block text-xs font-medium text-gray-500 text-left mb-1">
+              <label htmlFor="walletPassword" className="block text-xs font-medium text-left mb-1">
                 Password {!values.skipPassword && <span className="text-red-500">*</span>}
               </label>
               <Field
@@ -102,7 +102,7 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
 
             {/* Confirm Password Field */}
             <div className="mb-4">
-              <label htmlFor="confirmPassword" className="block text-xs font-medium text-gray-500 text-left mb-1">
+              <label htmlFor="confirmPassword" className="block text-xs font-medium text-left mb-1">
                 Confirm Password {!values.skipPassword && <span className="text-red-500">*</span>}
               </label>
               <Field
@@ -144,14 +144,14 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
                     }
                   }}
                 />
-                <label htmlFor="skipPassword" className="block text-xs text-gray-700 text-left">
+                <label htmlFor="skipPassword" className="block text-xs text-left">
                   Create wallet without a password. I understand the security risks.
                 </label>
               </div>
             </div>
 
             {/* Navigation Buttons */}
-            <div className="mt-6 flex space-x-4 justify-center">
+            <div className="mt-auto flex space-x-4 justify-center">
               <CancelButton type="button" onClick={handleCancel}>
                 Cancel
               </CancelButton>
