@@ -26,9 +26,9 @@ function OnboardingApp() {
   return (
     <>
       {/* Hardcoded Onboarding Header */}
-      <header className="App-header flex items-center justify-between px-4 py-3">
+      <header className="App-header flex items-center justify-between px-4 py-3 relative">
         <img src={iconUrl} alt="icon" width="34" height="34" />
-        <span className="mx-auto text-lg font-semibold">Onboarding</span>
+        <span className="absolute left-1/2 transform -translate-x-1/2 text-2xl font-semibold">Onboarding</span>
         <ThemeToggle />
       </header>
 
