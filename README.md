@@ -1,21 +1,57 @@
-# Introduction
-The original README from the forked repo can be found below. Here we quickly
-explain how I (Pascal) interpreted the structure of this boilerplate and how I
-implemented the frontend with dummy "backend" functions.
+# Info
+This project is based upon this boilerplate: https://github.com/Jonghakseo/chrome-extension-boilerplate-react-vite
 
-- `chrom-extension/src`: Holds chrome extension background scripts aka "service 
-workers". They run code in the background. E.g. it allows to run a "create wallet"
-action in the background and do 10 retries while the user can keep using the
-extension. Or we might fetch the price of the assets every 10 seconds etc.. They
-are decoupled from frontend(s) like the popup and use a messaging system to
-communicate between each other.
-- `
+# Project Structure
+### `./packages`
+The packages directory holds your own first-party libraries that you actively
+build and edit as part of your project, unlike the external, third-party
+dependencies you download into `node_modules`. These local packages are then
+consumed by your top-level application folders, like pages and chrome-extension,
+which are the final, deployable products. This means you can create and share
+your own code between different parts of your app with the power to edit it
+directly, rather than just using pre-built code from someone else.
+
+Each package (generally) contains:
+- `.turbo`: Local cache created by Turborepo, a high-performance build system
+for monorepos. 
+- `dist`: Build dir 
+- `lib`: Actual package code
+- `node_modules`: Package's dependencies
+
+### `./packages/storage`
+This is a reusable library that simplifies saving and retrieving data from
+Chrome's own storage API.
+
+### `./packages/shared`
+This is a general-purpose library for any code (like TypeScript types or
+constants) that needs to be used by both the popup and the background.
+
+### `./pages/popup`
+This is the user interface. It's the React application the user sees and
+interacts with when they click your extension's icon.
+
+### `./chrome-extension/src/background`
+This is the extension's brain. It's a script that runs persistently in the
+background to manage core logic, state, and listen for browser events.
+
+## How They Interact
+The `popup` (UI) and `background` (brain) work together primarily through
+message passing. The popup sends requests to the background, which then performs
+actions and can reply with data. This communication is handled by the
+`chrome.runtime` API:
+
+-   **Popup (Sender):** Uses `chrome.runtime.sendMessage()` to send a message
+and optionally get a response.
+
+-   **Background (Receiver):** Uses `chrome.runtime.onMessage.addListener()` to
+listen for and handle incoming messages.
+
+Both the popup and background also import code from `packages/storage` and
+`packages/shared` to consistently handle data and share common logic, ensuring
+they speak the same language.
 
 
-
-
-
-# Original README.mdCardanoAddress
+# Original README.md
 <div align="center">
 
 <picture>
