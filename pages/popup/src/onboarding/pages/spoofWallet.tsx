@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom';
-import { Formik, Form, Field, ErrorMessage } from 'formik';
+import { Formik, Form, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import { PrimaryButton, CancelButton } from '@src/components/buttons';
+import FloatingLabelInput from '@src/components/FloatingLabelInput'; // Make sure this path is correct
 
 const SpoofWallet = () => {
   const navigate = useNavigate();
@@ -41,41 +42,31 @@ const SpoofWallet = () => {
     <div className="flex flex-col items-center h-full">
       {/* Title & Subtitle */}
       <h2 className="text-xl font-medium">Spoof Wallet</h2>
-      <p className="text-center text-lg text-gray-600 mt-2">Spoof a wallet!</p>
+      <p className="text-center text-sm mt-2">Create a wallet with a custom address!</p>
 
       <Formik initialValues={initialValues} validationSchema={validationSchema} onSubmit={handleSpoofWallet}>
         {({ errors, touched }) => (
-          <Form className="w-full max-w-sm flex flex-col flex-1">
+          <Form className="w-full max-w-sm flex flex-col h-full mt-4">
             {/* Wallet Name */}
-            <div className="mt-4 w-full">
-              <label htmlFor="walletName" className="block text-sm font-medium text-gray-700">
-                Wallet Name <span className="text-red-500">*</span>
-              </label>
-              <Field
-                type="text"
-                id="walletName"
+            <div className="mb-4">
+              <FloatingLabelInput
                 name="walletName"
-                className={`mt-1 block w-full border ${
-                  errors.walletName && touched.walletName ? 'border-red-500' : 'border-gray-300'
-                } rounded-md p-2 dark:text-black`}
-                placeholder="My Wallet"
+                label="Wallet Name"
+                type="text"
+                required
+                error={touched.walletName && errors.walletName}
               />
               <ErrorMessage name="walletName" component="p" className="text-red-500 text-sm mt-1" />
             </div>
 
             {/* Wallet Address */}
-            <div className="mt-4 w-full">
-              <label htmlFor="walletAddress" className="block text-sm font-medium text-gray-700">
-                Wallet Address <span className="text-red-500">*</span>
-              </label>
-              <Field
-                type="text"
-                id="walletAddress"
+            <div className="mb-4">
+              <FloatingLabelInput
                 name="walletAddress"
-                className={`mt-1 block w-full border ${
-                  errors.walletAddress && touched.walletAddress ? 'border-red-500' : 'border-gray-300'
-                } rounded-md p-2 dark:text-black`}
-                placeholder="Wallet Address"
+                label="Wallet Address"
+                type="text"
+                required
+                error={touched.walletAddress && errors.walletAddress}
               />
               <ErrorMessage name="walletAddress" component="p" className="text-red-500 text-sm mt-1" />
             </div>

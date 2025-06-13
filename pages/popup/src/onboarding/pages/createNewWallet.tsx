@@ -1,15 +1,15 @@
+import { ErrorMessage, Field, Form, Formik } from 'formik';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
-import { PrimaryButton, CancelButton } from '@src/components/buttons';
+import { CancelButton, PrimaryButton } from '@src/components/buttons';
+import FloatingLabelInput from '@src/components/FloatingLabelInput'; // Assuming this path is correct
 
 interface CreateNewWalletProps {}
 
 const CreateNewWallet = ({}: CreateNewWalletProps) => {
   const navigate = useNavigate();
 
-  // Validation schema
   const validationSchema = Yup.object({
     walletName: Yup.string().required('Wallet name is required'),
     walletPassword: Yup.string().when('skipPassword', {
@@ -34,12 +34,10 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
   };
 
   const handleSubmit = values => {
-    // Create a base wallet object
     const newWallet = {
       name: values.walletName,
     };
 
-    // Only add password if not skipped
     if (!values.skipPassword) {
       newWallet.password = values.walletPassword;
     }
@@ -57,63 +55,46 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
 
   return (
     <div className="flex flex-col items-center h-full">
-      {/* Title & Subtitle */}
       <h2 className="text-xl font-medium">New Wallet</h2>
       <p className="text-center text-sm mt-2">Create a new wallet!</p>
 
-      {/* Formik Form */}
       <Formik initialValues={initialValues} validationSchema={validationSchema} onSubmit={handleSubmit}>
         {({ values, errors, touched, setFieldValue, setFieldError, setFieldTouched }) => (
           <Form className="flex flex-col mt-4 w-full max-w-sm h-full">
             {/* Wallet Name Field */}
             <div className="mb-4">
-              <label htmlFor="walletName" className="block text-xs font-medium text-left mb-1">
-                Wallet Name <span className="text-red-500">*</span>
-              </label>
-              <Field
-                type="text"
-                id="walletName"
+              <FloatingLabelInput
                 name="walletName"
-                className={`w-full border ${
-                  errors.walletName && touched.walletName ? 'border-red-500' : 'border-gray-300'
-                } rounded-md p-2 dark:text-black`}
-                placeholder="My Wallet"
+                label="Wallet Name"
+                type="text"
+                required
+                error={touched.walletName && errors.walletName}
               />
               <ErrorMessage name="walletName" component="p" className="text-red-500 text-xs mt-1" />
             </div>
 
             {/* Wallet Password Field */}
             <div className="mb-4">
-              <label htmlFor="walletPassword" className="block text-xs font-medium text-left mb-1">
-                Password {!values.skipPassword && <span className="text-red-500">*</span>}
-              </label>
-              <Field
-                type="password"
-                id="walletPassword"
+              <FloatingLabelInput
                 name="walletPassword"
+                label="Password"
+                type="password"
                 disabled={values.skipPassword}
-                className={`w-full border ${
-                  errors.walletPassword && touched.walletPassword ? 'border-red-500' : 'border-gray-300'
-                } rounded-md p-2 dark:text-black ${values.skipPassword ? 'bg-gray-100' : ''}`}
-                placeholder={values.skipPassword ? 'Password disabled' : 'Enter password'}
+                required={!values.skipPassword}
+                error={touched.walletPassword && errors.walletPassword}
               />
               <ErrorMessage name="walletPassword" component="p" className="text-red-500 text-xs mt-1" />
             </div>
 
             {/* Confirm Password Field */}
             <div className="mb-4">
-              <label htmlFor="confirmPassword" className="block text-xs font-medium text-left mb-1">
-                Confirm Password {!values.skipPassword && <span className="text-red-500">*</span>}
-              </label>
-              <Field
-                type="password"
-                id="confirmPassword"
+              <FloatingLabelInput
                 name="confirmPassword"
+                label="Confirm Password"
+                type="password"
                 disabled={values.skipPassword}
-                className={`w-full border ${
-                  errors.confirmPassword && touched.confirmPassword ? 'border-red-500' : 'border-gray-300'
-                } rounded-md p-2 dark:text-black ${values.skipPassword ? 'bg-gray-100' : ''}`}
-                placeholder={values.skipPassword ? 'Password disabled' : 'Confirm password'}
+                required={!values.skipPassword}
+                error={touched.confirmPassword && errors.confirmPassword}
               />
               <ErrorMessage name="confirmPassword" component="p" className="text-red-500 text-xs mt-1" />
             </div>
@@ -130,15 +111,10 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
                     const checked = e.target.checked;
                     setFieldValue('skipPassword', checked);
                     if (checked) {
-                      // Clear field values
                       setFieldValue('walletPassword', '');
                       setFieldValue('confirmPassword', '');
-
-                      // Clear validation errors
                       setFieldError('walletPassword', undefined);
                       setFieldError('confirmPassword', undefined);
-
-                      // Clear touched state
                       setFieldTouched('walletPassword', false);
                       setFieldTouched('confirmPassword', false);
                     }

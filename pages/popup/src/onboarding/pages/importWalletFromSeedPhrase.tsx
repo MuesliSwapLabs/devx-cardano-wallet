@@ -4,6 +4,7 @@ import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 
 import { PrimaryButton, SecondaryButton, CancelButton } from '@src/components/buttons';
+import FloatingLabelInput from '@src/components/FloatingLabelInput'; // Make sure this path is correct
 
 // Simple fuzzy search function
 const fuzzySearch = (query, words) => {
@@ -334,7 +335,7 @@ const ImportNewWallet = () => {
               </div>
             )}
 
-            {/* Step 2: Enter Seed Phrase */}
+            {/* Step 2: Enter Seed Phrase (Unchanged) */}
             {step === 2 && (
               <div className="w-full">
                 <p className="text-center mb-4">Enter your {wordCount}-word seed phrase</p>
@@ -361,20 +362,16 @@ const ImportNewWallet = () => {
                           onChange={e => handleWordChange(idx, e.target.value, setFieldValue)}
                           onKeyDown={e => handleKeyDown(e, idx, setFieldValue)}
                           onClick={e => {
-                            // If field has valid word, clear it and reset styling
                             if (validWords[idx]) {
                               setFieldValue(fieldName, '');
                               setValidWords(prev => ({ ...prev, [idx]: false }));
                             }
                           }}
                           onFocus={e => {
-                            // Show suggestions again when refocusing if there's a value
                             if (e.target.value.trim() && !validWords[idx]) {
                               const matches = fuzzySearch(e.target.value.trim(), BIP39_WORDS);
                               setSuggestions(prev => ({ ...prev, [idx]: matches }));
                               setActiveSuggestionIndex(prev => ({ ...prev, [idx]: 0 }));
-
-                              // Reset scroll state
                               setTimeout(() => {
                                 const dropdown = document.getElementById(`suggestions-${idx}`);
                                 if (dropdown) {
@@ -389,48 +386,35 @@ const ImportNewWallet = () => {
                             }
                           }}
                           onBlur={() => {
-                            // Auto-select the active suggestion if there is one
                             const currentSuggestions = suggestions[idx] || [];
                             const activeIndex = activeSuggestionIndex[idx] ?? -1;
-
                             if (currentSuggestions.length > 0 && activeIndex >= 0) {
                               const selectedWord = currentSuggestions[activeIndex];
                               setFieldValue(fieldName, selectedWord);
                               setValidWords(prev => ({ ...prev, [idx]: true }));
                             }
-
-                            // Clear suggestions after a small delay
                             setTimeout(() => {
                               setSuggestions(prev => ({ ...prev, [idx]: [] }));
                             }, 200);
                           }}
                           autoComplete="off"
                         />
-
-                        {/* Suggestions Dropdown */}
                         {currentSuggestions.length > 0 && (
                           <div
                             className="absolute z-50 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-32 overflow-hidden"
                             style={{ top: 'calc(100% + 4px)', left: 0 }}>
-                            {/* Top scroll indicator - absolutely positioned */}
                             {scrollStates[idx]?.canScrollUp && (
                               <div className="absolute top-0 left-0 right-0 z-20 flex justify-center py-1 bg-white bg-opacity-90 pointer-events-none">
                                 <div className="w-0 h-0 border-l-4 border-r-4 border-b-4 border-l-transparent border-r-transparent border-b-gray-400"></div>
                               </div>
                             )}
-
-                            {/* Scrollable content */}
                             <div
                               id={`suggestions-${idx}`}
                               className="max-h-32 overflow-y-auto"
-                              style={{
-                                scrollbarWidth: 'none',
-                                msOverflowStyle: 'none',
-                              }}
+                              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                               onScroll={e => handleScroll(e, idx)}>
                               {currentSuggestions.map((word, suggestionIdx) => {
                                 const isActive = activeIndex === suggestionIdx;
-
                                 return (
                                   <button
                                     key={word}
@@ -438,22 +422,17 @@ const ImportNewWallet = () => {
                                     className={`w-full text-left px-3 py-1 text-sm dark:text-black ${
                                       isActive ? 'bg-gray-200' : 'hover:bg-gray-100'
                                     }`}
-                                    onMouseDown={e => e.preventDefault()} // Prevent blur
+                                    onMouseDown={e => e.preventDefault()}
                                     onMouseEnter={() => {
-                                      // Mouse hover updates the same state that keyboard uses
                                       setActiveSuggestionIndex(prev => ({ ...prev, [idx]: suggestionIdx }));
                                     }}
-                                    onMouseLeave={() => {
-                                      // Don't clear on mouse leave - let the state persist
-                                    }}
+                                    onMouseLeave={() => {}}
                                     onClick={() => handleSuggestionClick(idx, word, setFieldValue)}>
                                     {highlightMatch(word, values[fieldName] || '')}
                                   </button>
                                 );
                               })}
                             </div>
-
-                            {/* Bottom scroll indicator - absolutely positioned */}
                             {scrollStates[idx]?.canScrollDown && (
                               <div className="absolute bottom-0 left-0 right-0 z-20 flex justify-center py-1 bg-white bg-opacity-90 pointer-events-none">
                                 <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-400"></div>
@@ -465,63 +444,49 @@ const ImportNewWallet = () => {
                     );
                   })}
                 </div>
-
-                {/* Global error message for missing words */}
                 {Object.keys(errors).some(key => key.startsWith('word_') && touched[key]) && (
                   <p className="text-red-500 text-sm mt-2 text-center">Please fill out missing words</p>
                 )}
               </div>
             )}
 
-            {/* Step 3: Wallet Details */}
+            {/* Step 3: Wallet Details (Refactored) */}
             {step === 3 && (
               <div className="w-full">
+                {/* Wallet Name Field */}
                 <div className="mb-4">
-                  <label htmlFor="walletName" className="block text-sm font-medium">
-                    Wallet Name <span className="text-red-500">*</span>
-                  </label>
-                  <Field
-                    type="text"
-                    id="walletName"
+                  <FloatingLabelInput
                     name="walletName"
-                    className={`mt-1 block w-full border rounded-md p-2 dark:text-black ${
-                      errors.walletName && touched.walletName ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="My Wallet"
+                    label="Wallet Name"
+                    type="text"
+                    required
+                    error={touched.walletName && errors.walletName}
                   />
                   <ErrorMessage name="walletName" component="p" className="text-red-500 text-sm mt-1" />
                 </div>
 
-                <div className="mb-2">
-                  <label htmlFor="walletPassword" className="block text-sm font-medium">
-                    Password {!values.skipPassword && <span className="text-red-500">*</span>}
-                  </label>
-                  <Field
-                    type="password"
-                    id="walletPassword"
+                {/* Wallet Password Field */}
+                <div className="mb-4">
+                  <FloatingLabelInput
                     name="walletPassword"
+                    label="Password"
+                    type="password"
                     disabled={values.skipPassword}
-                    className={`mt-1 block w-full border ${
-                      errors.walletPassword && touched.walletPassword ? 'border-red-500' : 'border-gray-300'
-                    } rounded-md p-2 dark:text-black ${values.skipPassword ? 'bg-gray-100' : ''}`}
-                    placeholder={values.skipPassword ? 'Password disabled' : 'Enter password'}
+                    required={!values.skipPassword}
+                    error={touched.walletPassword && errors.walletPassword}
                   />
                   <ErrorMessage name="walletPassword" component="p" className="text-red-500 text-sm mt-1" />
                 </div>
 
-                <div className="mb-2">
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium">
-                    Confirm Password {!values.skipPassword && <span className="text-red-500">*</span>}
-                  </label>
-                  <Field
-                    type="password"
-                    id="confirmPassword"
+                {/* Confirm Password Field */}
+                <div className="mb-4">
+                  <FloatingLabelInput
                     name="confirmPassword"
+                    label="Confirm Password"
+                    type="password"
                     disabled={values.skipPassword}
-                    className={`mt-1 block w-full border ${
-                      errors.confirmPassword && touched.confirmPassword ? 'border-red-500' : 'border-gray-300'
-                    } rounded-md p-2 dark:text-black ${values.skipPassword ? 'bg-gray-100' : ''}`}
-                    placeholder={values.skipPassword ? 'Password disabled' : 'Confirm password'}
+                    required={!values.skipPassword}
+                    error={touched.confirmPassword && errors.confirmPassword}
                   />
                   <ErrorMessage name="confirmPassword" component="p" className="text-red-500 text-sm mt-1" />
                 </div>
