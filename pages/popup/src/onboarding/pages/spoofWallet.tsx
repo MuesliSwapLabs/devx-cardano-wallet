@@ -4,6 +4,12 @@ import * as Yup from 'yup';
 import { PrimaryButton, CancelButton } from '@src/components/buttons';
 import FloatingLabelInput from '@src/components/FloatingLabelInput'; // Make sure this path is correct
 
+// Define the shape of our form's data
+interface IFormValues {
+  walletName: string;
+  walletAddress: string;
+}
+
 const SpoofWallet = () => {
   const navigate = useNavigate();
 
@@ -13,25 +19,44 @@ const SpoofWallet = () => {
     walletAddress: Yup.string().required('Wallet address is required.'),
   });
 
-  // Initial form values
-  const initialValues = {
+  // Initial form values, typed with our interface
+  const initialValues: IFormValues = {
     walletName: '',
     walletAddress: '',
   };
 
-  const handleSpoofWallet = values => {
-    const spoofedWallet = {
+  const handleSpoofWallet = (values: IFormValues) => {
+    // 1. Prepare the data payload from the form values.
+    const payload = {
       name: values.walletName,
       address: values.walletAddress,
-      hasPassword: false,
     };
 
-    //TODO: Implement
-    // chrome.runtime.sendMessage({ type: 'SpoofWallet', spoofedWallet }, response => {
-    //   navigate('/onboarding/spoof-wallet-success');
-    // });
-    alert('Not implemented yet. Redirecting to success anyway.');
-    navigate('/onboarding/spoof-wallet-success'); // remove this line when implementing the above
+    console.log('UI: Sending SPOOF_WALLET message with payload:', payload);
+
+    // 2. Send the message to the background script.
+    chrome.runtime.sendMessage(
+      {
+        type: 'SPOOF_WALLET',
+        payload: payload,
+      },
+      // 3. Handle the response from the background script.
+      response => {
+        if (chrome.runtime.lastError) {
+          console.error('Message sending failed:', chrome.runtime.lastError.message);
+          // TODO: Display an error message to the user
+          return;
+        }
+
+        if (response?.success) {
+          console.log('UI: Spoofed wallet added successfully!', response.wallet);
+          navigate('/onboarding/spoof-wallet-success');
+        } else {
+          console.error('UI: Failed to spoof wallet:', response?.error);
+          // TODO: Display an error message to the user
+        }
+      },
+    );
   };
 
   const handleCancel = () => {
@@ -44,7 +69,11 @@ const SpoofWallet = () => {
       <h2 className="text-xl font-medium">Spoof Wallet</h2>
       <p className="text-center text-sm mt-2">Create a wallet with a custom address!</p>
 
-      <Formik initialValues={initialValues} validationSchema={validationSchema} onSubmit={handleSpoofWallet}>
+      {/* Provide the IFormValues type to Formik */}
+      <Formik<IFormValues>
+        initialValues={initialValues}
+        validationSchema={validationSchema}
+        onSubmit={handleSpoofWallet}>
         {({ errors, touched }) => (
           <Form className="w-full max-w-sm flex flex-col h-full mt-4">
             {/* Wallet Name */}

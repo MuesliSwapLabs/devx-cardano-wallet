@@ -1,9 +1,8 @@
 import { ErrorMessage, Field, Form, Formik } from 'formik';
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as Yup from 'yup';
 import { CancelButton, PrimaryButton } from '@src/components/buttons';
-import FloatingLabelInput from '@src/components/FloatingLabelInput'; // Assuming this path is correct
+import FloatingLabelInput from '@src/components/FloatingLabelInput';
 
 interface CreateNewWalletProps {}
 
@@ -34,19 +33,40 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
   };
 
   const handleSubmit = values => {
-    const newWallet = {
+    // 1. Prepare the data payload from the form values.
+    const payload = {
       name: values.walletName,
+      // Only include the password if the user has not skipped it.
+      password: values.skipPassword ? undefined : values.walletPassword,
     };
 
-    if (!values.skipPassword) {
-      newWallet.password = values.walletPassword;
-    }
+    console.log('UI: Sending CREATE_WALLET message with payload:', payload);
 
-    console.log('Creating new wallet:', newWallet);
-    chrome.runtime.sendMessage({ type: 'createNewWallet', newWallet }, response => {
-      console.log('Response create new wallet:', response);
-      navigate('/onboarding/create-new-wallet-success');
-    });
+    // 2. Send the message to the background script to perform the logic.
+    chrome.runtime.sendMessage(
+      {
+        type: 'CREATE_WALLET',
+        payload: payload,
+      },
+      // 3. Handle the response from the background script.
+      response => {
+        // Check for errors during message sending itself.
+        if (chrome.runtime.lastError) {
+          console.error('Message sending failed:', chrome.runtime.lastError.message);
+          // TODO: Display an error message to the user
+          return;
+        }
+
+        // Handle the response from our background logic.
+        if (response?.success) {
+          console.log('UI: Wallet created successfully!', response.wallet);
+          navigate('/onboarding/create-new-wallet-success');
+        } else {
+          console.error('UI: Failed to create wallet:', response?.error);
+          // TODO: Display a meaningful error message to the user
+        }
+      },
+    );
   };
 
   const handleCancel = () => {

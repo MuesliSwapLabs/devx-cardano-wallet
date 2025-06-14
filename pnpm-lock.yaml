@@ -136,6 +136,9 @@ importers:
       '@extension/vite-config':
         specifier: workspace:*
         version: link:../packages/vite-config
+      '@extension/wallet-manager':
+        specifier: workspace:*
+        version: link:../packages/wallet-manager
       '@laynezh/vite-plugin-lib-assets':
         specifier: ^0.5.23
         version: 0.5.24(vite@5.4.9(@types/node@22.7.4)(sass@1.79.4)(terser@5.34.1))
@@ -208,6 +211,9 @@ importers:
 
   packages/storage:
     devDependencies:
+      '@extension/shared':
+        specifier: workspace:*
+        version: link:../shared
       '@extension/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig

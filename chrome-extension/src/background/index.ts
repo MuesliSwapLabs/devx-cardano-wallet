@@ -1,30 +1,43 @@
-import 'webextension-polyfill';
-import { exampleThemeStorage } from '@extension/storage';
-import { getCurrentPrice, createNewWallet } from '@extension/shared/wallet';
-
-// Note:
-// The background script(s) run in the background. E.g. they might fetch
-// the Cardano price every 20s while the user does other things. They might
-// try to send money 10 times in the background while the user might do
-// other things in the mean time.
-//
-// // The way chrome extensions connect the "frontend" (e.g. popup) and the
-// background scrip(s) is via messaging.
+import { walletsStorage } from '@extension/storage';
+import { createNewWallet, importWallet, spoofWallet } from '@extension/wallet-manager';
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === 'checkCurrentPrice') {
-    const result = getCurrentPrice();
-    sendResponse({ price: result });
-  }
-  return true;
-});
+  let promise: Promise<void>;
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === 'createNewWallet') {
-    const newWallet = createNewWallet(message.newWallet.name, message.newWallet.password);
-    // TODO: Persist wallet to storage. Maybe we don't do that here but in the
-    // receiver? Who knows.
-    sendResponse({ wallet: newWallet });
+  switch (message.type) {
+    case 'CREATE_WALLET': {
+      const wallet = createNewWallet(message.payload.name, message.payload.password);
+      promise = walletsStorage.addWallet(wallet).then(() => {
+        sendResponse({ success: true, wallet });
+      });
+      break;
+    }
+
+    case 'IMPORT_WALLET': {
+      const wallet = importWallet(message.payload.name, message.payload.seedPhrase, message.payload.password);
+      promise = walletsStorage.addWallet(wallet).then(() => {
+        sendResponse({ success: true, wallet });
+      });
+      break;
+    }
+
+    case 'SPOOF_WALLET': {
+      const wallet = spoofWallet(message.payload.name, message.payload.address);
+      promise = walletsStorage.addWallet(wallet).then(() => {
+        sendResponse({ success: true, wallet });
+      });
+      break;
+    }
+
+    default:
+      // Exit early if the message type is not recognized
+      return false;
   }
+
+  // Handle errors and indicate that the response will be sent asynchronously
+  promise.catch(error => {
+    sendResponse({ success: false, error: error.message });
+  });
+
   return true;
 });

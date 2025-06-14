@@ -281,23 +281,27 @@ const ImportNewWallet = () => {
     setStep(prev => prev - 1);
   };
 
-  const handleImport = values => {
-    const seedPhrase = [];
-    for (let i = 0; i < wordCount; i++) {
-      seedPhrase.push(values[`word_${i}`]);
-    }
+  const handleImport = (values: IFormValues, { setSubmitting }: FormikHelpers<IFormValues>) => {
+    const seedPhraseWords = Array.from({ length: wordCount }, (_, i) => values[`word_${i}`]);
+    const seedPhrase = seedPhraseWords.join(' ');
 
-    console.log('Importing with:', {
-      wordCount,
-      seedPhrase,
-      walletName: values.walletName,
-      walletPassword: values.skipPassword ? '' : values.walletPassword,
-      hasPassword: !values.skipPassword,
+    const payload = {
+      name: values.walletName,
+      seedPhrase: seedPhrase,
+      password: values.skipPassword ? undefined : values.walletPassword,
+    };
+
+    chrome.runtime.sendMessage({ type: 'IMPORT_WALLET', payload }, response => {
+      if (chrome.runtime.lastError) {
+        console.error('Message sending failed:', chrome.runtime.lastError.message);
+      } else if (response?.success) {
+        alert('Not implemented yet. Redirecting to success anyway.');
+        navigate('/onboarding/import-wallet-from-seed-phrase-success');
+      } else {
+        console.error('UI: Failed to import wallet:', response?.error);
+      }
+      setSubmitting(false);
     });
-
-    // Simulate import
-    alert('Not implemented yet. Redirecting to success anyway.');
-    navigate('/onboarding/import-wallet-from-seed-phrase-success');
   };
 
   const handleCancel = () => {
