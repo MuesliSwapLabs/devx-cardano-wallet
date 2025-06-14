@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useStorage } from '@extension/shared';
-import { appStateStorage } from '@extension/storage';
+import { useStorage, appStateStorage } from '@extension/storage';
 import { PrimaryButton, SecondaryButton } from '@src/components/buttons';
 
 function CreateNewWalletSuccess() {

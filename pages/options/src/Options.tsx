@@ -1,6 +1,6 @@
 import '@src/Options.css';
-import { useStorage, withErrorBoundary, withSuspense } from '@extension/shared';
-import { exampleThemeStorage } from '@extension/storage';
+import { withErrorBoundary, withSuspense } from '@extension/shared';
+import { useStorage, exampleThemeStorage } from '@extension/storage';
 import { Button } from '@extension/ui';
 
 const Options = () => {

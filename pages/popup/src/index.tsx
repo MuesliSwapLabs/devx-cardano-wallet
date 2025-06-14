@@ -3,8 +3,7 @@ import { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HashRouter as Router, Routes, Route, Navigate, useParams, useNavigate, Link, Outlet } from 'react-router-dom';
 import '@src/index.css';
-import { useStorage } from '@extension/shared';
-import { exampleThemeStorage, appStateStorage } from '@extension/storage';
+import { useStorage, exampleThemeStorage, appStateStorage } from '@extension/storage';
 
 import ThemeToggle from './components/themeToggle';
 import Popup from './wallet';

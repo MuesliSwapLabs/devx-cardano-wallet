@@ -1,5 +1,4 @@
-import { exampleThemeStorage } from '@extension/storage';
-import { useStorage } from '@extension/shared';
+import { useStorage, exampleThemeStorage } from '@extension/storage';
 import './style.css';
 
 const ThemeToggle = () => {

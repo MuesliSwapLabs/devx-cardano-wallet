@@ -1,9 +1,9 @@
 // Popup.tsx
 import { PrimaryButton } from '@src/components/buttons';
 import React from 'react';
-import { useStorage, withErrorBoundary, withSuspense } from '@extension/shared';
+import { withErrorBoundary, withSuspense } from '@extension/shared';
 
-import { exampleThemeStorage, appStateStorage } from '@extension/storage';
+import { useStorage, exampleThemeStorage, appStateStorage } from '@extension/storage';
 import { useParams } from 'react-router-dom';
 
 function Popup() {
