@@ -31,7 +31,7 @@ function LegalAndAnalytics({}: LegalAndAnalyticsProps) {
   // Handle clicking "I Agree"
   const handleAgreeClick = () => {
     appStateStorage.setItem('onboarding:LegalAndAnalyticsAccepted', true);
-    navigate('/onboarding/add-wallet');
+    navigate('/add-wallet');
   };
 
   return (

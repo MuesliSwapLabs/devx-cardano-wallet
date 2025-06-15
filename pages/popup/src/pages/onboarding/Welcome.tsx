@@ -2,9 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { appStateStorage } from '@extension/storage';
-import { getCurrentPrice } from '@extension/shared/wallet';
 
-import { PrimaryButton } from '../components/buttons';
+import { PrimaryButton } from '../../components/buttons';
 
 const Onboarding = () => {
   const navigate = useNavigate();
@@ -24,7 +23,7 @@ const Onboarding = () => {
         blockchain.
       </p>
       <div className="w-full mt-auto pt-6 flex justify-between space-y-4">
-        <PrimaryButton onClick={() => navigate('/onboarding/legal-and-analytics')} className="w-full">
+        <PrimaryButton onClick={() => navigate('/onboarding/legal')} className="w-full">
           Continue
         </PrimaryButton>
       </div>

@@ -296,7 +296,7 @@ const ImportNewWallet = () => {
         console.error('Message sending failed:', chrome.runtime.lastError.message);
       } else if (response?.success) {
         alert('Not implemented yet. Redirecting to success anyway.');
-        navigate('/onboarding/import-wallet-from-seed-phrase-success');
+        navigate('/import-wallet-from-seed-phrase-success');
       } else {
         console.error('UI: Failed to import wallet:', response?.error);
       }
@@ -305,7 +305,7 @@ const ImportNewWallet = () => {
   };
 
   const handleCancel = () => {
-    navigate('/onboarding/add-wallet');
+    navigate('/add-wallet');
   };
 
   const stepSubtitle = {

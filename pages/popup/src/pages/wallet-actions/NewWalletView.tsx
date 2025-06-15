@@ -15,7 +15,7 @@ const AddWallet = () => {
       {/* New Wallet Section */}
       <div className="mt-10 w-full items-center">
         <div className="mt-2 flex justify-center">
-          <PrimaryButton onClick={() => navigate('/onboarding/create-new-wallet')} className="w-3/5">
+          <PrimaryButton onClick={() => navigate('/create-new-wallet')} className="w-3/5">
             Create New Wallet
           </PrimaryButton>
         </div>
@@ -25,7 +25,7 @@ const AddWallet = () => {
 
       {/* Existing Wallet Section */}
       <div className="mt-10 w-full flex flex-col space-y-4 items-center">
-        <SecondaryButton onClick={() => navigate('/onboarding/import-wallet-from-seed-phrase')} className="w-3/5">
+        <SecondaryButton onClick={() => navigate('/import-wallet-from-seed-phrase')} className="w-3/5">
           Import from Seed Phrase
         </SecondaryButton>
 
@@ -34,7 +34,7 @@ const AddWallet = () => {
         </SecondaryButton>
 
         <div className="w-3/5 flex items-center relative">
-          <SecondaryButton onClick={() => navigate('/onboarding/spoof-wallet')} className="w-full">
+          <SecondaryButton onClick={() => navigate('/spoof-wallet')} className="w-full">
             Spoof Wallet
           </SecondaryButton>
 

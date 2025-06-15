@@ -1,54 +1,50 @@
+// packages/wallet-manager/lib/manager.ts
 import { v4 as uuidv4 } from 'uuid';
 import type { Wallet } from '@extension/shared';
+import { encrypt } from '@extension/shared';
 
-/**
- * Creates a new wallet object.
- * This function will eventually contain complex crypto and on-chain logic.
- */
-export function createNewWallet(name: string, password?: string): Wallet {
-  console.log('[WalletManager]: Running business logic for CREATE...');
-  // TODO: In the future, this is where you'll generate real keys.
+export async function createNewWallet(name: string, password?: string): Promise<Wallet> {
+  // TODO: Replace with real seed phrase generation
+  const seedPhrase = 'example super secret seed phrase for a new wallet';
+  const newAddress = `addr_test_new_${Date.now()}`;
+
   const wallet: Wallet = {
     id: uuidv4(),
     name,
-    address: `addr_test_new_${Date.now()}`,
+    address: newAddress,
     type: 'HD',
     balance: '0',
     hasPassword: !!password,
+    // Store the secret encrypted if a password exists, otherwise store it in plaintext.
+    secret: password ? await encrypt(seedPhrase, password) : seedPhrase,
   };
   return wallet;
 }
 
-/**
- * Creates a wallet object from an import.
- */
-export function importWallet(name: string, seedPhrase: string, password?: string): Wallet {
-  console.log('[WalletManager]: Running business logic for IMPORT...');
-  // TODO: In the future, this is where you'll validate the seed and derive the address.
+export async function importWallet(name: string, seedPhrase: string, password?: string): Promise<Wallet> {
+  // TODO: Validate seed phrase and derive address
+  const derivedAddress = `addr_test_imported_${Date.now()}`;
+
   const wallet: Wallet = {
     id: uuidv4(),
     name,
-    address: `addr_test_imported_${Date.now()}`,
+    address: derivedAddress,
     type: 'HD',
     balance: '0',
     hasPassword: !!password,
+    secret: password ? await encrypt(seedPhrase, password) : seedPhrase,
   };
   return wallet;
 }
 
-/**
- * Creates a read-only "spoofed" wallet object.
- */
 export function spoofWallet(name: string, address: string): Wallet {
-  console.log('[WalletManager]: Running business logic for SPOOF...');
-  // TODO: In the future, this is where you'll call the blockchain-provider.
-  const wallet: Wallet = {
+  return {
     id: uuidv4(),
     name,
     address,
     type: 'SPOOFED',
     balance: '0',
     hasPassword: false,
+    secret: null, // Spoofed wallets have no secret
   };
-  return wallet;
 }

@@ -50,7 +50,7 @@ const SpoofWallet = () => {
 
         if (response?.success) {
           console.log('UI: Spoofed wallet added successfully!', response.wallet);
-          navigate('/onboarding/spoof-wallet-success');
+          navigate('/spoof-wallet-success');
         } else {
           console.error('UI: Failed to spoof wallet:', response?.error);
           // TODO: Display an error message to the user
@@ -60,7 +60,7 @@ const SpoofWallet = () => {
   };
 
   const handleCancel = () => {
-    navigate('/onboarding/add-wallet');
+    navigate('/add-wallet');
   };
 
   return (

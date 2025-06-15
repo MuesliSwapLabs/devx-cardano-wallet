@@ -60,7 +60,7 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
         // Handle the response from our background logic.
         if (response?.success) {
           console.log('UI: Wallet created successfully!', response.wallet);
-          navigate('/onboarding/create-new-wallet-success');
+          navigate('/create-new-wallet-success');
         } else {
           console.error('UI: Failed to create wallet:', response?.error);
           // TODO: Display a meaningful error message to the user
@@ -70,7 +70,7 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
   };
 
   const handleCancel = () => {
-    navigate('/onboarding/add-wallet');
+    navigate('/add-wallet');
   };
 
   return (
