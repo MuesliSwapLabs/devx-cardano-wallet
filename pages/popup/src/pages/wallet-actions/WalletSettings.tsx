@@ -15,22 +15,63 @@ const WalletSettings = () => {
   const navigate = useNavigate();
   const wallets = useStorage(walletsStorage);
 
-  // State for the current view and the revealed seed phrase
   const [currentView, setCurrentView] = useState<View>('menu');
   const [revealedSeed, setRevealedSeed] = useState<string | null>(null);
 
   const currentWallet = wallets?.find((w: Wallet) => w.id === walletId);
 
+  // Guard clause in case the wallet isn't found
   if (!currentWallet) {
     return <div className="text-center p-4">Wallet not found.</div>;
   }
 
   // --- Handlers for Form Submissions ---
 
+  const handleRenameSubmit = (values: { walletName: string }, { setSubmitting }) => {
+    const payload = { id: walletId, name: values.walletName };
+    chrome.runtime.sendMessage({ type: 'WALLET_RENAME', payload }, response => {
+      setSubmitting(false);
+      if (response?.success) {
+        setCurrentView('menu'); // Return to the menu on success
+      } else {
+        console.error('Failed to update wallet name:', response?.error);
+      }
+    });
+  };
+
+  const handleAddPasswordSubmit = (values: { newPassword: string }, { setSubmitting }) => {
+    const payload = { id: walletId, newPassword: values.newPassword };
+    chrome.runtime.sendMessage({ type: 'ADD_PASSWORD', payload }, response => {
+      setSubmitting(false);
+      if (response?.success) {
+        alert('Password added successfully!');
+        setCurrentView('menu');
+      } else {
+        alert(`Error: ${response?.error}`);
+      }
+    });
+  };
+
+  const handleChangePasswordSubmit = (values: any, { setSubmitting, setFieldError }) => {
+    const changePayload = {
+      id: walletId,
+      currentPassword: values.currentPassword,
+      newPassword: values.newPassword,
+    };
+    chrome.runtime.sendMessage({ type: 'CHANGE_PASSWORD', payload: changePayload }, response => {
+      setSubmitting(false);
+      if (response?.success) {
+        alert('Password changed successfully!');
+        setCurrentView('menu');
+      } else {
+        setFieldError('currentPassword', response?.error || 'Incorrect password');
+      }
+    });
+  };
+
   const handleRevealSeedSubmit = (values: { password?: string }, { setSubmitting, setFieldError }) => {
     const payload = {
       id: walletId,
-      // Pass the password only if the wallet is expected to have one
       password: currentWallet.hasPassword ? values.password : undefined,
     };
 
@@ -39,44 +80,7 @@ const WalletSettings = () => {
       if (response?.success) {
         setRevealedSeed(response.secret);
       } else {
-        // If password validation fails, show an error on the password field
         setFieldError('password', response?.error || 'Failed to decrypt seed.');
-      }
-    });
-  };
-
-  const handleRenameSubmit = (values: { walletName: string }, { setSubmitting }) => {
-    // ... (unchanged)
-  };
-
-  const handleAddPasswordSubmit = (values: any, { setSubmitting }) => {
-    // ... (unchanged)
-  };
-
-  const handleChangePasswordSubmit = (values: any, { setSubmitting, setFieldError }) => {
-    // This handler will now use the same GET_DECRYPTED_SECRET message to validate the password
-    const payload = { id: walletId, password: values.currentPassword.trim() };
-
-    chrome.runtime.sendMessage({ type: 'GET_DECRYPTED_SECRET', payload }, validationResponse => {
-      if (validationResponse?.success) {
-        // Password is correct, now we can change it
-        const changePayload = {
-          id: walletId,
-          currentPassword: values.currentPassword.trim(),
-          newPassword: values.newPassword.trim(),
-        };
-        chrome.runtime.sendMessage({ type: 'CHANGE_PASSWORD', payload: changePayload }, changeResponse => {
-          setSubmitting(false);
-          if (changeResponse?.success) {
-            alert('Password changed successfully!');
-            setCurrentView('menu');
-          } else {
-            alert(`Error: ${changeResponse?.error}`);
-          }
-        });
-      } else {
-        setFieldError('currentPassword', 'Incorrect current password');
-        setSubmitting(false);
       }
     });
   };
@@ -86,16 +90,140 @@ const WalletSettings = () => {
   const renderContent = () => {
     switch (currentView) {
       case 'rename':
-      // ... (unchanged)
-
+        return (
+          <Formik
+            initialValues={{ walletName: currentWallet.name }}
+            validationSchema={Yup.object({ walletName: Yup.string().required('Wallet name is required.') })}
+            onSubmit={handleRenameSubmit}>
+            {({ errors, touched, isSubmitting }) => (
+              <Form className="flex flex-col h-full">
+                <div className="flex-grow">
+                  <FloatingLabelInput
+                    name="walletName"
+                    label="Wallet Name"
+                    required
+                    error={touched.walletName && !!errors.walletName}
+                  />
+                  <ErrorMessage name="walletName" component="p" className="text-red-500 text-sm mt-1" />
+                </div>
+                <div className="mt-auto flex justify-center space-x-4">
+                  <SecondaryButton type="button" onClick={() => setCurrentView('menu')}>
+                    Back
+                  </SecondaryButton>
+                  <PrimaryButton type="submit" disabled={isSubmitting}>
+                    Save
+                  </PrimaryButton>
+                </div>
+              </Form>
+            )}
+          </Formik>
+        );
       case 'add-password':
-      // ... (unchanged)
-
+        return (
+          <Formik
+            initialValues={{ newPassword: '', confirmNewPassword: '' }}
+            validationSchema={Yup.object({
+              newPassword: Yup.string().required('Password is required.'),
+              confirmNewPassword: Yup.string()
+                .oneOf([Yup.ref('newPassword')], 'Passwords must match')
+                .required('Please confirm your password.'),
+            })}
+            onSubmit={handleAddPasswordSubmit}>
+            {({ errors, touched, isSubmitting }) => (
+              <Form className="flex flex-col h-full">
+                <div className="flex-grow space-y-4">
+                  <div>
+                    <FloatingLabelInput
+                      name="newPassword"
+                      label="New Password"
+                      type="password"
+                      required
+                      error={touched.newPassword && !!errors.newPassword}
+                    />
+                    <ErrorMessage name="newPassword" component="p" className="text-red-500 text-xs mt-1" />
+                  </div>
+                  <div>
+                    <FloatingLabelInput
+                      name="confirmNewPassword"
+                      label="Confirm Password"
+                      type="password"
+                      required
+                      error={touched.confirmNewPassword && !!errors.confirmNewPassword}
+                    />
+                    <ErrorMessage name="confirmNewPassword" component="p" className="text-red-500 text-xs mt-1" />
+                  </div>
+                </div>
+                <div className="mt-auto flex justify-center space-x-4">
+                  <SecondaryButton type="button" onClick={() => setCurrentView('menu')}>
+                    Back
+                  </SecondaryButton>
+                  <PrimaryButton type="submit" disabled={isSubmitting}>
+                    Set Password
+                  </PrimaryButton>
+                </div>
+              </Form>
+            )}
+          </Formik>
+        );
       case 'change-password':
-      // ... (unchanged)
-
+        return (
+          <Formik
+            initialValues={{ currentPassword: '', newPassword: '', confirmNewPassword: '' }}
+            validationSchema={Yup.object({
+              currentPassword: Yup.string().required('Current password is required.'),
+              newPassword: Yup.string().required('New password is required.'),
+              confirmNewPassword: Yup.string()
+                .oneOf([Yup.ref('newPassword')], 'Passwords must match')
+                .required('Please confirm your new password.'),
+            })}
+            onSubmit={handleChangePasswordSubmit}>
+            {({ errors, touched, isSubmitting }) => (
+              <Form className="flex flex-col h-full">
+                <div className="flex-grow space-y-4">
+                  <div>
+                    <FloatingLabelInput
+                      name="currentPassword"
+                      label="Current Password"
+                      type="password"
+                      required
+                      error={touched.currentPassword && !!errors.currentPassword}
+                    />
+                    <ErrorMessage name="currentPassword" component="p" className="text-red-500 text-xs mt-1" />
+                  </div>
+                  <div>
+                    <FloatingLabelInput
+                      name="newPassword"
+                      label="New Password"
+                      type="password"
+                      required
+                      error={touched.newPassword && !!errors.newPassword}
+                    />
+                    <ErrorMessage name="newPassword" component="p" className="text-red-500 text-xs mt-1" />
+                  </div>
+                  <div>
+                    <FloatingLabelInput
+                      name="confirmNewPassword"
+                      label="Confirm New Password"
+                      type="password"
+                      required
+                      error={touched.confirmNewPassword && !!errors.confirmNewPassword}
+                    />
+                    <ErrorMessage name="confirmNewPassword" component="p" className="text-red-500 text-xs mt-1" />
+                  </div>
+                </div>
+                <div className="mt-auto flex justify-center space-x-4">
+                  <SecondaryButton type="button" onClick={() => setCurrentView('menu')}>
+                    Back
+                  </SecondaryButton>
+                  <PrimaryButton type="submit" disabled={isSubmitting}>
+                    Change Password
+                  </PrimaryButton>
+                </div>
+              </Form>
+            )}
+          </Formik>
+        );
       case 'reveal-seed':
-        // If the seed has been revealed, display it.
         if (revealedSeed) {
           return (
             <div className="flex flex-col h-full">
@@ -107,62 +235,47 @@ const WalletSettings = () => {
                 <p className="text-xs text-red-500 mt-4">Do not share this phrase with anyone. Store it securely.</p>
               </div>
               <div className="mt-auto flex justify-center">
-                <SecondaryButton type="button" onClick={() => setCurrentView('menu')}>
+                <SecondaryButton
+                  type="button"
+                  onClick={() => {
+                    setRevealedSeed(null);
+                    setCurrentView('menu');
+                  }}>
                   Back to Settings
                 </SecondaryButton>
               </div>
             </div>
           );
         }
-        // If the wallet has a password, ask for it first.
-        if (currentWallet.hasPassword) {
-          return (
-            <Formik
-              initialValues={{ password: '' }}
-              validationSchema={Yup.object({ password: Yup.string().required('Password is required.') })}
-              onSubmit={handleRevealSeedSubmit}>
-              {({ errors, touched, isSubmitting }) => (
-                <Form className="flex flex-col h-full">
-                  <p className="text-center mb-4">Enter your password to reveal the seed phrase.</p>
-                  <div className="flex-grow">
-                    <FloatingLabelInput
-                      name="password"
-                      label="Password"
-                      type="password"
-                      required
-                      error={touched.password && !!errors.password}
-                    />
-                    <ErrorMessage name="password" component="p" className="text-red-500 text-sm mt-1" />
-                  </div>
-                  <div className="mt-auto flex justify-center space-x-4">
-                    <SecondaryButton type="button" onClick={() => setCurrentView('menu')}>
-                      Back
-                    </SecondaryButton>
-                    <PrimaryButton type="submit" disabled={isSubmitting}>
-                      Reveal
-                    </PrimaryButton>
-                  </div>
-                </Form>
-              )}
-            </Formik>
-          );
-        }
-        // If no password, reveal it directly (but still with a confirmation click).
         return (
-          <div className="flex flex-col h-full items-center">
-            <p className="text-center mb-4">This wallet is not password protected. Reveal the seed phrase?</p>
-            <div className="mt-auto flex justify-center space-x-4">
-              <SecondaryButton type="button" onClick={() => setCurrentView('menu')}>
-                Back
-              </SecondaryButton>
-              <PrimaryButton
-                onClick={() =>
-                  handleRevealSeedSubmit({ password: undefined }, { setSubmitting: () => {}, setFieldError: () => {} })
-                }>
-                Yes, Reveal
-              </PrimaryButton>
-            </div>
-          </div>
+          <Formik
+            initialValues={{ password: '' }}
+            validationSchema={Yup.object({ password: Yup.string().required('Password is required.') })}
+            onSubmit={handleRevealSeedSubmit}>
+            {({ errors, touched, isSubmitting }) => (
+              <Form className="flex flex-col h-full">
+                <p className="text-center mb-4">Enter your password to reveal the seed phrase.</p>
+                <div className="flex-grow">
+                  <FloatingLabelInput
+                    name="password"
+                    label="Password"
+                    type="password"
+                    required
+                    error={touched.password && !!errors.password}
+                  />
+                  <ErrorMessage name="password" component="p" className="text-red-500 text-sm mt-1" />
+                </div>
+                <div className="mt-auto flex justify-center space-x-4">
+                  <SecondaryButton type="button" onClick={() => setCurrentView('menu')}>
+                    Back
+                  </SecondaryButton>
+                  <PrimaryButton type="submit" disabled={isSubmitting}>
+                    Reveal
+                  </PrimaryButton>
+                </div>
+              </Form>
+            )}
+          </Formik>
         );
 
       case 'menu':
@@ -181,7 +294,6 @@ const WalletSettings = () => {
                 Add Password
               </SecondaryButton>
             )}
-            {/* --- NEW EXPORT BUTTON LOGIC --- */}
             {currentWallet.type === 'SPOOFED' ? (
               <div className="w-full p-2 text-center text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 rounded">
                 Spoofed wallets do not have a seed phrase.
