@@ -1,6 +1,5 @@
-// popup/src/layouts/SubPageLayout.tsx
 import { Outlet, useNavigate, useLocation, useParams } from 'react-router-dom';
-import { useStorage, exampleThemeStorage, walletsStorage } from '@extension/storage';
+import { useStorage, settingsStorage, walletsStorage } from '@extension/storage';
 import type { Wallet } from '@extension/shared';
 
 /**
@@ -12,10 +11,12 @@ function SubPageLayout() {
   const location = useLocation();
   const { walletId } = useParams(); // Get the walletId from the URL
 
-  const theme = useStorage(exampleThemeStorage);
+  // Use the new unified settings storage
+  const settings = useStorage(settingsStorage);
   const wallets = useStorage(walletsStorage); // Get all wallets from storage
 
-  const isDark = theme === 'dark';
+  // The theme is now a property of the settings object
+  const isDark = settings?.theme === 'dark';
 
   // A helper to generate the title dynamically.
   const getTitle = () => {

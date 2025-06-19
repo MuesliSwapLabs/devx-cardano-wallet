@@ -1,26 +1,27 @@
-// Popup.tsx
 import { PrimaryButton } from '@src/components/buttons';
 import React from 'react';
 import { withErrorBoundary, withSuspense } from '@extension/shared';
-
-import { useStorage, exampleThemeStorage, appStateStorage } from '@extension/storage';
+// Import the new unified settingsStorage and walletsStorage
+import { useStorage, settingsStorage, walletsStorage } from '@extension/storage';
 import { useParams } from 'react-router-dom';
+import type { Wallet } from '@extension/shared';
 
 function Popup() {
-  const appState = useStorage(appStateStorage);
+  // Get the list of wallets from storage to find the current one
+  const wallets = useStorage(walletsStorage);
 
   // Get params from URL
   const { walletId = 'my-wallet', view = 'assets' } = useParams();
 
-  // Convert kebab-case walletId to a display name
-  const getWalletName = id => {
-    return id
-      .split('-')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  };
+  // Find the current wallet from the real data in storage
+  const currentWallet = wallets?.find((w: Wallet) => w.id === walletId);
+  const walletName = currentWallet?.name || 'Wallet';
 
-  const walletName = getWalletName(walletId);
+  const handleReset = () => {
+    // Use the new settings storage to reset the app
+    walletsStorage.set([]);
+    settingsStorage.unmarkOnboarded();
+  };
 
   // Render different content based on view
   if (view === 'assets') {
@@ -48,16 +49,9 @@ function Popup() {
       <div className="flex flex-col items-center">
         <h2 className="text-xl font-bold mb-4">{walletName} - Wallet Info</h2>
         <p>Your wallet information and details will appear here.</p>
-        <p>
-          Reset:{' '}
-          <PrimaryButton
-            onClick={() => {
-              appStateStorage.unmarkOnboarded();
-            }}>
-            Reset Onboarding
-          </PrimaryButton>
+        <p className="mt-4">
+          Reset: <PrimaryButton onClick={handleReset}>Reset Onboarding</PrimaryButton>
         </p>
-        {/* You would add your actual wallet info here */}
       </div>
     );
   }

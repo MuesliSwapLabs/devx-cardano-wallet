@@ -1,15 +1,12 @@
 // popup/src/layouts/OnboardingLayout.tsx
 import { Outlet } from 'react-router-dom';
-import { useStorage, exampleThemeStorage } from '@extension/storage';
-import ThemeToggle from '../components/ThemeToggle';
+import { useStorage, settingsStorage } from '@extension/storage';
+import ThemeToggle from '../components/themeToggle';
 
-/**
- * OnboardingLayout is now a simpler "shell" component.
- * It provides the consistent header and footer for any nested route.
- */
 function OnboardingLayout({ children }) {
-  const theme = useStorage(exampleThemeStorage);
-  const isDark = theme === 'dark';
+  // Use the new unified settings storage
+  const settings = useStorage(settingsStorage);
+  const isDark = settings?.theme === 'dark';
   const iconUrl = isDark ? chrome.runtime.getURL('icon-dark.svg') : chrome.runtime.getURL('icon-light.svg');
 
   return (
@@ -19,10 +16,7 @@ function OnboardingLayout({ children }) {
         <span className="absolute left-1/2 transform -translate-x-1/2 text-2xl font-semibold">Onboarding</span>
         <ThemeToggle />
       </header>
-
-      {/* The <Outlet> now renders the specific page component (e.g., AddWallet) from App.tsx */}
       <main className="p-4 flex-1 overflow-auto">{children ? children : <Outlet />}</main>
-
       <footer className="p-4 border-t border-gray-300 dark:border-gray-600 text-center">
         <div className="flex justify-center items-center">
           <div className="text-sm">Onboarding Progress</div>

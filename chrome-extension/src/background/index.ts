@@ -1,5 +1,4 @@
-// chrome-extension/src/background/index.ts
-import { walletsStorage } from '@extension/storage';
+import { settingsStorage, walletsStorage } from '@extension/storage';
 import { createNewWallet, importWallet, spoofWallet } from '@extension/wallet-manager';
 import { decrypt, encrypt } from '@extension/shared';
 import type { Wallet } from '@extension/shared';
@@ -26,12 +25,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
 
         case 'SPOOF_WALLET': {
-          const wallet = spoofWallet(message.payload.name, message.payload.address);
-          await walletsStorage.addWallet(wallet);
-          sendResponse({ success: true, wallet });
+          try {
+            const { address, name } = message.payload;
+            const newWallet = await spoofWallet(name, address);
+            console.log('adding Spoofed wallet:', newWallet);
+            await walletsStorage.addWallet(newWallet);
+            sendResponse({ success: true, payload: newWallet });
+          } catch (error) {
+            sendResponse({
+              success: false,
+              error: error instanceof Error ? error.message + 'FUCK' : 'An unknown error occurred.',
+            });
+          }
           break;
         }
 
+        // ... other cases remain the same ...
         case 'WALLET_RENAME': {
           await walletsStorage.updateWallet(message.payload.id, { name: message.payload.name });
           sendResponse({ success: true });
@@ -63,19 +72,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
 
         case 'CHANGE_PASSWORD': {
-          console.log('Changing password for walletè!!!!!:', message.payload.id);
           const { id, currentPassword, newPassword } = message.payload;
-          console.log('currentPassword:', currentPassword);
-          console.log('newPassword:', newPassword);
           const wallet = findWallet(id);
           if (!wallet || !wallet.secret) throw new Error('Wallet not found or has no secret.');
-
-          // Decrypt with the old password (this also verifies it)
           const secret = await decrypt(wallet.secret, currentPassword);
-          console.log('decrypted secret:', secret);
-          // Re-encrypt with the new password
           const newEncryptedSecret = await encrypt(secret, newPassword);
-
           await walletsStorage.updateWallet(id, { secret: newEncryptedSecret });
           sendResponse({ success: true });
           break;
@@ -86,24 +87,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           if (!wallet || !wallet.secret) {
             throw new Error('Wallet not found or has no secret.');
           }
-
           let secret: string;
-          // If the wallet has a password, decrypt the secret.
           if (wallet.hasPassword) {
-            // The decrypt function itself already removes the prefix.
             secret = await decrypt(wallet.secret, message.payload.password);
           } else {
-            // If there's no password, the secret is already in plaintext.
             secret = wallet.secret;
           }
-          // The `secret` variable now holds the clean seed phrase.
           sendResponse({ success: true, secret });
           break;
         }
       }
     } catch (error) {
       console.error(`Error handling message type ${message.type}:`, error);
-      sendResponse({ success: false, error: error.message });
+      sendResponse({ success: false, error: error.message + 'FACK' });
     }
   })();
 

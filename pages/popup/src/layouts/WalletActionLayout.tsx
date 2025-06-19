@@ -1,5 +1,5 @@
 // popup/src/layouts/WalletActionLayout.tsx
-import { useStorage, appStateStorage, walletsStorage } from '@extension/storage';
+import { useStorage, settingsStorage, walletsStorage } from '@extension/storage';
 import { Outlet } from 'react-router-dom';
 import OnboardingLayout from './OnboardingLayout';
 import SubPageLayout from './SubPageLayout';
@@ -10,11 +10,11 @@ import SubPageLayout from './SubPageLayout';
  * then renders the appropriate layout shell for the wallet creation pages.
  */
 function WalletActionLayout() {
+  const settings = useStorage(settingsStorage);
   const wallets = useStorage(walletsStorage);
-  const appState = useStorage(appStateStorage);
 
-  const hasWallets = wallets && wallets.length > 0;
-  const isOnboarded = appState?.onboarded && hasWallets;
+  const isDark = settings?.theme === 'dark';
+  const isOnboarded = settings?.onboarded;
 
   // If the user is already onboarded, use the SubPageLayout with a back button.
   // Otherwise, use the full OnboardingLayout for the first-time flow.

@@ -158,6 +158,19 @@ importers:
         specifier: ^9.5.1
         version: 9.5.1(typescript@5.5.4)(webpack@5.94.0(@swc/core@1.7.25)(esbuild@0.23.1))
 
+  packages/blockchain-provider:
+    dependencies:
+      '@extension/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@extension/storage':
+        specifier: workspace:*
+        version: link:../storage
+    devDependencies:
+      '@extension/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+
   packages/dev-utils:
     devDependencies:
       '@extension/shared':
@@ -258,13 +271,19 @@ importers:
 
   packages/wallet-manager:
     dependencies:
+      '@extension/blockchain-provider':
+        specifier: workspace:*
+        version: link:../blockchain-provider
+      '@extension/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@extension/storage':
+        specifier: workspace:*
+        version: link:../storage
       uuid:
         specifier: ^11.1.0
         version: 11.1.0
     devDependencies:
-      '@extension/shared':
-        specifier: workspace:*
-        version: link:../shared
       '@extension/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig

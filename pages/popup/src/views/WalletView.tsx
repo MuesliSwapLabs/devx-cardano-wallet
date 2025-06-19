@@ -1,60 +1,59 @@
-// popup/src/views/WalletView.tsx
-import { PrimaryButton } from '@src/components/buttons';
-import { useStorage, appStateStorage, walletsStorage } from '@extension/storage';
+import React from 'react';
 import { useParams } from 'react-router-dom';
-import type { Wallet } from '@extension/shared';
+import { useStorage, walletsStorage } from '@extension/storage';
+import { Wallet, EnrichedAsset } from '@extension/shared';
 
-/**
- * WalletView is the main content area for a logged-in user.
- */
-function WalletView() {
+// Helper to format Lovelace to ADA
+const formatAda = (lovelace: string) => {
+  const ada = parseInt(lovelace, 10) / 1_000_000;
+  return ada.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+};
+
+const AssetDisplay = ({ asset }: { asset: EnrichedAsset }) => {
+  return (
+    <div className="flex justify-between items-center p-2 border-b border-gray-200 dark:border-gray-700">
+      <span className="font-mono text-sm">{asset.name}</span>
+      <span className="font-semibold">{parseInt(asset.quantity, 10).toLocaleString()}</span>
+    </div>
+  );
+};
+
+const WalletView = () => {
   const { walletId, view = 'assets' } = useParams();
   const wallets = useStorage(walletsStorage);
+  const wallet = wallets?.find((w: Wallet) => w.id === walletId);
 
-  const currentWallet = wallets?.find((w: Wallet) => w.id === walletId);
-  const walletName = currentWallet?.name || 'Wallet';
-
-  const handleReset = () => {
-    walletsStorage.set([]);
-    appStateStorage.set({ onboarded: false });
-  };
-
-  if (view === 'assets') {
-    return (
-      <div className="flex flex-col items-center">
-        <h2 className="text-xl font-bold mb-4">{walletName} - Assets</h2>
-        <p>Balance: {currentWallet?.balance || '0'} ADA</p>
-      </div>
-    );
-  }
-
-  if (view === 'history') {
-    return (
-      <div className="flex flex-col items-center">
-        <h2 className="text-xl font-bold mb-4">{walletName} - Transaction History</h2>
-        <p>Your transaction history will appear here.</p>
-      </div>
-    );
-  }
-
-  if (view === 'info') {
-    return (
-      <div className="flex flex-col items-center">
-        <h2 className="text-xl font-bold mb-4">{walletName} - Wallet Info</h2>
-        <p className="text-xs break-all">Address: {currentWallet?.address}</p>
-        <p className="mt-4">
-          Reset: <PrimaryButton onClick={handleReset}>Reset All Data</PrimaryButton>
-        </p>
-      </div>
-    );
+  if (!wallet) {
+    return <div>Loading wallet...</div>;
   }
 
   return (
-    <div className="flex flex-col items-center">
-      <h2 className="text-xl font-bold mb-4">Unknown View</h2>
-      <p>Please select a valid view.</p>
+    // This component now only contains the content for the <Outlet />
+    // The main balance and wallet info is already in MainLayout.
+    <div className="flex flex-col h-full">
+      {view === 'assets' && (
+        <div>
+          <h3 className="text-md font-semibold mb-2 border-b border-gray-300 dark:border-gray-600">Tokens</h3>
+          {wallet.assets && wallet.assets.length > 0 ? (
+            <div className="max-h-64 overflow-y-auto">
+              {(wallet.assets as EnrichedAsset[]).map(asset => (
+                <AssetDisplay key={asset.unit} asset={asset} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 mt-4">This wallet holds no other tokens.</p>
+          )}
+        </div>
+      )}
+
+      {view === 'history' && (
+        <div>
+          <h3 className="text-md font-semibold mb-2 border-b border-gray-300 dark:border-gray-600">History</h3>
+          <p className="text-sm text-gray-400 mt-4">Transaction history will be shown here.</p>
+        </div>
+      )}
     </div>
   );
-}
+};
 
 export default WalletView;

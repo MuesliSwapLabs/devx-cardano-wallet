@@ -1,9 +1,10 @@
-import { useStorage, exampleThemeStorage } from '@extension/storage';
+import { useStorage, settingsStorage } from '@extension/storage';
 import './style.css';
 
 const ThemeToggle = () => {
-  const theme = useStorage(exampleThemeStorage);
-  const isDark = theme === 'dark';
+  // Use the new unified settings storage
+  const settings = useStorage(settingsStorage);
+  const isDark = settings?.theme === 'dark';
 
   const dayModeIcon = chrome.runtime.getURL('DayMode.svg');
   const nightModeIcon = chrome.runtime.getURL('NightMode.svg');
@@ -14,18 +15,17 @@ const ThemeToggle = () => {
         type="checkbox"
         id="theme-toggle"
         checked={isDark}
-        onChange={() => exampleThemeStorage.toggle()}
+        // Use the new toggleTheme method
+        onChange={() => settingsStorage.toggleTheme()}
         className="sr-only"
       />
       <span className="slider round flex items-center justify-between px-1.5">
-        {/* Day Mode Icon */}
         <img
           src={dayModeIcon}
           alt="Day Mode"
           className={`w-3.5 h-3.5 z-10 day-icon ${isDark ? 'icon-inactive' : 'icon-day'}`}
           draggable="false"
         />
-        {/* Night Mode Icon */}
         <img
           src={nightModeIcon}
           alt="Night Mode"

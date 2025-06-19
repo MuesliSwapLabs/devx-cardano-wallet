@@ -1,7 +1,7 @@
 {
-  "name": "@extension/wallet-manager",
+  "name": "@extension/blockchain-provider",
   "version": "0.3.4",
-  "description": "chrome extension - wallet business logic",
+  "description": "chrome extension - blockchain provider",
   "private": true,
   "sideEffects": false,
   "files": [
@@ -21,13 +21,10 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@extension/storage": "workspace:*",
-    "@extension/blockchain-provider": "workspace:*",
     "@extension/shared": "workspace:*",
-    "uuid": "^11.1.0"
+    "@extension/storage": "workspace:*"
   },
   "devDependencies": {
-    "@extension/tsconfig": "workspace:*",
-    "@types/uuid": "^10.0.0"
+    "@extension/tsconfig": "workspace:*"
   }
 }

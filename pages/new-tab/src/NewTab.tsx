@@ -1,18 +1,18 @@
 import '@src/NewTab.css';
 import '@src/NewTab.scss';
 import { withErrorBoundary, withSuspense } from '@extension/shared';
-import { useStorage, exampleThemeStorage } from '@extension/storage';
+import { useStorage, settingsStorage } from '@extension/storage';
 import { Button } from '@extension/ui';
 import { t } from '@extension/i18n';
 
 const NewTab = () => {
-  const theme = useStorage(exampleThemeStorage);
-  const isLight = theme === 'light';
+  const settings = useStorage(settingsStorage);
+  const isLight = settings?.theme === 'light';
   const logo = isLight ? 'new-tab/logo_horizontal.svg' : 'new-tab/logo_horizontal_dark.svg';
+
   const goGithubSite = () =>
     chrome.tabs.create({ url: 'https://github.com/Jonghakseo/chrome-extension-boilerplate-react-vite' });
 
-  console.log(t('hello', 'World'));
   return (
     <div className={`App ${isLight ? 'bg-slate-50' : 'bg-gray-800'}`}>
       <header className={`App-header ${isLight ? 'text-gray-900' : 'text-gray-100'}`}>
@@ -23,7 +23,7 @@ const NewTab = () => {
           Edit <code>pages/new-tab/src/NewTab.tsx</code>
         </p>
         <h6>The color of this paragraph is defined using SASS.</h6>
-        <Button className="mt-4" onClick={exampleThemeStorage.toggle} theme={theme}>
+        <Button className="mt-4" onClick={settingsStorage.toggleTheme} theme={settings?.theme}>
           {t('toggleTheme')}
         </Button>
       </header>

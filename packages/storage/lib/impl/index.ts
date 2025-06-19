@@ -1,3 +1,2 @@
-export * from './exampleThemeStorage';
-export * from './appStateStorage';
+export * from './settingsStorage';
 export * from './walletsStorage';

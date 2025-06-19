@@ -1,11 +1,14 @@
-import { appStateStorage } from '@extension/storage';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+// Import the unified settingsStorage
+import { settingsStorage } from '@extension/storage';
 import { PrimaryButton } from '@src/components/buttons';
 
-interface LegalAndAnalyticsProps {}
-
-function LegalAndAnalytics({}: LegalAndAnalyticsProps) {
+/**
+ * Legal is the component that shows the legal disclaimers
+ * and terms of service links during onboarding.
+ */
+function Legal() {
   const navigate = useNavigate();
   const warningIconUrl = chrome.runtime.getURL('warning.svg');
   const [countdown, setCountdown] = useState(1);
@@ -30,7 +33,9 @@ function LegalAndAnalytics({}: LegalAndAnalyticsProps) {
 
   // Handle clicking "I Agree"
   const handleAgreeClick = () => {
-    appStateStorage.setItem('onboarding:LegalAndAnalyticsAccepted', true);
+    // Use the convenience method on our new settings storage
+    settingsStorage.markLegalAccepted();
+    // Navigate to the next step in the onboarding flow
     navigate('/add-wallet');
   };
 
@@ -82,4 +87,4 @@ function LegalAndAnalytics({}: LegalAndAnalyticsProps) {
   );
 }
 
-export default LegalAndAnalytics;
+export default Legal;

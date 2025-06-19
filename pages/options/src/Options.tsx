@@ -1,12 +1,14 @@
 import '@src/Options.css';
 import { withErrorBoundary, withSuspense } from '@extension/shared';
-import { useStorage, exampleThemeStorage } from '@extension/storage';
+import { useStorage, settingsStorage } from '@extension/storage';
 import { Button } from '@extension/ui';
 
 const Options = () => {
-  const theme = useStorage(exampleThemeStorage);
-  const isLight = theme === 'light';
+  // Use the new unified settings storage
+  const settings = useStorage(settingsStorage);
+  const isLight = settings?.theme === 'light';
   const logo = isLight ? 'options/logo_horizontal.svg' : 'options/logo_horizontal_dark.svg';
+
   const goGithubSite = () =>
     chrome.tabs.create({ url: 'https://github.com/Jonghakseo/chrome-extension-boilerplate-react-vite' });
 
@@ -18,7 +20,8 @@ const Options = () => {
       <p>
         Edit <code>pages/options/src/Options.tsx</code>
       </p>
-      <Button className="mt-4" onClick={exampleThemeStorage.toggle} theme={theme}>
+      {/* Use the new toggleTheme method */}
+      <Button className="mt-4" onClick={settingsStorage.toggleTheme} theme={settings?.theme}>
         Toggle theme
       </Button>
     </div>
