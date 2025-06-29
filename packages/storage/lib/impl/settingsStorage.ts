@@ -9,27 +9,29 @@ export type Network = 'Mainnet' | 'Preprod';
 // This is the new, unified shape for all app settings.
 export interface AppSettings {
   theme: Theme;
-  network: Network;
   onboarded: boolean;
   legalAccepted?: boolean;
+  mainnetApiKey?: string;
+  preprodApiKey?: string;
 }
 
 // Define the default state for a first-time user.
-// ADAPTATION: Default network is now 'Preprod' as requested.
 const defaultSettings: AppSettings = {
   theme: 'dark',
-  network: 'Preprod',
   onboarded: false,
   legalAccepted: false,
+  mainnetApiKey: '',
+  preprodApiKey: '',
 };
 
 // --- Define the custom methods for our new storage object ---
 export interface SettingsStorage extends BaseStorage<AppSettings> {
   toggleTheme: () => Promise<void>;
-  toggleNetwork: () => Promise<void>;
   markOnboarded: () => Promise<void>;
   unmarkOnboarded: () => Promise<void>;
   markLegalAccepted: () => Promise<void>;
+  setMainnetApiKey: (apiKey: string) => Promise<void>; // New
+  setPreprodApiKey: (apiKey: string) => Promise<void>; // New
 }
 
 // Create the base storage instance using the factory from base.ts.
@@ -50,13 +52,6 @@ export const settingsStorage: SettingsStorage = {
     }));
   },
 
-  toggleNetwork: async () => {
-    await storage.set(settings => ({
-      ...settings,
-      network: settings.network === 'Mainnet' ? 'Preprod' : 'Mainnet',
-    }));
-  },
-
   markOnboarded: async () => {
     await storage.set(settings => ({
       ...settings,
@@ -73,10 +68,25 @@ export const settingsStorage: SettingsStorage = {
 
   /** Marks that the user has accepted the legal terms. */
   markLegalAccepted: async () => {
-    // <-- NEW METHOD IMPLEMENTATION
     await storage.set(settings => ({
       ...settings,
       legalAccepted: true,
+    }));
+  },
+
+  /** Sets the Mainnet Blockfrost API key. */
+  setMainnetApiKey: async (apiKey: string) => {
+    await storage.set(settings => ({
+      ...settings,
+      mainnetApiKey: apiKey,
+    }));
+  },
+
+  /** Sets the Preprod Blockfrost API key. */
+  setPreprodApiKey: async (apiKey: string) => {
+    await storage.set(settings => ({
+      ...settings,
+      preprodApiKey: apiKey,
     }));
   },
 };

@@ -5,6 +5,7 @@ import * as Yup from 'yup';
 
 import { PrimaryButton, SecondaryButton, CancelButton } from '@src/components/buttons';
 import FloatingLabelInput from '@src/components/FloatingLabelInput'; // Make sure this path is correct
+import NetworkToggle from '@src/components/NetworkToggle';
 
 // Simple fuzzy search function
 const fuzzySearch = (query, words) => {
@@ -83,6 +84,9 @@ const ImportNewWallet = () => {
     // Step 3 validation - only validate wallet details when on step 3
     if (currentStep >= 3) {
       schema.walletName = Yup.string().required('Wallet name is required');
+      schema.network = Yup.string()
+        .oneOf(['Mainnet', 'Preprod'], 'Please select a valid network')
+        .required('Network is required');
       schema.walletPassword = Yup.string().when('skipPassword', {
         is: false,
         then: schema => schema.required('Password is required'),
@@ -108,6 +112,7 @@ const ImportNewWallet = () => {
     return {
       ...seedWords,
       walletName: '',
+      network: 'Preprod',
       walletPassword: '',
       confirmPassword: '',
       skipPassword: false,
@@ -287,6 +292,7 @@ const ImportNewWallet = () => {
 
     const payload = {
       name: values.walletName,
+      network: values.network,
       seedPhrase: seedPhrase,
       password: values.skipPassword ? undefined : values.walletPassword,
     };
@@ -467,6 +473,15 @@ const ImportNewWallet = () => {
                     error={touched.walletName && errors.walletName}
                   />
                   <ErrorMessage name="walletName" component="p" className="text-red-500 text-sm mt-1" />
+                </div>
+
+                {/* Network Selection Field */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    Network <span className="text-red-500">*</span>
+                  </label>
+                  <NetworkToggle value={values.network} onChange={network => setFieldValue('network', network)} />
+                  <ErrorMessage name="network" component="p" className="text-red-500 text-xs mt-1" />
                 </div>
 
                 {/* Wallet Password Field */}

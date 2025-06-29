@@ -1,7 +1,5 @@
-import { Asset } from '@extension/shared';
+import { Asset, Wallet } from '@extension/shared';
 import { settingsStorage } from '@extension/storage';
-
-const BLOCKFROST_API_KEY = 'preprodUCRP6WTpWi0DXWZF4eduE2VZPod9CjAJ';
 
 // --- Type Definitions ---
 // The final, rich asset information we want to return
@@ -46,16 +44,24 @@ const BLOCKFROST_API_URLS = {
 // --- Helper Functions ---
 
 /**
- * Reads the current network from settings and returns the correct Blockfrost API base URL.
+ * Gets the API URL and API key for a specific wallet's network.
  */
-async function getApiUrlForCurrentNetwork(): Promise<string> {
+async function getApiConfigForWallet(wallet: Wallet): Promise<{ apiUrl: string; apiKey: string }> {
   const settings = await settingsStorage.get();
-  const network = settings.network;
-  const apiUrl = BLOCKFROST_API_URLS[network];
+  const apiUrl = BLOCKFROST_API_URLS[wallet.network];
+
   if (!apiUrl) {
-    throw new Error(`Unsupported network: ${network}`);
+    throw new Error(`Unsupported network: ${wallet.network}`);
   }
-  return apiUrl;
+
+  // Get the API key for the wallet's network
+  const apiKey = wallet.network === 'Mainnet' ? settings.mainnetApiKey : settings.preprodApiKey;
+
+  if (!apiKey) {
+    throw new Error(`No API key configured for ${wallet.network} network`);
+  }
+
+  return { apiUrl, apiKey };
 }
 
 /**
@@ -71,11 +77,12 @@ function isValidAddressFormat(address: string): boolean {
  */
 async function getStakeAddress(
   apiUrl: string,
+  apiKey: string,
   paymentAddress: string,
 ): Promise<{ stakeAddress: string | null; status: 'found' | 'not_found' }> {
   const endpoint = `${apiUrl}/addresses/${paymentAddress}`;
   const response = await fetch(endpoint, {
-    headers: { project_id: BLOCKFROST_API_KEY },
+    headers: { project_id: apiKey },
   });
 
   if (response.status === 404) {
@@ -92,10 +99,10 @@ async function getStakeAddress(
 /**
  * Fetches the total ADA balance for an entire account via its stake address.
  */
-async function getAccountBalance(apiUrl: string, stakeAddress: string): Promise<string> {
+async function getAccountBalance(apiUrl: string, apiKey: string, stakeAddress: string): Promise<string> {
   const endpoint = `${apiUrl}/accounts/${stakeAddress}`;
   const response = await fetch(endpoint, {
-    headers: { project_id: BLOCKFROST_API_KEY },
+    headers: { project_id: apiKey },
   });
   if (!response.ok) throw new Error(`Failed to fetch account balance: ${response.statusText}`);
   const data: AccountInfoResponse = await response.json();
@@ -105,10 +112,10 @@ async function getAccountBalance(apiUrl: string, stakeAddress: string): Promise<
 /**
  * Fetches all unique native assets for an entire account via its stake address.
  */
-async function getAccountAssets(apiUrl: string, stakeAddress: string): Promise<Asset[]> {
+async function getAccountAssets(apiUrl: string, apiKey: string, stakeAddress: string): Promise<Asset[]> {
   const endpoint = `${apiUrl}/accounts/${stakeAddress}/addresses/assets`;
   const response = await fetch(endpoint, {
-    headers: { project_id: BLOCKFROST_API_KEY },
+    headers: { project_id: apiKey },
   });
   if (!response.ok) throw new Error(`Failed to fetch account assets: ${response.statusText}`);
   const data: Asset[] = await response.json();
@@ -137,10 +144,12 @@ function hexToString(hex: string): string {
 /**
  * Fetches the complete state of a wallet (total balance and all assets)
  * by looking up the stake key associated with a given payment address.
- * @param address A payment address (addr1...) from the wallet.
+ * @param wallet The wallet object containing the address and network information.
  * @returns A promise that resolves to a WalletState object.
  */
-export const getWalletState = async (address: string): Promise<WalletState> => {
+export const getWalletState = async (wallet: Wallet): Promise<WalletState> => {
+  const address = wallet.address;
+
   if (!isValidAddressFormat(address)) {
     return {
       status: 'invalid_address',
@@ -151,8 +160,8 @@ export const getWalletState = async (address: string): Promise<WalletState> => {
     };
   }
 
-  const apiUrl = await getApiUrlForCurrentNetwork();
-  const { stakeAddress, status } = await getStakeAddress(apiUrl, address);
+  const { apiUrl, apiKey } = await getApiConfigForWallet(wallet);
+  const { stakeAddress, status } = await getStakeAddress(apiUrl, apiKey, address);
 
   if (status === 'not_found') {
     return {
@@ -179,8 +188,8 @@ export const getWalletState = async (address: string): Promise<WalletState> => {
   try {
     // Fetch balance and assets in parallel for efficiency
     const [balance, rawAssets] = await Promise.all([
-      getAccountBalance(apiUrl, stakeAddress),
-      getAccountAssets(apiUrl, stakeAddress),
+      getAccountBalance(apiUrl, apiKey, stakeAddress),
+      getAccountAssets(apiUrl, apiKey, stakeAddress),
     ]);
 
     // Enrich asset data with readable names and policy IDs

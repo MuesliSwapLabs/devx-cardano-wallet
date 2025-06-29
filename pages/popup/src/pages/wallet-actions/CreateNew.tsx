@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import * as Yup from 'yup';
 import { CancelButton, PrimaryButton } from '@src/components/buttons';
 import FloatingLabelInput from '@src/components/FloatingLabelInput';
+import NetworkToggle from '@src/components/NetworkToggle';
 
 interface CreateNewWalletProps {}
 
@@ -11,6 +12,9 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
 
   const validationSchema = Yup.object({
     walletName: Yup.string().required('Wallet name is required'),
+    network: Yup.string()
+      .oneOf(['Mainnet', 'Preprod'], 'Please select a valid network')
+      .required('Network is required'),
     walletPassword: Yup.string().when('skipPassword', {
       is: false,
       then: schema => schema.required('Password is required'),
@@ -27,15 +31,17 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
 
   const initialValues = {
     walletName: '',
+    network: 'Preprod' as 'Mainnet' | 'Preprod',
     walletPassword: '',
     confirmPassword: '',
     skipPassword: false,
   };
 
-  const handleSubmit = values => {
+  const handleSubmit = (values: any) => {
     // 1. Prepare the data payload from the form values.
     const payload = {
       name: values.walletName,
+      network: values.network,
       // Only include the password if the user has not skipped it.
       password: values.skipPassword ? undefined : values.walletPassword,
     };
@@ -93,6 +99,15 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
               <ErrorMessage name="walletName" component="p" className="text-red-500 text-xs mt-1" />
             </div>
 
+            {/* Network Selection Field */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Network <span className="text-red-500">*</span>
+              </label>
+              <NetworkToggle value={values.network} onChange={network => setFieldValue('network', network)} />
+              <ErrorMessage name="network" component="p" className="text-red-500 text-xs mt-1" />
+            </div>
+
             {/* Wallet Password Field */}
             <div className="mb-4">
               <FloatingLabelInput
@@ -127,7 +142,7 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
                   id="skipPassword"
                   name="skipPassword"
                   className="w-4 h-4 mt-0.5 mr-2"
-                  onChange={e => {
+                  onChange={(e: any) => {
                     const checked = e.target.checked;
                     setFieldValue('skipPassword', checked);
                     if (checked) {

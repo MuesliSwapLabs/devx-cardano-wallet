@@ -11,14 +11,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
       switch (message.type) {
         case 'CREATE_WALLET': {
-          const wallet = await createNewWallet(message.payload.name, message.payload.password);
+          const wallet = await createNewWallet(message.payload.name, message.payload.network, message.payload.password);
           await walletsStorage.addWallet(wallet);
           sendResponse({ success: true, wallet });
           break;
         }
 
         case 'IMPORT_WALLET': {
-          const wallet = await importWallet(message.payload.name, message.payload.seedPhrase, message.payload.password);
+          const wallet = await importWallet(
+            message.payload.name,
+            message.payload.network,
+            message.payload.seedPhrase,
+            message.payload.password,
+          );
           await walletsStorage.addWallet(wallet);
           sendResponse({ success: true, wallet });
           break;
@@ -26,8 +31,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         case 'SPOOF_WALLET': {
           try {
-            const { address, name } = message.payload;
-            const newWallet = await spoofWallet(name, address);
+            const { address, name, network } = message.payload;
+            const newWallet = await spoofWallet(name, address, network);
             console.log('adding Spoofed wallet:', newWallet);
             await walletsStorage.addWallet(newWallet);
             sendResponse({ success: true, payload: newWallet });
@@ -99,7 +104,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
     } catch (error) {
       console.error(`Error handling message type ${message.type}:`, error);
-      sendResponse({ success: false, error: error.message + 'FACK' });
+      sendResponse({ success: false, error: error instanceof Error ? error.message : 'An unknown error occurred.' });
     }
   })();
 

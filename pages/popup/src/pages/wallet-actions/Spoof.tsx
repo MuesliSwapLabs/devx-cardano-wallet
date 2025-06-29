@@ -3,41 +3,36 @@ import { Formik, Form, ErrorMessage, Field } from 'formik';
 import * as Yup from 'yup';
 import { PrimaryButton, CancelButton } from '@src/components/buttons';
 import FloatingLabelInput from '@src/components/FloatingLabelInput';
-import { useStorage, settingsStorage, Network } from '@extension/storage';
+import NetworkToggle from '@src/components/NetworkToggle';
 
 interface IFormValues {
   walletName: string;
   walletAddress: string;
+  network: 'Mainnet' | 'Preprod';
 }
 
 const SpoofWallet = () => {
   const navigate = useNavigate();
-  const settings = useStorage(settingsStorage);
-
-  // ADAPTATION: Default network is now 'Preprod' as requested.
-  const currentNetwork = settings?.network || 'Preprod';
 
   const validationSchema = Yup.object({
     walletName: Yup.string().required('Wallet name is required.'),
+    network: Yup.string()
+      .oneOf(['Mainnet', 'Preprod'], 'Please select a valid network')
+      .required('Network is required'),
     walletAddress: Yup.string()
       .required('Wallet address is required.')
-      .test(
-        'address-format',
-        () => {
-          const expectedPrefix = currentNetwork === 'Mainnet' ? 'addr1' : 'addr_test1';
-          return `Invalid ${currentNetwork} address. It must start with "${expectedPrefix}".`;
-        },
-        value => {
-          if (!value) return false;
-          const expectedPrefix = currentNetwork === 'Mainnet' ? 'addr1' : 'addr_test1';
-          return value.startsWith(expectedPrefix);
-        },
-      ),
+      .test('address-format', 'Invalid address format for selected network', function (value) {
+        if (!value) return false;
+        const { network } = this.parent as IFormValues;
+        const expectedPrefix = network === 'Mainnet' ? 'addr1' : 'addr_test1';
+        return value.startsWith(expectedPrefix);
+      }),
   });
 
   const initialValues: IFormValues = {
     walletName: '',
     walletAddress: '',
+    network: 'Preprod',
   };
 
   const handleCancel = () => {
@@ -47,9 +42,7 @@ const SpoofWallet = () => {
   return (
     <div className="flex flex-col items-center h-full">
       <h2 className="text-xl font-medium">Spoof Wallet</h2>
-      <p className="text-center text-sm mt-2">
-        Create a wallet with a custom address for the <span className="font-bold">{currentNetwork}</span> network!
-      </p>
+      <p className="text-center text-sm mt-2">Create a wallet with a custom address for testing!</p>
 
       <Formik<IFormValues>
         initialValues={initialValues}
@@ -59,6 +52,7 @@ const SpoofWallet = () => {
           const payload = {
             name: values.walletName,
             address: values.walletAddress,
+            network: values.network,
           };
 
           console.log('Spoofing wallet with payload:', payload);
@@ -85,7 +79,7 @@ const SpoofWallet = () => {
             },
           );
         }}>
-        {({ errors, touched, isSubmitting }) => (
+        {({ values, errors, touched, isSubmitting, setFieldValue }) => (
           <Form className="w-full max-w-sm flex flex-col h-full mt-4">
             <div className="mb-4">
               <Field
@@ -97,6 +91,15 @@ const SpoofWallet = () => {
                 error={touched.walletName && errors.walletName}
               />
               <ErrorMessage name="walletName" component="p" className="text-red-500 text-sm mt-1" />
+            </div>
+
+            {/* Network Selection Field */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Network <span className="text-red-500">*</span>
+              </label>
+              <NetworkToggle value={values.network} onChange={network => setFieldValue('network', network)} />
+              <ErrorMessage name="network" component="p" className="text-red-500 text-xs mt-1" />
             </div>
 
             <div className="mb-4">
