@@ -10,14 +10,16 @@ interface WalletDropdownProps {
 
 function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const wallets = useStorage(walletsStorage);
+  const walletsData = useStorage(walletsStorage); // Get the full wallets data structure
   const navigate = useNavigate();
 
-  const currentWallet = wallets?.find(w => w.id === currentWalletId) || wallets?.[0];
+  const wallets = walletsData?.wallets || [];
+  const activeWalletId = walletsData?.activeWalletId; // Extract active wallet ID from wallets data
+  const currentWallet = wallets.find(w => w.id === currentWalletId) || wallets[0];
 
   // Group wallets by network
-  const mainnetWallets = wallets?.filter(w => w.network === 'Mainnet') || [];
-  const preprodWallets = wallets?.filter(w => w.network === 'Preprod') || [];
+  const mainnetWallets = wallets.filter(w => w.network === 'Mainnet');
+  const preprodWallets = wallets.filter(w => w.network === 'Preprod');
 
   useEffect(() => {
     if (dropdownOpen) {
@@ -39,6 +41,26 @@ function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps
     navigate(`/wallet-settings/${walletId}`);
   };
 
+  const handleSetActiveWallet = async (e: React.MouseEvent, walletId: string) => {
+    e.stopPropagation(); // Prevent dropdown from closing
+
+    try {
+      // Find the wallet to get its name
+      const wallet = wallets?.find(w => w.id === walletId);
+      if (!wallet) {
+        alert('Wallet not found. Please try again.');
+        return;
+      }
+
+      await walletsStorage.setActiveWallet(walletId);
+      // No need to manually set state - useStorage(settingsStorage) will update automatically
+    } catch (error) {
+      console.error('Failed to set active wallet:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to set active wallet: ${errorMessage}`);
+    }
+  };
+
   if (!wallets || wallets.length === 0) {
     return (
       <Link
@@ -57,7 +79,7 @@ function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps
           e.stopPropagation();
           setDropdownOpen(!dropdownOpen);
         }}>
-        <div className="flex-grow text-center">
+        <div className="flex items-center flex-grow justify-center">
           <span className="font-semibold text-lg truncate">{currentWallet?.name || 'Select Wallet'}</span>
         </div>
         <svg
@@ -87,24 +109,34 @@ function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps
               <div
                 key={wallet.id}
                 className={`flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 px-2 ${currentWalletId === wallet.id ? 'bg-gray-200 dark:bg-gray-700' : ''}`}>
-                <button className="flex-grow text-center py-2" onClick={() => handleWalletSelect(wallet.id)}>
-                  {wallet.name}
-                </button>
-                <button onClick={e => handleSettingsClick(e, wallet.id)} className="p-2 cursor-pointer">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 text-gray-500"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 5v.01M12 12v.01M12 19v.01"
-                    />
-                  </svg>
-                </button>
+                <div className="flex items-center flex-grow">
+                  <button
+                    className="flex-grow text-center py-2 px-1"
+                    onClick={() => handleWalletSelect(wallet.id)}
+                    title={activeWalletId === wallet.id ? 'Active wallet for dApps' : 'Click to view wallet'}>
+                    {wallet.name}
+                  </button>
+                </div>
+                <div className="flex items-center space-x-1">
+                  {/* Settings button */}
+                  <button
+                    onClick={e => handleSettingsClick(e, wallet.id)}
+                    className="p-1 text-gray-500 hover:text-gray-700">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 5v.01M12 12v.01M12 19v.01"
+                      />
+                    </svg>
+                  </button>
+                </div>
               </div>
             ))
           ) : (
@@ -126,24 +158,34 @@ function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps
               <div
                 key={wallet.id}
                 className={`flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 px-2 ${currentWalletId === wallet.id ? 'bg-gray-200 dark:bg-gray-700' : ''}`}>
-                <button className="flex-grow text-center py-2" onClick={() => handleWalletSelect(wallet.id)}>
-                  {wallet.name}
-                </button>
-                <button onClick={e => handleSettingsClick(e, wallet.id)} className="p-2 cursor-pointer">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 text-gray-500"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 5v.01M12 12v.01M12 19v.01"
-                    />
-                  </svg>
-                </button>
+                <div className="flex items-center flex-grow">
+                  <button
+                    className="flex-grow text-center py-2 px-1"
+                    onClick={() => handleWalletSelect(wallet.id)}
+                    title={activeWalletId === wallet.id ? 'Active wallet for dApps' : 'Click to view wallet'}>
+                    {wallet.name}
+                  </button>
+                </div>
+                <div className="flex items-center space-x-1">
+                  {/* Settings button */}
+                  <button
+                    onClick={e => handleSettingsClick(e, wallet.id)}
+                    className="p-1 text-gray-200 hover:text-gray-700">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 5v.01M12 12v.01M12 19v.01"
+                      />
+                    </svg>
+                  </button>
+                </div>
               </div>
             ))
           ) : (
