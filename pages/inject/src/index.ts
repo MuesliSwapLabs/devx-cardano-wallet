@@ -1,16 +1,21 @@
+import { createDevXCIP30Provider } from './cip30-provider';
+
 declare global {
   interface Window {
     cardano: {
-      [name: string]: {};
+      [name: string]: any;
     };
   }
 }
 
-console.log('Injecting!!! Hello World');
-// TODO: Inject actual CIP30 compliant connector here
+console.log('DevX Wallet: Injecting CIP-30 provider...');
+
+// Inject DevX CIP-30 compliant wallet provider
 window.cardano = {
   ...(window.cardano || {}),
-  devx: 'Hello World asdf in src with proper ts injection.',
+  devx: createDevXCIP30Provider(),
 };
+
+console.log('DevX Wallet: CIP-30 provider injected successfully');
 
 export {};

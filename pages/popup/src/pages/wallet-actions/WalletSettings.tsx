@@ -13,12 +13,13 @@ type View = 'menu' | 'rename' | 'change-password' | 'add-password' | 'reveal-see
 const WalletSettings = () => {
   const { walletId } = useParams<{ walletId: string }>();
   const navigate = useNavigate();
-  const wallets = useStorage(walletsStorage);
+  const walletsData = useStorage(walletsStorage);
 
   const [currentView, setCurrentView] = useState<View>('menu');
   const [revealedSeed, setRevealedSeed] = useState<string | null>(null);
 
-  const currentWallet = wallets?.find((w: Wallet) => w.id === walletId);
+  const wallets = walletsData?.wallets || [];
+  const currentWallet = wallets.find((w: Wallet) => w.id === walletId);
 
   // Guard clause in case the wallet isn't found
   if (!currentWallet) {

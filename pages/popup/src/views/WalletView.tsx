@@ -20,8 +20,9 @@ const AssetDisplay = ({ asset }: { asset: EnrichedAsset }) => {
 
 const WalletView = () => {
   const { walletId, view = 'assets' } = useParams();
-  const wallets = useStorage(walletsStorage);
-  const wallet = wallets?.find((w: Wallet) => w.id === walletId);
+  const walletsData = useStorage(walletsStorage);
+  const wallets = walletsData?.wallets || [];
+  const wallet = wallets.find((w: Wallet) => w.id === walletId);
 
   if (!wallet) {
     return <div>Loading wallet...</div>;

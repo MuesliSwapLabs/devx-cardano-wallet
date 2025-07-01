@@ -11,13 +11,19 @@ function MainLayout() {
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
   const settings = useStorage(settingsStorage);
-  const wallets = useStorage(walletsStorage);
+  const walletsData = useStorage(walletsStorage);
 
-  const currentWallet = wallets?.find((w: Wallet) => w.id === walletId);
+  const wallets = walletsData?.wallets || [];
+  const currentWallet = wallets.find((w: Wallet) => w.id === walletId);
   const isDark = settings?.theme === 'dark';
   const iconUrl = isDark ? chrome.runtime.getURL('icon-dark.svg') : chrome.runtime.getURL('icon-light.svg');
 
-  const handleWalletSelect = (newWalletId: string) => navigate(`/wallet/${newWalletId}/${view}`);
+  const handleWalletSelect = async (newWalletId: string) => {
+    // Update the active wallet in storage
+    await walletsStorage.setActiveWallet(newWalletId);
+    // Navigate to the wallet page
+    navigate(`/wallet/${newWalletId}/${view}`);
+  };
 
   return (
     <>

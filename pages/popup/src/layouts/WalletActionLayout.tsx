@@ -11,8 +11,9 @@ import SubPageLayout from './SubPageLayout';
  */
 function WalletActionLayout() {
   const settings = useStorage(settingsStorage);
-  const wallets = useStorage(walletsStorage);
+  const walletsData = useStorage(walletsStorage);
 
+  const wallets = walletsData?.wallets || [];
   const isDark = settings?.theme === 'dark';
   const isOnboarded = settings?.onboarded;
 

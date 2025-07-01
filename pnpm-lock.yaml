@@ -114,6 +114,9 @@ importers:
 
   chrome-extension:
     dependencies:
+      '@extension/blockchain-provider':
+        specifier: workspace:*
+        version: link:../packages/blockchain-provider
       '@extension/shared':
         specifier: workspace:*
         version: link:../packages/shared

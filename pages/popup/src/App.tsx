@@ -28,12 +28,17 @@ import WalletSettings from './pages/wallet-actions/WalletSettings';
 
 function App() {
   const settings = useStorage(settingsStorage);
-  const wallets = useStorage(walletsStorage);
+  const walletsData = useStorage(walletsStorage);
 
   const isDark = settings?.theme === 'dark';
-  const hasWallets = wallets && wallets.length > 0;
+  const wallets = walletsData?.wallets || [];
+  const hasWallets = wallets.length > 0;
   const isOnboarded = settings?.onboarded && hasWallets;
-  const defaultWalletId = wallets?.[0]?.id || 'no-wallets';
+
+  // Use the active wallet from wallets data, or fall back to the first wallet
+  const activeWalletId = walletsData?.activeWalletId;
+  const defaultWalletId =
+    activeWalletId && wallets.find(w => w.id === activeWalletId) ? activeWalletId : wallets[0]?.id || 'no-wallets';
 
   return (
     <Router>

@@ -21,11 +21,17 @@ const SpoofWallet = () => {
       .required('Network is required'),
     walletAddress: Yup.string()
       .required('Wallet address is required.')
+      .min(20, 'Address is too short')
+      .max(150, 'Address is too long')
       .test('address-format', 'Invalid address format for selected network', function (value) {
         if (!value) return false;
         const { network } = this.parent as IFormValues;
-        const expectedPrefix = network === 'Mainnet' ? 'addr1' : 'addr_test1';
-        return value.startsWith(expectedPrefix);
+
+        if (network === 'Mainnet') {
+          return value.startsWith('addr1');
+        } else {
+          return value.startsWith('addr_test1');
+        }
       }),
   });
 

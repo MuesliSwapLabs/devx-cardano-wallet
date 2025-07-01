@@ -13,8 +13,9 @@ function SubPageLayout() {
 
   // Use the new unified settings storage
   const settings = useStorage(settingsStorage);
-  const wallets = useStorage(walletsStorage); // Get all wallets from storage
+  const walletsData = useStorage(walletsStorage); // Get all wallets from storage
 
+  const wallets = walletsData?.wallets || [];
   // The theme is now a property of the settings object
   const isDark = settings?.theme === 'dark';
 

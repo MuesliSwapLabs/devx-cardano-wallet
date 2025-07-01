@@ -8,18 +8,19 @@ import type { Wallet } from '@extension/shared';
 
 function Popup() {
   // Get the list of wallets from storage to find the current one
-  const wallets = useStorage(walletsStorage);
+  const walletsData = useStorage(walletsStorage);
 
   // Get params from URL
   const { walletId = 'my-wallet', view = 'assets' } = useParams();
 
   // Find the current wallet from the real data in storage
-  const currentWallet = wallets?.find((w: Wallet) => w.id === walletId);
+  const wallets = walletsData?.wallets || [];
+  const currentWallet = wallets.find((w: Wallet) => w.id === walletId);
   const walletName = currentWallet?.name || 'Wallet';
 
   const handleReset = () => {
     // Use the new settings storage to reset the app
-    walletsStorage.set([]);
+    walletsStorage.set({ wallets: [], activeWalletId: null });
     settingsStorage.unmarkOnboarded();
   };
 
