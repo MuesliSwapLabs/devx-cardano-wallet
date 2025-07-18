@@ -111,9 +111,15 @@ importers:
       vite:
         specifier: 5.4.9
         version: 5.4.9(@types/node@20.16.10)(sass@1.79.4)(terser@5.34.1)
+      vite-plugin-wasm:
+        specifier: ^3.5.0
+        version: 3.5.0(vite@5.4.9(@types/node@20.16.10)(sass@1.79.4)(terser@5.34.1))
 
   chrome-extension:
     dependencies:
+      '@emurgo/cardano-serialization-lib-browser':
+        specifier: ^15.0.0
+        version: 15.0.0
       '@extension/blockchain-provider':
         specifier: workspace:*
         version: link:../packages/blockchain-provider
@@ -123,6 +129,9 @@ importers:
       '@extension/storage':
         specifier: workspace:*
         version: link:../packages/storage
+      bip39:
+        specifier: ^3.1.0
+        version: 3.1.0
       webextension-polyfill:
         specifier: ^0.12.0
         version: 0.12.0
@@ -220,6 +229,10 @@ importers:
         version: link:../tsconfig
 
   packages/shared:
+    dependencies:
+      '@emurgo/cardano-serialization-lib-browser':
+        specifier: ^15.0.0
+        version: 15.0.0
     devDependencies:
       '@extension/tsconfig':
         specifier: workspace:*
@@ -283,6 +296,12 @@ importers:
       '@extension/storage':
         specifier: workspace:*
         version: link:../storage
+      '@types/bip39':
+        specifier: ^3.0.4
+        version: 3.0.4
+      bip39:
+        specifier: ^3.1.0
+        version: 3.1.0
       uuid:
         specifier: ^11.1.0
         version: 11.1.0
@@ -603,6 +622,9 @@ packages:
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
     engines: {node: '>=12'}
+
+  '@emurgo/cardano-serialization-lib-browser@15.0.0':
+    resolution: {integrity: sha512-gq86ejdi4YcwZg9YK9/LFKT5gINpwanvexYBnk9yGEqH/MM7XEGLAyiU97O+qpJxz2Evs6iKxA1zHBZI4h4VMA==}
 
   '@esbuild/aix-ppc64@0.21.5':
     resolution: {integrity: sha512-1SDgH6ZSPTlggy1yI6+Dbkiz8xzpHJEVAlF/AM1tHPLsf5STom9rwtjE4hKAF20FfXXNTFqEYXyJNWh1GiZedQ==}
@@ -1023,6 +1045,10 @@ packages:
     peerDependencies:
       vite: ^3.0.0 || ^4.0.0 || ^5.0.0
 
+  '@noble/hashes@1.8.0':
+    resolution: {integrity: sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==}
+    engines: {node: ^14.21.3 || >=16}
+
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
     engines: {node: '>= 8'}
@@ -1248,6 +1274,10 @@ packages:
 
   '@tsconfig/node16@1.0.4':
     resolution: {integrity: sha512-vxhUy4J8lyeyinH7Azl1pdd43GJhZH/tP2weN8TntQblOY+A0XbT8DJk1/oCPuOOyg/Ja757rG0CgHcWC8OfMA==}
+
+  '@types/bip39@3.0.4':
+    resolution: {integrity: sha512-kgmgxd14vTUMqcKu/gRi7adMchm7teKnOzdkeP0oQ5QovXpbUJISU0KUtBt84DdxCws/YuNlSCIoZqgXexe6KQ==}
+    deprecated: This is a stub types definition. bip39 provides its own type definitions, so you do not need this installed.
 
   '@types/chrome@0.0.270':
     resolution: {integrity: sha512-ADvkowV7YnJfycZZxL2brluZ6STGW+9oKG37B422UePf2PCXuFA/XdERI0T18wtuWPx0tmFeZqq6MOXVk1IC+Q==}
@@ -1723,6 +1753,9 @@ packages:
   binary-extensions@2.3.0:
     resolution: {integrity: sha512-Ceh+7ox5qe7LJuLHoY0feh3pHuUDHAcRUeyL2VYghZwfpkNIy/+8Ocg0a3UuSoYzavmylwuLWQOf3hl0jjMMIw==}
     engines: {node: '>=8'}
+
+  bip39@3.1.0:
+    resolution: {integrity: sha512-c9kiwdk45Do5GL0vJMe7tS95VjCii65mYAH7DfWl3uW8AVzXKQVUm64i3hzVybBDMp9r7j9iNxR85+ul8MdN/A==}
 
   boolbase@1.0.0:
     resolution: {integrity: sha512-JZOSA7Mo9sNGB8+UjSgzdLtokWAky1zbztM3WRLCbZ70/3cTANmQmOdR7y2g+J0e2WXywy1yS468tY+IruqEww==}
@@ -4174,6 +4207,11 @@ packages:
   validate-npm-package-license@3.0.4:
     resolution: {integrity: sha512-DpKm2Ui/xN7/HQKCtpZxoRWBhZ9Z0kqtygG8XCgNQ8ZlDnxuQmWhj566j8fN4Cu3/JmbhsDo7fcAJq4s9h27Ew==}
 
+  vite-plugin-wasm@3.5.0:
+    resolution: {integrity: sha512-X5VWgCnqiQEGb+omhlBVsvTfxikKtoOgAzQ95+BZ8gQ+VfMHIjSHr0wyvXFQCa0eKQ0fKyaL0kWcEnYqBac4lQ==}
+    peerDependencies:
+      vite: ^2 || ^3 || ^4 || ^5 || ^6 || ^7
+
   vite@5.4.9:
     resolution: {integrity: sha512-20OVpJHh0PAM0oSOELa5GaZNWeDjcAvQjGXy2Uyr+Tp+/D2/Hdz6NLgpJLsarPTA2QJ6v8mX2P1ZfbsSKvdMkg==}
     engines: {node: ^18.0.0 || >=20.0.0}
@@ -4402,6 +4440,8 @@ snapshots:
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
+
+  '@emurgo/cardano-serialization-lib-browser@15.0.0': {}
 
   '@esbuild/aix-ppc64@0.21.5':
     optional: true
@@ -4740,6 +4780,8 @@ snapshots:
       semver: 7.6.3
       vite: 5.4.9(@types/node@22.7.4)(sass@1.79.4)(terser@5.34.1)
 
+  '@noble/hashes@1.8.0': {}
+
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
       '@nodelib/fs.stat': 2.0.5
@@ -4904,6 +4946,10 @@ snapshots:
   '@tsconfig/node14@1.0.3': {}
 
   '@tsconfig/node16@1.0.4': {}
+
+  '@types/bip39@3.0.4':
+    dependencies:
+      bip39: 3.1.0
 
   '@types/chrome@0.0.270':
     dependencies:
@@ -5571,6 +5617,10 @@ snapshots:
   basic-ftp@5.0.5: {}
 
   binary-extensions@2.3.0: {}
+
+  bip39@3.1.0:
+    dependencies:
+      '@noble/hashes': 1.8.0
 
   boolbase@1.0.0: {}
 
@@ -8362,6 +8412,10 @@ snapshots:
     dependencies:
       spdx-correct: 3.2.0
       spdx-expression-parse: 3.0.1
+
+  vite-plugin-wasm@3.5.0(vite@5.4.9(@types/node@20.16.10)(sass@1.79.4)(terser@5.34.1)):
+    dependencies:
+      vite: 5.4.9(@types/node@20.16.10)(sass@1.79.4)(terser@5.34.1)
 
   vite@5.4.9(@types/node@20.16.10)(sass@1.79.4)(terser@5.34.1):
     dependencies:

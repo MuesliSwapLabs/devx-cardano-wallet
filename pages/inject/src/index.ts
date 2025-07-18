@@ -9,7 +9,7 @@ declare global {
 }
 
 console.log('DevX Wallet: Injecting CIP-30 provider...');
-
+console.log('runtime exists:', !!chrome.runtime);
 // Inject DevX CIP-30 compliant wallet provider
 window.cardano = {
   ...(window.cardano || {}),

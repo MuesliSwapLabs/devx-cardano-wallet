@@ -8,6 +8,50 @@ export interface EnrichedAsset extends Asset {
   name: string;
 }
 
+// Transaction-related types
+export interface TransactionInput {
+  address: string;
+  amount: BlockfrostAmount[];
+  tx_hash: string;
+  output_index: number;
+}
+
+export interface TransactionOutput {
+  address: string;
+  amount: BlockfrostAmount[];
+  output_index: number;
+}
+
+export interface Transaction {
+  hash: string;
+  block: string;
+  block_height: number;
+  block_time: number;
+  slot: number;
+  index: number;
+  output_amount: BlockfrostAmount[];
+  fees: string;
+  deposit: string;
+  size: number;
+  invalid_before: string | null;
+  invalid_hereafter: string | null;
+  utxo_count: number;
+  withdrawal_count: number;
+  mir_cert_count: number;
+  delegation_count: number;
+  stake_cert_count: number;
+  pool_update_count: number;
+  pool_retire_count: number;
+  asset_mint_or_burn_count: number;
+  redeemer_count: number;
+  valid_contract: boolean;
+}
+
+export interface TransactionDetails extends Transaction {
+  inputs: TransactionInput[];
+  outputs: TransactionOutput[];
+}
+
 // The final state of the entire wallet
 export interface WalletState {
   status: 'found' | 'not_found' | 'invalid_address';
@@ -139,6 +183,81 @@ function hexToString(hex: string): string {
   }
 }
 
+/**
+ * Fetches all payment addresses associated with a stake address.
+ */
+async function getPaymentAddresses(apiUrl: string, apiKey: string, stakeAddress: string): Promise<string[]> {
+  const endpoint = `${apiUrl}/accounts/${stakeAddress}/addresses`;
+  const response = await fetch(endpoint, {
+    headers: { project_id: apiKey },
+  });
+  if (!response.ok) throw new Error(`Failed to fetch payment addresses: ${response.statusText}`);
+  const data: { address: string }[] = await response.json();
+  return data.map(item => item.address);
+}
+
+/**
+ * Fetches transaction hashes for a specific address.
+ */
+async function getAddressTransactions(apiUrl: string, apiKey: string, address: string): Promise<string[]> {
+  const allTxHashes: string[] = [];
+  let page = 1;
+  const count = 100;
+
+  while (true) {
+    const endpoint = `${apiUrl}/addresses/${address}/transactions?page=${page}&count=${count}&order=desc`;
+    const response = await fetch(endpoint, {
+      headers: { project_id: apiKey },
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) break; // No more transactions
+      throw new Error(`Failed to fetch transactions for address ${address}: ${response.statusText}`);
+    }
+
+    const data: { tx_hash: string }[] = await response.json();
+
+    if (data.length === 0) break;
+
+    allTxHashes.push(...data.map(tx => tx.tx_hash));
+
+    if (data.length < count) break; // Last page
+    page++;
+  }
+
+  return allTxHashes;
+}
+
+/**
+ * Fetches detailed transaction information.
+ */
+async function getTransactionDetails(apiUrl: string, apiKey: string, txHash: string): Promise<TransactionDetails> {
+  // Fetch basic transaction info
+  const txResponse = await fetch(`${apiUrl}/txs/${txHash}`, {
+    headers: { project_id: apiKey },
+  });
+  if (!txResponse.ok) throw new Error(`Failed to fetch transaction ${txHash}: ${txResponse.statusText}`);
+  const txData: Transaction = await txResponse.json();
+
+  // Fetch transaction inputs and outputs
+  const [inputsResponse, outputsResponse] = await Promise.all([
+    fetch(`${apiUrl}/txs/${txHash}/utxos`, { headers: { project_id: apiKey } }),
+    fetch(`${apiUrl}/txs/${txHash}/utxos`, { headers: { project_id: apiKey } }),
+  ]);
+
+  if (!inputsResponse.ok || !outputsResponse.ok) {
+    throw new Error(`Failed to fetch UTXOs for transaction ${txHash}`);
+  }
+
+  const utxoData = await inputsResponse.json();
+
+  return {
+    ...txData,
+    inputs: utxoData.inputs || [],
+    outputs: utxoData.outputs || [],
+  };
+}
+
 // --- Main Exported Function ---
 
 /**
@@ -221,5 +340,51 @@ export const getWalletState = async (wallet: Wallet): Promise<WalletState> => {
       balance: '0',
       assets: [],
     };
+  }
+};
+
+/**
+ * Fetches all transactions for a wallet by getting all payment addresses
+ * associated with the wallet's stake address and then fetching transactions
+ * for each address.
+ * @param wallet The wallet object containing the address and network information.
+ * @returns A promise that resolves to an array of transaction details.
+ */
+export const getTransactions = async (wallet: Wallet): Promise<TransactionDetails[]> => {
+  const { apiUrl, apiKey } = await getApiConfigForWallet(wallet);
+  const { stakeAddress, status } = await getStakeAddress(apiUrl, apiKey, wallet.address);
+
+  if (status === 'not_found' || !stakeAddress) {
+    return [];
+  }
+
+  try {
+    // Get all payment addresses for this stake address
+    const paymentAddresses = await getPaymentAddresses(apiUrl, apiKey, stakeAddress);
+
+    // Get all transaction hashes from all addresses
+    const allTxHashesPromises = paymentAddresses.map(address => getAddressTransactions(apiUrl, apiKey, address));
+
+    const allTxHashesArrays = await Promise.all(allTxHashesPromises);
+    const allTxHashes = [...new Set(allTxHashesArrays.flat())]; // Remove duplicates
+
+    // Fetch detailed information for each transaction (limit to first 50 for performance)
+    const limitedTxHashes = allTxHashes.slice(0, 50);
+    const transactionDetailsPromises = limitedTxHashes.map(txHash =>
+      getTransactionDetails(apiUrl, apiKey, txHash).catch(error => {
+        console.warn(`Failed to fetch details for transaction ${txHash}:`, error);
+        return null;
+      }),
+    );
+
+    const transactionDetails = await Promise.all(transactionDetailsPromises);
+
+    // Filter out failed requests and sort by block time (newest first)
+    return transactionDetails
+      .filter((tx): tx is TransactionDetails => tx !== null)
+      .sort((a, b) => b.block_time - a.block_time);
+  } catch (error) {
+    console.error('Failed to fetch transactions:', error);
+    return [];
   }
 };

@@ -16,10 +16,12 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "webextension-polyfill": "^0.12.0",
+    "@emurgo/cardano-serialization-lib-browser": "^15.0.0",
+    "@extension/blockchain-provider": "workspace:*",
     "@extension/shared": "workspace:*",
     "@extension/storage": "workspace:*",
-    "@extension/blockchain-provider": "workspace:*"
+    "bip39": "^3.1.0",
+    "webextension-polyfill": "^0.12.0"
   },
   "devDependencies": {
     "@extension/dev-utils": "workspace:*",
@@ -29,9 +31,9 @@
     "@extension/wallet-manager": "workspace:*",
     "@laynezh/vite-plugin-lib-assets": "^0.5.23",
     "@types/ws": "^8.5.12",
-    "magic-string": "^0.30.10",
-    "ts-loader": "^9.5.1",
+    "cross-env": "^7.0.3",
     "deepmerge": "^4.3.1",
-    "cross-env": "^7.0.3"
+    "magic-string": "^0.30.10",
+    "ts-loader": "^9.5.1"
   }
 }

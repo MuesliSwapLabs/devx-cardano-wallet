@@ -2,6 +2,7 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useStorage, walletsStorage } from '@extension/storage';
 import { Wallet, EnrichedAsset } from '@extension/shared';
+import TransactionHistory from './TransactionHistory';
 
 // Helper to format Lovelace to ADA
 const formatAda = (lovelace: string) => {
@@ -47,12 +48,7 @@ const WalletView = () => {
         </div>
       )}
 
-      {view === 'history' && (
-        <div>
-          <h3 className="text-md font-semibold mb-2 border-b border-gray-300 dark:border-gray-600">History</h3>
-          <p className="text-sm text-gray-400 mt-4">Transaction history will be shown here.</p>
-        </div>
-      )}
+      {view === 'history' && <TransactionHistory wallet={wallet} />}
     </div>
   );
 };

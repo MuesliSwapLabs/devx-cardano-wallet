@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { PrimaryButton } from '../../components/buttons';
+import { PrimaryButton } from '../components/buttons';
 
 /**
  * Welcome is the initial landing page for the onboarding flow.

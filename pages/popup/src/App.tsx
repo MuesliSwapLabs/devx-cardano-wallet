@@ -9,22 +9,22 @@ import SubPageLayout from './layouts/SubPageLayout';
 import WalletActionLayout from './layouts/WalletActionLayout';
 
 // Views
-import WalletView from './views/WalletView';
-import Settings from './pages/Settings';
+import WalletView from './wallet/WalletView';
+import Settings from './Settings';
 
 // Onboarding Pages
-import Welcome from './pages/onboarding/Welcome';
-import Legal from './pages/onboarding/Legal';
+import Welcome from './onboarding/Welcome';
+import Legal from './onboarding/Legal';
 
 // Wallet Action Pages
-import AddWallet from './pages/wallet-actions/NewWalletView';
-import CreateNew from './pages/wallet-actions/CreateNew';
-import CreateSuccess from './pages/wallet-actions/CreateSuccess';
-import ImportSeed from './pages/wallet-actions/ImportSeed';
-import ImportSuccess from './pages/wallet-actions/ImportSuccess';
-import Spoof from './pages/wallet-actions/Spoof';
-import SpoofSuccess from './pages/wallet-actions/SpoofSuccess';
-import WalletSettings from './pages/wallet-actions/WalletSettings';
+import AddWallet from './wallet-actions/NewWalletView';
+import CreateNew from './wallet-actions/CreateNew';
+import CreateSuccess from './wallet-actions/CreateSuccess';
+import ImportSeed from './wallet-actions/ImportSeed';
+import ImportSuccess from './wallet-actions/ImportSuccess';
+import Spoof from './wallet-actions/Spoof';
+import SpoofSuccess from './wallet-actions/SpoofSuccess';
+import WalletSettings from './wallet-actions/WalletSettings';
 
 function App() {
   const settings = useStorage(settingsStorage);

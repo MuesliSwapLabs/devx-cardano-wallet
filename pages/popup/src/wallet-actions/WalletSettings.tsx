@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useStorage, walletsStorage } from '@extension/storage';
 import { Formik, Form, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
-import FloatingLabelInput from '../../components/FloatingLabelInput';
+import FloatingLabelInput from '../components/FloatingLabelInput';
 import { PrimaryButton, SecondaryButton } from '@src/components/buttons';
 import type { Wallet } from '@extension/shared';
 

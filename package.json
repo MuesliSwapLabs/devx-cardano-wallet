@@ -65,7 +65,8 @@
     "tslib": "^2.6.3",
     "turbo": "^2.3.3",
     "typescript": "5.5.4",
-    "vite": "5.4.9"
+    "vite": "5.4.9",
+    "vite-plugin-wasm": "^3.5.0"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json}": [

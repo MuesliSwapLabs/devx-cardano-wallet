@@ -43,12 +43,18 @@ export const walletsStorage: WalletsStorage = {
    * Adds a new wallet to the list using an immutable update.
    */
   addWallet: async (newWallet: Wallet) => {
-    await storage.set(data => ({
-      ...data,
-      wallets: [...data.wallets, newWallet],
-      // If this is the first wallet being added, automatically set it as active
-      activeWalletId: data.activeWalletId || newWallet.id,
-    }));
+    await storage.set(data => {
+      // Ensure data has the correct structure with safe defaults
+      const currentData = data || { wallets: [], activeWalletId: null };
+      const currentWallets = Array.isArray(currentData.wallets) ? currentData.wallets : [];
+
+      return {
+        ...currentData,
+        wallets: [...currentWallets, newWallet],
+        // If this is the first wallet being added, automatically set it as active
+        activeWalletId: currentData.activeWalletId || newWallet.id,
+      };
+    });
   },
 
   /**

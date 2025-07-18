@@ -1,5 +1,7 @@
 // CIP-30 Provider Implementation for DevX Wallet
 
+type Paginate = {} | undefined;
+
 interface CIP30API {
   enable(): Promise<WalletAPI>;
   isEnabled(): Promise<boolean>;
@@ -13,6 +15,7 @@ interface WalletAPI {
   getUtxos(): Promise<string[]>;
   getBalance(): Promise<string>;
   getName(): Promise<string>;
+  getUsedAddresses(paginate?: Paginate): Promise<string[]>;
 }
 
 interface APIError {
@@ -70,7 +73,7 @@ class DevXCIP30Provider implements CIP30API {
       return false;
     }
   }
-
+  // dont expose
   private async sendMessage(message: any): Promise<any> {
     return new Promise((resolve, reject) => {
       // Generate unique ID for this message
@@ -189,6 +192,19 @@ class DevXWalletAPI implements WalletAPI {
         info: 'Failed to get wallet name',
       } as APIError;
     }
+  }
+
+  // api.getUsedAddresses(paginate: Paginate = undefined): Promise<Address[]>
+  // ignore Paginate
+  async getUsedAddresses(paginate: Paginate = undefined): Promise<string[]> {
+    // handle Paginate not undefined
+    if (paginate) {
+      console.warn('DevX CIP-30: getUsedAddresses called without pagination, returning all addresses');
+    }
+    // Return hexcoded
+    return [
+      '10da9525463841173ad1230b1d5a1b5d0a3116bbdeb4412327148a1b7aaa23d5bda014a4c030ce1d576bc37f921ba9fdfcb932ff669f187103',
+    ]; // DevX does not track used addresses
   }
 
   private async sendMessage(message: any): Promise<any> {

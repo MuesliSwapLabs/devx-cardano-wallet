@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Formik, Form, Field } from 'formik';
-import ThemeToggle from '../components/themeToggle';
+import ThemeToggle from './components/themeToggle';
 import { settingsStorage, useStorage, walletsStorage } from '@extension/storage';
 import { CancelButton } from '@src/components/buttons';
-import FloatingLabelInput from '../components/FloatingLabelInput';
+import FloatingLabelInput from './components/FloatingLabelInput';
 import { ChevronUpIcon, ChevronDownIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 // --- Helper Functions (unchanged) ---
