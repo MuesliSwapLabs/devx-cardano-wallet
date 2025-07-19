@@ -8,6 +8,15 @@ importers:
 
   .:
     dependencies:
+      '@emurgo/cardano-serialization-lib-browser':
+        specifier: ^15.0.0
+        version: 15.0.0
+      bip39:
+        specifier: ^3.1.0
+        version: 3.1.0
+      buffer:
+        specifier: ^6.0.3
+        version: 6.0.3
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -26,6 +35,9 @@ importers:
       react-router-dom:
         specifier: ^7.4.0
         version: 7.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      vite-plugin-wasm:
+        specifier: ^3.5.0
+        version: 3.5.0(vite@5.4.9(@types/node@20.16.10)(sass@1.79.4)(terser@5.34.1))
       yup:
         specifier: ^1.6.1
         version: 1.6.1
@@ -111,9 +123,6 @@ importers:
       vite:
         specifier: 5.4.9
         version: 5.4.9(@types/node@20.16.10)(sass@1.79.4)(terser@5.34.1)
-      vite-plugin-wasm:
-        specifier: ^3.5.0
-        version: 3.5.0(vite@5.4.9(@types/node@20.16.10)(sass@1.79.4)(terser@5.34.1))
 
   chrome-extension:
     dependencies:

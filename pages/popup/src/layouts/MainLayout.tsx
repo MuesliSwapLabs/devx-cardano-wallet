@@ -109,6 +109,11 @@ function MainLayout() {
           className={`px-6 py-2 rounded-md transition ${view === 'history' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>
           History
         </Link>
+        <Link
+          to={`/wallet/${walletId}/test`}
+          className={`px-6 py-2 rounded-md transition ${view === 'test' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>
+          test
+        </Link>
       </footer>
     </>
   );

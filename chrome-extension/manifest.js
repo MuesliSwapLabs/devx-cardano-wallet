@@ -29,6 +29,9 @@ const manifest = deepmerge(
     description: '__MSG_extensionDescription__',
     host_permissions: ['<all_urls>'],
     permissions: ['storage', 'scripting', 'tabs', 'notifications'],
+    content_security_policy: {
+      extension_pages: "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
+    },
     options_page: 'options/index.html',
     background: {
       service_worker: 'background.iife.js',
