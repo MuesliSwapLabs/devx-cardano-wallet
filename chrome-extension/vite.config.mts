@@ -4,6 +4,7 @@ import libAssetsPlugin from '@laynezh/vite-plugin-lib-assets';
 import makeManifestPlugin from './utils/plugins/make-manifest-plugin';
 import { watchPublicPlugin, watchRebuildPlugin } from '@extension/hmr';
 import { isDev, isProduction, watchOption } from '@extension/vite-config';
+import wasm from 'vite-plugin-wasm';
 
 const rootDir = resolve(__dirname);
 const srcDir = resolve(rootDir, 'src');
@@ -24,14 +25,20 @@ export default defineConfig({
     watchPublicPlugin(),
     makeManifestPlugin({ outDir }),
     isDev && watchRebuildPlugin({ reload: true }),
+    wasm()
   ],
   publicDir: resolve(rootDir, 'public'),
   build: {
-    lib: {
-      formats: ['iife'],
-      entry: resolve(__dirname, 'src/background/index.ts'),
-      name: 'BackgroundScript',
-      fileName: 'background',
+    target: 'es2022',
+    rollupOptions: {
+      input: {
+        background: resolve(__dirname, 'src/background/index.ts'),
+      },
+      output: {
+        entryFileNames: '[name].js',
+        format: 'es',
+      },
+      external: ['chrome'],
     },
     outDir,
     emptyOutDir: false,
@@ -39,9 +46,6 @@ export default defineConfig({
     minify: isProduction,
     reportCompressedSize: isProduction,
     watch: watchOption,
-    rollupOptions: {
-      external: ['chrome'],
-    },
   },
   envDir: '../',
 });

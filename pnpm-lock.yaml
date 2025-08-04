@@ -11,9 +11,9 @@ importers:
       '@emurgo/cardano-serialization-lib-browser':
         specifier: ^15.0.0
         version: 15.0.0
-      bip39:
-        specifier: ^3.1.0
-        version: 3.1.0
+      '@scure/bip39':
+        specifier: ^1.6.0
+        version: 1.6.0
       buffer:
         specifier: ^6.0.3
         version: 6.0.3
@@ -126,6 +126,9 @@ importers:
 
   chrome-extension:
     dependencies:
+      '@emurgo/cardano-serialization-lib-asmjs-gc':
+        specifier: ^15.0.0
+        version: 15.0.0
       '@emurgo/cardano-serialization-lib-browser':
         specifier: ^15.0.0
         version: 15.0.0
@@ -138,9 +141,12 @@ importers:
       '@extension/storage':
         specifier: workspace:*
         version: link:../packages/storage
-      bip39:
-        specifier: ^3.1.0
-        version: 3.1.0
+      '@scure/bip39':
+        specifier: ^1.6.0
+        version: 1.6.0
+      buffer:
+        specifier: ^6.0.3
+        version: 6.0.3
       webextension-polyfill:
         specifier: ^0.12.0
         version: 0.12.0
@@ -631,6 +637,9 @@ packages:
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
     engines: {node: '>=12'}
+
+  '@emurgo/cardano-serialization-lib-asmjs-gc@15.0.0':
+    resolution: {integrity: sha512-onPChZaTP6ZbTmhAb63ryJDd3HEDdySGIcv/SjBxai3AHWf+A6GlueUgXD46pLftwKmiljOa8iU+6hgjZQco9Q==}
 
   '@emurgo/cardano-serialization-lib-browser@15.0.0':
     resolution: {integrity: sha512-gq86ejdi4YcwZg9YK9/LFKT5gINpwanvexYBnk9yGEqH/MM7XEGLAyiU97O+qpJxz2Evs6iKxA1zHBZI4h4VMA==}
@@ -1183,6 +1192,12 @@ packages:
     resolution: {integrity: sha512-fbMkAF7fufku0N2dE5TBXcNlg0pt0cJue4xBRE2Qc5Vqikxr4VCgKj/ht6SMdFcOacVA9rqF70APJ8RN/4vMJw==}
     cpu: [x64]
     os: [win32]
+
+  '@scure/base@1.2.6':
+    resolution: {integrity: sha512-g/nm5FgUa//MCj1gV09zTJTaM6KBAHqLN907YVQqf7zC49+DcO4B1so4ZX07Ef10Twr6nuqYEH9GEggFXA4Fmg==}
+
+  '@scure/bip39@1.6.0':
+    resolution: {integrity: sha512-+lF0BbLiJNwVlev4eKelw1WWLaiKXw7sSl8T6FvBlWkdX+94aGJ4o8XjUdlyhTCjd8c+B3KT3JfS8P0bLRNU6A==}
 
   '@sec-ant/readable-stream@0.4.1':
     resolution: {integrity: sha512-831qok9r2t8AlxLko40y2ebgSDhenenCatLVeW/uBtnHPyhHOvG0C7TvfgecV+wHzIm5KUICgzmVpWS+IMEAeg==}
@@ -4450,6 +4465,8 @@ snapshots:
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
 
+  '@emurgo/cardano-serialization-lib-asmjs-gc@15.0.0': {}
+
   '@emurgo/cardano-serialization-lib-browser@15.0.0': {}
 
   '@esbuild/aix-ppc64@0.21.5':
@@ -4887,6 +4904,13 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.24.0':
     optional: true
+
+  '@scure/base@1.2.6': {}
+
+  '@scure/bip39@1.6.0':
+    dependencies:
+      '@noble/hashes': 1.8.0
+      '@scure/base': 1.2.6
 
   '@sec-ant/readable-stream@0.4.1': {}
 

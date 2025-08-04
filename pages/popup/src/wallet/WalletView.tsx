@@ -3,7 +3,6 @@ import { useParams } from 'react-router-dom';
 import { useStorage, walletsStorage } from '@extension/storage';
 import { Wallet, EnrichedAsset } from '@extension/shared';
 import TransactionHistory from './TransactionHistory';
-import CIP30Test from './CIP30Test';
 
 // Helper to format Lovelace to ADA
 const formatAda = (lovelace: string) => {
@@ -50,7 +49,6 @@ const WalletView = () => {
       )}
 
       {view === 'history' && <TransactionHistory wallet={wallet} />}
-      {view === 'test' && <CIP30Test wallet={wallet} />}
     </div>
   );
 };

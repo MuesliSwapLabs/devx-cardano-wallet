@@ -34,7 +34,7 @@ const manifest = deepmerge(
     },
     options_page: 'options/index.html',
     background: {
-      service_worker: 'background.iife.js',
+      service_worker: 'background.js',
       type: 'module',
     },
     action: {
@@ -65,7 +65,17 @@ const manifest = deepmerge(
     devtools_page: 'devtools/index.html',
     web_accessible_resources: [
       {
-        resources: ['*.js', '*.css', '*.svg', 'devx_icon.png', 'icon-128.png', 'icon-34.png', 'BIP39_WORDS.txt'],
+        resources: [
+          '*.js',
+          '*.css',
+          '*.svg',
+          '*.wasm',
+          'devx_icon.png',
+          'icon-128.png',
+          'icon-34.png',
+          'BIP39_WORDS.txt',
+          'cardano_serialization_lib_bg.wasm',
+        ],
         matches: ['*://*/*'],
       },
     ],

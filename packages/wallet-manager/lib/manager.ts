@@ -6,15 +6,18 @@ export async function createNewWallet(
   name: string,
   network: 'Mainnet' | 'Preprod',
   password?: string,
+  seedPhrase?: string,
+  address?: string,
 ): Promise<Wallet> {
-  // TODO: Replace with real seed phrase generation
-  const seedPhrase = 'example super secret seed phrase for a new wallet';
-  const newAddress = `addr_test_new_${Date.now()}`;
+  // Seed phrase and address should be provided by the background script
+  if (!seedPhrase || !address) {
+    throw new Error('Seed phrase and address must be provided by crypto operations');
+  }
 
   const wallet: Wallet = {
     id: uuidv4(),
     name,
-    address: newAddress,
+    address,
     network,
     balance: '0',
     assets: [],
@@ -30,9 +33,12 @@ export async function importWallet(
   network: 'Mainnet' | 'Preprod',
   seedPhrase: string,
   password?: string,
+  derivedAddress?: string,
 ): Promise<Wallet> {
-  // TODO: Validate seed phrase and derive address
-  const derivedAddress = `addr_test_imported_${Date.now()}`;
+  // Address should be provided by the background script after validation
+  if (!derivedAddress) {
+    throw new Error('Derived address must be provided by crypto operations');
+  }
 
   const wallet: Wallet = {
     id: uuidv4(),

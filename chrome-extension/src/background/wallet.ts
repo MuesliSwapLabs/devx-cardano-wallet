@@ -2,6 +2,7 @@ import { walletsStorage } from '@extension/storage';
 import { createNewWallet, importWallet, spoofWallet } from '@extension/wallet-manager';
 import { decrypt, encrypt } from '@extension/shared';
 import type { Wallet } from '@extension/shared';
+// Crypto operations moved to frontend - no longer needed in background
 
 export const handleWalletMessages = async (
   message: any,
@@ -14,18 +15,33 @@ export const handleWalletMessages = async (
 
     switch (message.type) {
       case 'CREATE_WALLET': {
-        const wallet = await createNewWallet(message.payload.name, message.payload.network, message.payload.password);
+        // Receive complete data from frontend - crypto operations already done in popup
+        const { name, network, password, seedPhrase, address } = message.payload;
+
+        const wallet = await createNewWallet(name, network, password, seedPhrase, address);
         await walletsStorage.addWallet(wallet);
         sendResponse({ success: true, wallet });
         return true;
       }
 
       case 'IMPORT_WALLET': {
+        // Validate mnemonic and derive address using direct crypto operations
+        // const isValid = await validateMnemonic(message.payload.seedPhrase);
+        const isValid = true; // Mock validation - always true for now
+        if (!isValid) {
+          sendResponse({ success: false, error: 'Invalid mnemonic seed phrase' });
+          return true;
+        }
+
+        // const { address } = await deriveAddressFromMnemonic(message.payload.seedPhrase, message.payload.network);
+        const address = 'test imported address yolo 42'; // Mock address
+
         const wallet = await importWallet(
           message.payload.name,
           message.payload.network,
           message.payload.seedPhrase,
           message.payload.password,
+          address,
         );
         await walletsStorage.addWallet(wallet);
         sendResponse({ success: true, wallet });

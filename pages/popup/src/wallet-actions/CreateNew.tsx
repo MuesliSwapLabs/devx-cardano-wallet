@@ -4,6 +4,7 @@ import * as Yup from 'yup';
 import { CancelButton, PrimaryButton } from '@src/components/buttons';
 import FloatingLabelInput from '@src/components/FloatingLabelInput';
 import NetworkToggle from '@src/components/NetworkToggle';
+import { generateMnemonic, deriveAddressFromMnemonic } from '../utils/crypto';
 
 interface CreateNewWalletProps {}
 
@@ -37,42 +38,56 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
     skipPassword: false,
   };
 
-  const handleSubmit = (values: any) => {
-    // 1. Prepare the data payload from the form values.
-    const payload = {
-      name: values.walletName,
-      network: values.network,
-      // Only include the password if the user has not skipped it.
-      password: values.skipPassword ? undefined : values.walletPassword,
-    };
+  const handleSubmit = async (values: any) => {
+    try {
+      console.log('UI: Generating mnemonic and deriving address...');
 
-    console.log('UI: Sending CREATE_WALLET message with payload:', payload);
+      // Generate mnemonic and derive address in frontend (popup context)
+      const seedPhrase = await generateMnemonic();
+      const { address } = await deriveAddressFromMnemonic(seedPhrase, values.network);
 
-    // 2. Send the message to the background script to perform the logic.
-    chrome.runtime.sendMessage(
-      {
-        type: 'CREATE_WALLET',
-        payload: payload,
-      },
-      // 3. Handle the response from the background script.
-      response => {
-        // Check for errors during message sending itself.
-        if (chrome.runtime.lastError) {
-          console.error('Message sending failed:', chrome.runtime.lastError.message);
-          // TODO: Display an error message to the user
-          return;
-        }
+      console.log('UI: Generated seedPhrase and address successfully');
 
-        // Handle the response from our background logic.
-        if (response?.success) {
-          console.log('UI: Wallet created successfully!', response.wallet);
-          navigate('/create-new-wallet-success');
-        } else {
-          console.error('UI: Failed to create wallet:', response?.error);
-          // TODO: Display a meaningful error message to the user
-        }
-      },
-    );
+      // Prepare the data payload with crypto operations completed
+      const payload = {
+        name: values.walletName,
+        network: values.network,
+        password: values.skipPassword ? undefined : values.walletPassword,
+        seedPhrase: seedPhrase,
+        address: address,
+      };
+
+      console.log('UI: Sending CREATE_WALLET message with payload:', payload);
+
+      // Send the complete data to the background script for storage
+      chrome.runtime.sendMessage(
+        {
+          type: 'CREATE_WALLET',
+          payload: payload,
+        },
+        // Handle the response from the background script
+        response => {
+          // Check for errors during message sending itself
+          if (chrome.runtime.lastError) {
+            console.error('Message sending failed:', chrome.runtime.lastError.message);
+            // TODO: Display an error message to the user
+            return;
+          }
+
+          // Handle the response from our background logic
+          if (response?.success) {
+            console.log('UI: Wallet created successfully!', response.wallet);
+            navigate('/create-new-wallet-success');
+          } else {
+            console.error('UI: Failed to create wallet:', response?.error);
+            // TODO: Display a meaningful error message to the user
+          }
+        },
+      );
+    } catch (error) {
+      console.error('UI: Failed to generate wallet data:', error);
+      // TODO: Display error message to user
+    }
   };
 
   const handleCancel = () => {
