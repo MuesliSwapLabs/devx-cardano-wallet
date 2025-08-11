@@ -44,10 +44,91 @@ function Settings() {
     }
   };
 
-  const handleResetOnboarding = () => {
+  const handleResetOnboarding = async () => {
     if (confirm('Are you sure you want to reset all data? This will delete all your wallets and cannot be undone.')) {
-      walletsStorage.set([]);
-      settingsStorage.unmarkOnboarded();
+      try {
+        // 1. Clear IndexedDB (wallets)
+        await walletsStorage.set({ wallets: [] });
+
+        // 2. Reset all settings to defaults (this clears activeWalletId, API keys, etc.)
+        await settingsStorage.set({
+          theme: 'dark',
+          onboarded: false,
+          legalAccepted: false,
+          mainnetApiKey: '',
+          preprodApiKey: '',
+          activeWalletId: null,
+        });
+
+        // 3. Completely clear all localStorage items related to this extension
+        if (typeof localStorage !== 'undefined') {
+          const keysToRemove: string[] = [];
+
+          // Collect all keys that might be related to the extension
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (
+              key &&
+              (key.startsWith('cardano-') ||
+                key.startsWith('extension-') ||
+                key.startsWith('wallet-') ||
+                key === 'user-wallets' ||
+                key === 'app-settings' ||
+                key.includes('wallet') ||
+                key.includes('blockfrost') ||
+                key.includes('theme'))
+            ) {
+              keysToRemove.push(key);
+            }
+          }
+
+          // Remove all identified keys
+          keysToRemove.forEach(key => {
+            localStorage.removeItem(key);
+            console.log(`Removed localStorage key: ${key}`);
+          });
+        }
+
+        // 4. Completely nuke IndexedDB - delete all related databases
+        if (typeof indexedDB !== 'undefined') {
+          try {
+            // Delete the main wallet database completely
+            await new Promise<void>((resolve, reject) => {
+              const deleteReq = indexedDB.deleteDatabase('cardano-wallet-db');
+              deleteReq.onsuccess = () => {
+                console.log('IndexedDB cardano-wallet-db nuked successfully');
+                resolve();
+              };
+              deleteReq.onerror = () => {
+                console.warn('Failed to delete IndexedDB cardano-wallet-db');
+                reject(new Error('Failed to delete IndexedDB'));
+              };
+              deleteReq.onblocked = () => {
+                console.warn('IndexedDB deletion blocked - may need to close other tabs');
+                // Force close any open connections
+                setTimeout(() => resolve(), 1000);
+              };
+            });
+          } catch (error) {
+            console.warn('Error nuking IndexedDB:', error);
+          }
+        }
+
+        // 5. Clear Chrome extension storage (if available)
+        if (typeof chrome !== 'undefined' && chrome.storage) {
+          try {
+            await chrome.storage.local.clear();
+            console.log('Chrome storage cleared successfully');
+          } catch (error) {
+            console.warn('Error clearing Chrome storage:', error);
+          }
+        }
+
+        alert('All data has been reset successfully. Please reload the extension.');
+      } catch (error) {
+        console.error('Error during reset:', error);
+        alert('Error occurred during reset. Please try again.');
+      }
     }
   };
 
@@ -71,7 +152,14 @@ function Settings() {
 
       {/* Blockfrost API Keys Section */}
       <div>
-        <h2 className="text-lg font-medium mb-2">Blockfrost API Keys</h2>
+        <h2 className="text-lg font-medium mb-1">Blockfrost API Keys</h2>
+        <a
+          href="https://blockfrost.io/dashboard"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline mb-2 inline-block">
+          Get API Key here
+        </a>
         <div className="flex flex-col space-y-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
           {/* --- Mainnet API Key --- */}
           <div>

@@ -1,13 +1,13 @@
 // packages/storage/lib/impl/walletsStorage.ts
 
-import { createStorage } from '../base/base';
+import { createIndexedDBStorage } from '../base/indexeddb';
 import type { BaseStorage } from '../base/types';
 import type { Wallet } from '@extension/shared';
+import { settingsStorage } from './settingsStorage';
 
-// Define the shape of our wallets data structure
+// Define the shape of our wallets data structure (just wallets array now)
 interface WalletsData {
   wallets: Wallet[];
-  activeWalletId: string | null;
 }
 
 // Define the shape of our custom storage object, including our new methods
@@ -20,11 +20,11 @@ type WalletsStorage = BaseStorage<WalletsData> & {
   getWallets: () => Promise<Wallet[]>; // Helper to get just the wallets array
 };
 
-// Create the base storage instance for wallets data
-const storage = createStorage<WalletsData>(
-  'user-wallets', // The key that will be used in chrome.storage
-  { wallets: [], activeWalletId: null }, // Default value
-  { liveUpdate: true },
+// Create the IndexedDB storage instance for wallets data
+const storage = createIndexedDBStorage<WalletsData>(
+  'cardano-wallet-db', // Database name
+  'wallets', // Store name
+  { wallets: [] }, // Default value (no activeWalletId anymore)
 );
 
 // Export the final object, combining the base storage with our custom methods
@@ -45,16 +45,19 @@ export const walletsStorage: WalletsStorage = {
   addWallet: async (newWallet: Wallet) => {
     await storage.set(data => {
       // Ensure data has the correct structure with safe defaults
-      const currentData = data || { wallets: [], activeWalletId: null };
+      const currentData = data || { wallets: [] };
       const currentWallets = Array.isArray(currentData.wallets) ? currentData.wallets : [];
 
       return {
-        ...currentData,
         wallets: [...currentWallets, newWallet],
-        // If this is the first wallet being added, automatically set it as active
-        activeWalletId: currentData.activeWalletId || newWallet.id,
       };
     });
+
+    // If this is the first wallet being added, automatically set it as active
+    const activeWalletId = await settingsStorage.getActiveWalletId();
+    if (!activeWalletId) {
+      await settingsStorage.setActiveWalletId(newWallet.id);
+    }
   },
 
   /**
@@ -63,15 +66,16 @@ export const walletsStorage: WalletsStorage = {
   removeWallet: async (walletId: string) => {
     await storage.set(data => {
       const newWallets = data.wallets.filter(w => w.id !== walletId);
-
-      // If we removed the active wallet, clear it (we'll handle fallback logic later)
-      const newActiveWalletId = data.activeWalletId === walletId ? null : data.activeWalletId;
-
       return {
         wallets: newWallets,
-        activeWalletId: newActiveWalletId,
       };
     });
+
+    // If we removed the active wallet, clear it
+    const activeWalletId = await settingsStorage.getActiveWalletId();
+    if (activeWalletId === walletId) {
+      await settingsStorage.setActiveWalletId(null);
+    }
   },
 
   /**
@@ -79,7 +83,6 @@ export const walletsStorage: WalletsStorage = {
    */
   updateWallet: async (walletId: string, updatedFields: Partial<Wallet>) => {
     await storage.set(data => ({
-      ...data,
       wallets: data.wallets.map(w => (w.id === walletId ? { ...w, ...updatedFields } : w)),
     }));
   },
@@ -89,19 +92,17 @@ export const walletsStorage: WalletsStorage = {
    * Returns null if no wallet is set as active or if the active wallet no longer exists.
    */
   getActiveWallet: async (): Promise<Wallet | null> => {
-    const data = await storage.get();
-    if (!data.activeWalletId) {
+    const activeWalletId = await settingsStorage.getActiveWalletId();
+    if (!activeWalletId) {
       return null;
     }
 
-    const activeWallet = data.wallets.find(w => w.id === data.activeWalletId);
+    const data = await storage.get();
+    const activeWallet = data.wallets.find(w => w.id === activeWalletId);
 
     // If the active wallet ID exists but the wallet was deleted, clear the active wallet
     if (!activeWallet) {
-      await storage.set(currentData => ({
-        ...currentData,
-        activeWalletId: null,
-      }));
+      await settingsStorage.setActiveWalletId(null);
       return null;
     }
 
@@ -115,10 +116,7 @@ export const walletsStorage: WalletsStorage = {
    */
   setActiveWallet: async (walletId: string | null): Promise<void> => {
     if (walletId === null) {
-      await storage.set(data => ({
-        ...data,
-        activeWalletId: null,
-      }));
+      await settingsStorage.setActiveWalletId(null);
       return;
     }
 
@@ -129,9 +127,6 @@ export const walletsStorage: WalletsStorage = {
       throw new Error(`Cannot set active wallet: wallet with ID "${walletId}" not found`);
     }
 
-    await storage.set(currentData => ({
-      ...currentData,
-      activeWalletId: walletId,
-    }));
+    await settingsStorage.setActiveWalletId(walletId);
   },
 };

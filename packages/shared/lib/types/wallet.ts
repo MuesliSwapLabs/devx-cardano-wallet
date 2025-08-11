@@ -8,7 +8,9 @@ export type Wallet = {
   type: 'HD' | 'SPOOFED';
   hasPassword: boolean;
   // Encrypted seed phrase for HD, null for SPOOFED
-  secret: string | null;
+  seedPhrase: string | null;
+  // Encrypted root key for HD, null for SPOOFED (encrypted if password is provided)
+  rootKey: string | null;
 };
 
 export type Asset = {

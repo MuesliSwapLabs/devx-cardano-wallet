@@ -8,7 +8,7 @@ function SpoofSuccess() {
 
   const handleFinishOnboardingClick = async () => {
     await settingsStorage.markOnboarded();
-    navigate('/');
+    navigate('/', { replace: true });
   };
 
   const handleExportAccountClick = () => {

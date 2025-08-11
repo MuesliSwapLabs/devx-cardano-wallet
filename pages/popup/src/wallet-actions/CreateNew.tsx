@@ -4,7 +4,7 @@ import * as Yup from 'yup';
 import { CancelButton, PrimaryButton } from '@src/components/buttons';
 import FloatingLabelInput from '@src/components/FloatingLabelInput';
 import NetworkToggle from '@src/components/NetworkToggle';
-import { generateMnemonic, deriveAddressFromMnemonic } from '../utils/crypto';
+import { generateMnemonic, deriveAddressFromMnemonic, generateRootKeyFromMnemonic } from '../utils/crypto';
 
 interface CreateNewWalletProps {}
 
@@ -45,8 +45,9 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
       // Generate mnemonic and derive address in frontend (popup context)
       const seedPhrase = await generateMnemonic();
       const { address } = await deriveAddressFromMnemonic(seedPhrase, values.network);
+      const rootKey = await generateRootKeyFromMnemonic(seedPhrase);
 
-      console.log('UI: Generated seedPhrase and address successfully');
+      console.log('UI: Generated seedPhrase, address, and rootKey successfully');
 
       // Prepare the data payload with crypto operations completed
       const payload = {
@@ -55,6 +56,7 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
         password: values.skipPassword ? undefined : values.walletPassword,
         seedPhrase: seedPhrase,
         address: address,
+        rootKey: rootKey,
       };
 
       console.log('UI: Sending CREATE_WALLET message with payload:', payload);

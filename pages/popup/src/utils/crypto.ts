@@ -24,6 +24,32 @@ export async function validateMnemonic(mnemonic: string): Promise<boolean> {
 }
 
 /**
+ * Generates a Cardano root key from a mnemonic seed phrase
+ */
+export async function generateRootKeyFromMnemonic(mnemonic: string): Promise<string> {
+  try {
+    // Load Cardano WASM library
+    await CardanoLoader.load();
+    const CardanoWasm = CardanoLoader.Cardano;
+
+    // Convert mnemonic to seed using @scure/bip39 (returns Uint8Array directly)
+    const seed = await mnemonicToSeed(mnemonic);
+
+    // Create root key from seed using Cardano WASM library
+    const rootKey = CardanoWasm.Bip32PrivateKey.from_bip39_entropy(
+      seed.slice(0, 32), // First 32 bytes as entropy
+      new Uint8Array(), // Empty passphrase
+    );
+
+    // Return root key as hex string
+    const keyBytes = rootKey.to_raw_key().as_bytes();
+    return Array.from(keyBytes, (byte: number) => byte.toString(16).padStart(2, '0')).join('');
+  } catch (error) {
+    throw new Error(`Failed to generate root key: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
  * Derives a Cardano address from a mnemonic seed phrase using Cardano WASM library
  */
 export async function deriveAddressFromMnemonic(

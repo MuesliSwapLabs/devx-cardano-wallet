@@ -1,7 +1,8 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useStorage, walletsStorage } from '@extension/storage';
-import { Wallet, EnrichedAsset } from '@extension/shared';
+import { Wallet } from '@extension/shared';
+import { EnrichedAsset } from '@extension/blockchain-provider';
 import TransactionHistory from './TransactionHistory';
 
 // Helper to format Lovelace to ADA

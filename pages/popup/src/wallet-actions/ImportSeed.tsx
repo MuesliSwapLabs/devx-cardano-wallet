@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Formik, Form, Field, ErrorMessage } from 'formik';
+import { Formik, Form, Field, ErrorMessage, FormikHelpers } from 'formik';
 import * as Yup from 'yup';
 
 import { PrimaryButton, SecondaryButton, CancelButton } from '@src/components/buttons';
 import FloatingLabelInput from '@src/components/FloatingLabelInput'; // Make sure this path is correct
 import NetworkToggle from '@src/components/NetworkToggle';
+import { generateRootKeyFromMnemonic } from '../utils/crypto';
 
 // Simple fuzzy search function
 const fuzzySearch = (query, words) => {
@@ -286,28 +287,37 @@ const ImportNewWallet = () => {
     setStep(prev => prev - 1);
   };
 
-  const handleImport = (values: IFormValues, { setSubmitting }: FormikHelpers<IFormValues>) => {
-    const seedPhraseWords = Array.from({ length: wordCount }, (_, i) => values[`word_${i}`]);
-    const seedPhrase = seedPhraseWords.join(' ');
+  const handleImport = async (values: IFormValues, { setSubmitting }: FormikHelpers<IFormValues>) => {
+    try {
+      const seedPhraseWords = Array.from({ length: wordCount }, (_, i) => values[`word_${i}`]);
+      const seedPhrase = seedPhraseWords.join(' ');
 
-    const payload = {
-      name: values.walletName,
-      network: values.network,
-      seedPhrase: seedPhrase,
-      password: values.skipPassword ? undefined : values.walletPassword,
-    };
+      // Generate rootKey from seedPhrase
+      const rootKey = await generateRootKeyFromMnemonic(seedPhrase);
 
-    chrome.runtime.sendMessage({ type: 'IMPORT_WALLET', payload }, response => {
-      if (chrome.runtime.lastError) {
-        console.error('Message sending failed:', chrome.runtime.lastError.message);
-      } else if (response?.success) {
-        alert('Not implemented yet. Redirecting to success anyway.');
-        navigate('/import-wallet-from-seed-phrase-success');
-      } else {
-        console.error('UI: Failed to import wallet:', response?.error);
-      }
+      const payload = {
+        name: values.walletName,
+        network: values.network,
+        seedPhrase: seedPhrase,
+        password: values.skipPassword ? undefined : values.walletPassword,
+        rootKey: rootKey,
+      };
+
+      chrome.runtime.sendMessage({ type: 'IMPORT_WALLET', payload }, response => {
+        if (chrome.runtime.lastError) {
+          console.error('Message sending failed:', chrome.runtime.lastError.message);
+        } else if (response?.success) {
+          alert('Not implemented yet. Redirecting to success anyway.');
+          navigate('/import-wallet-from-seed-phrase-success');
+        } else {
+          console.error('UI: Failed to import wallet:', response?.error);
+        }
+        setSubmitting(false);
+      });
+    } catch (error) {
+      console.error('UI: Failed to generate rootKey:', error);
       setSubmitting(false);
-    });
+    }
   };
 
   const handleCancel = () => {

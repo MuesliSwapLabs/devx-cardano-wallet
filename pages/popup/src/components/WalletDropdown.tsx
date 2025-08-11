@@ -1,6 +1,6 @@
 // popup/src/components/WalletDropdown.tsx
 import { useState, useEffect } from 'react';
-import { useStorage, walletsStorage } from '@extension/storage';
+import { useStorage, walletsStorage, settingsStorage } from '@extension/storage';
 import { Link, useNavigate } from 'react-router-dom';
 
 interface WalletDropdownProps {
@@ -10,11 +10,12 @@ interface WalletDropdownProps {
 
 function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const walletsData = useStorage(walletsStorage); // Get the full wallets data structure
+  const walletsData = useStorage(walletsStorage);
+  const settings = useStorage(settingsStorage);
   const navigate = useNavigate();
 
   const wallets = walletsData?.wallets || [];
-  const activeWalletId = walletsData?.activeWalletId; // Extract active wallet ID from wallets data
+  const activeWalletId = settings?.activeWalletId; // Extract active wallet ID from settings
   const currentWallet = wallets.find(w => w.id === currentWalletId) || wallets[0];
 
   // Group wallets by network

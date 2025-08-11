@@ -8,6 +8,7 @@ export async function createNewWallet(
   password?: string,
   seedPhrase?: string,
   address?: string,
+  rootKey?: string,
 ): Promise<Wallet> {
   // Seed phrase and address should be provided by the background script
   if (!seedPhrase || !address) {
@@ -23,7 +24,8 @@ export async function createNewWallet(
     assets: [],
     type: 'HD',
     hasPassword: !!password,
-    secret: password ? await encrypt(seedPhrase, password) : seedPhrase,
+    seedPhrase: password ? await encrypt(seedPhrase, password) : seedPhrase,
+    rootKey: rootKey ? (password ? await encrypt(rootKey, password) : rootKey) : null,
   };
   return wallet;
 }
@@ -34,6 +36,7 @@ export async function importWallet(
   seedPhrase: string,
   password?: string,
   derivedAddress?: string,
+  rootKey?: string,
 ): Promise<Wallet> {
   // Address should be provided by the background script after validation
   if (!derivedAddress) {
@@ -49,7 +52,8 @@ export async function importWallet(
     assets: [],
     type: 'HD',
     hasPassword: !!password,
-    secret: password ? await encrypt(seedPhrase, password) : seedPhrase,
+    seedPhrase: password ? await encrypt(seedPhrase, password) : seedPhrase,
+    rootKey: rootKey ? (password ? await encrypt(rootKey, password) : rootKey) : null,
   };
   return wallet;
 }
@@ -65,7 +69,8 @@ export async function spoofWallet(name: string, address: string, network: 'Mainn
     assets: [],
     type: 'SPOOFED',
     hasPassword: false,
-    secret: null,
+    seedPhrase: null,
+    rootKey: null,
   };
 
   // First, we get the full state from the provider.
@@ -90,7 +95,8 @@ export async function spoofWallet(name: string, address: string, network: 'Mainn
     assets: state.assets,
     type: 'SPOOFED',
     hasPassword: false,
-    secret: null,
+    seedPhrase: null,
+    rootKey: null,
   };
 
   return wallet;

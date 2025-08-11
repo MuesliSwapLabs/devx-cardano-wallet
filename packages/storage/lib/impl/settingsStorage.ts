@@ -13,6 +13,7 @@ export interface AppSettings {
   legalAccepted?: boolean;
   mainnetApiKey?: string;
   preprodApiKey?: string;
+  activeWalletId?: string | null;
 }
 
 // Define the default state for a first-time user.
@@ -22,6 +23,7 @@ const defaultSettings: AppSettings = {
   legalAccepted: false,
   mainnetApiKey: '',
   preprodApiKey: '',
+  activeWalletId: null,
 };
 
 // --- Define the custom methods for our new storage object ---
@@ -30,8 +32,10 @@ export interface SettingsStorage extends BaseStorage<AppSettings> {
   markOnboarded: () => Promise<void>;
   unmarkOnboarded: () => Promise<void>;
   markLegalAccepted: () => Promise<void>;
-  setMainnetApiKey: (apiKey: string) => Promise<void>; // New
-  setPreprodApiKey: (apiKey: string) => Promise<void>; // New
+  setMainnetApiKey: (apiKey: string) => Promise<void>;
+  setPreprodApiKey: (apiKey: string) => Promise<void>;
+  setActiveWalletId: (walletId: string | null) => Promise<void>;
+  getActiveWalletId: () => Promise<string | null>;
 }
 
 // Create the base storage instance using the factory from base.ts.
@@ -88,5 +92,19 @@ export const settingsStorage: SettingsStorage = {
       ...settings,
       preprodApiKey: apiKey,
     }));
+  },
+
+  /** Sets the active wallet ID. */
+  setActiveWalletId: async (walletId: string | null) => {
+    await storage.set(settings => ({
+      ...settings,
+      activeWalletId: walletId,
+    }));
+  },
+
+  /** Gets the active wallet ID. */
+  getActiveWalletId: async (): Promise<string | null> => {
+    const settings = await storage.get();
+    return settings.activeWalletId || null;
   },
 };

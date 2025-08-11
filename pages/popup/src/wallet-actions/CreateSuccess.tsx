@@ -9,7 +9,7 @@ function CreateSuccess() {
   const handleFinishOnboardingClick = async () => {
     // Use the new settings storage to mark onboarding as complete
     await settingsStorage.markOnboarded();
-    navigate('/');
+    navigate('/', { replace: true });
   };
 
   const handleExportSeedPhraseClick = () => {

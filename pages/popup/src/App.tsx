@@ -1,6 +1,7 @@
 // popup/src/App.tsx
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useStorage, settingsStorage, walletsStorage } from '@extension/storage';
+import { useEffect } from 'react';
 
 // Layouts
 import MainLayout from './layouts/MainLayout';
@@ -35,10 +36,38 @@ function App() {
   const hasWallets = wallets.length > 0;
   const isOnboarded = settings?.onboarded && hasWallets;
 
-  // Use the active wallet from wallets data, or fall back to the first wallet
-  const activeWalletId = walletsData?.activeWalletId;
-  const defaultWalletId =
-    activeWalletId && wallets.find(w => w.id === activeWalletId) ? activeWalletId : wallets[0]?.id || 'no-wallets';
+  // Debug logging to help track onboarding issues
+  useEffect(() => {
+    console.log('App.tsx state:', {
+      onboarded: settings?.onboarded,
+      hasWallets,
+      walletsCount: wallets.length,
+      isOnboarded,
+      activeWalletId: settings?.activeWalletId,
+    });
+  }, [settings?.onboarded, hasWallets, wallets.length, isOnboarded, settings?.activeWalletId]);
+
+  // Auto-set activeWalletId if it's null but we have wallets
+  useEffect(() => {
+    if (hasWallets && !settings?.activeWalletId) {
+      settingsStorage.setActiveWalletId(wallets[0].id);
+    }
+  }, [hasWallets, settings?.activeWalletId, wallets]);
+
+  // Use the active wallet from settings, or fall back to the first wallet
+  const activeWalletId = settings?.activeWalletId;
+  const defaultWalletId = (() => {
+    // If we have an activeWalletId and it exists in wallets, use it
+    if (activeWalletId && wallets.find(w => w.id === activeWalletId)) {
+      return activeWalletId;
+    }
+    // Otherwise, use the first available wallet
+    if (wallets.length > 0) {
+      return wallets[0].id;
+    }
+    // No wallets available
+    return 'no-wallets';
+  })();
 
   return (
     <Router>

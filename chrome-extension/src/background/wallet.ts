@@ -16,9 +16,9 @@ export const handleWalletMessages = async (
     switch (message.type) {
       case 'CREATE_WALLET': {
         // Receive complete data from frontend - crypto operations already done in popup
-        const { name, network, password, seedPhrase, address } = message.payload;
+        const { name, network, password, seedPhrase, address, rootKey } = message.payload;
 
-        const wallet = await createNewWallet(name, network, password, seedPhrase, address);
+        const wallet = await createNewWallet(name, network, password, seedPhrase, address, rootKey);
         await walletsStorage.addWallet(wallet);
         sendResponse({ success: true, wallet });
         return true;
@@ -42,6 +42,7 @@ export const handleWalletMessages = async (
           message.payload.seedPhrase,
           message.payload.password,
           address,
+          message.payload.rootKey,
         );
         await walletsStorage.addWallet(wallet);
         sendResponse({ success: true, wallet });
@@ -72,9 +73,9 @@ export const handleWalletMessages = async (
 
       case 'VALIDATE_PASSWORD': {
         const wallet = findWallet(message.payload.id);
-        if (!wallet || !wallet.secret) throw new Error('Wallet not found or has no secret.');
+        if (!wallet || !wallet.seedPhrase) throw new Error('Wallet not found or has no seedPhrase.');
         try {
-          await decrypt(wallet.secret, message.payload.password);
+          await decrypt(wallet.seedPhrase, message.payload.password);
           sendResponse({ success: true, isValid: true });
         } catch (e) {
           sendResponse({ success: true, isValid: false });
@@ -85,11 +86,16 @@ export const handleWalletMessages = async (
       case 'ADD_PASSWORD': {
         const { id, newPassword } = message.payload;
         const wallet = findWallet(id);
-        if (!wallet || wallet.hasPassword || !wallet.secret)
-          throw new Error('Wallet not found, already has a password, or has no secret.');
+        if (!wallet || wallet.hasPassword || !wallet.seedPhrase)
+          throw new Error('Wallet not found, already has a password, or has no seedPhrase.');
 
-        const newEncryptedSecret = await encrypt(wallet.secret, newPassword);
-        await walletsStorage.updateWallet(id, { secret: newEncryptedSecret, hasPassword: true });
+        const newEncryptedSeedPhrase = await encrypt(wallet.seedPhrase, newPassword);
+        const newEncryptedRootKey = wallet.rootKey ? await encrypt(wallet.rootKey, newPassword) : null;
+        await walletsStorage.updateWallet(id, {
+          seedPhrase: newEncryptedSeedPhrase,
+          rootKey: newEncryptedRootKey,
+          hasPassword: true,
+        });
         sendResponse({ success: true });
         return true;
       }
@@ -97,26 +103,31 @@ export const handleWalletMessages = async (
       case 'CHANGE_PASSWORD': {
         const { id, currentPassword, newPassword } = message.payload;
         const wallet = findWallet(id);
-        if (!wallet || !wallet.secret) throw new Error('Wallet not found or has no secret.');
-        const secret = await decrypt(wallet.secret, currentPassword);
-        const newEncryptedSecret = await encrypt(secret, newPassword);
-        await walletsStorage.updateWallet(id, { secret: newEncryptedSecret });
+        if (!wallet || !wallet.seedPhrase) throw new Error('Wallet not found or has no seedPhrase.');
+        const seedPhrase = await decrypt(wallet.seedPhrase, currentPassword);
+        const rootKey = wallet.rootKey ? await decrypt(wallet.rootKey, currentPassword) : null;
+        const newEncryptedSeedPhrase = await encrypt(seedPhrase, newPassword);
+        const newEncryptedRootKey = rootKey ? await encrypt(rootKey, newPassword) : null;
+        await walletsStorage.updateWallet(id, {
+          seedPhrase: newEncryptedSeedPhrase,
+          rootKey: newEncryptedRootKey,
+        });
         sendResponse({ success: true });
         return true;
       }
 
       case 'GET_DECRYPTED_SECRET': {
         const wallet = findWallet(message.payload.id);
-        if (!wallet || !wallet.secret) {
-          throw new Error('Wallet not found or has no secret.');
+        if (!wallet || !wallet.seedPhrase) {
+          throw new Error('Wallet not found or has no seedPhrase.');
         }
-        let secret: string;
+        let seedPhrase: string;
         if (wallet.hasPassword) {
-          secret = await decrypt(wallet.secret, message.payload.password);
+          seedPhrase = await decrypt(wallet.seedPhrase, message.payload.password);
         } else {
-          secret = wallet.secret;
+          seedPhrase = wallet.seedPhrase;
         }
-        sendResponse({ success: true, secret });
+        sendResponse({ success: true, secret: seedPhrase });
         return true;
       }
 
