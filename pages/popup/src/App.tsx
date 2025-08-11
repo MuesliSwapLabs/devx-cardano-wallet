@@ -11,6 +11,7 @@ import WalletActionLayout from './layouts/WalletActionLayout';
 
 // Views
 import WalletView from './wallet/WalletView';
+import UTXODetail from './wallet/UTXODetail';
 import Settings from './Settings';
 
 // Onboarding Pages
@@ -95,6 +96,11 @@ function App() {
             <Route element={<SubPageLayout />}>
               <Route path="/settings" element={<Settings />} />
               <Route path="/wallet-settings/:walletId" element={<WalletSettings />} />
+            </Route>
+
+            {/* UTXO Detail Page (without MainLayout) */}
+            <Route element={<SubPageLayout />}>
+              <Route path="/wallet/:walletId/utxo/:txHash/:outputIndex" element={<UTXODetail />} />
             </Route>
 
             {/* Main Application */}

@@ -4,6 +4,8 @@ import { useStorage, walletsStorage } from '@extension/storage';
 import { Wallet } from '@extension/shared';
 import { EnrichedAsset } from '@extension/blockchain-provider';
 import TransactionHistory from './TransactionHistory';
+import EnhancedTransactions from './EnhancedTransactions';
+import UTXOsView from './UTXOsView';
 
 // Helper to format Lovelace to ADA
 const formatAda = (lovelace: string) => {
@@ -49,7 +51,9 @@ const WalletView = () => {
         </div>
       )}
 
-      {view === 'history' && <TransactionHistory wallet={wallet} />}
+      {view === 'enhanced-transactions' && <EnhancedTransactions wallet={wallet} />}
+
+      {view === 'utxos' && <UTXOsView wallet={wallet} />}
     </div>
   );
 };

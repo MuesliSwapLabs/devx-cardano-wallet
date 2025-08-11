@@ -20,6 +20,9 @@ export interface TransactionOutput {
   address: string;
   amount: BlockfrostAmount[];
   output_index: number;
+  data_hash?: string | null;
+  inline_datum?: string | null;
+  reference_script_hash?: string | null;
 }
 
 export interface Transaction {
@@ -52,6 +55,27 @@ export interface TransactionDetails extends Transaction {
   outputs: TransactionOutput[];
 }
 
+// UTXO-related types for enhanced developer wallet
+export interface UTXO {
+  address: string;
+  tx_hash: string;
+  output_index: number;
+  amount: BlockfrostAmount[];
+  block: string;
+  data_hash?: string | null;
+  inline_datum?: string | null;
+  reference_script_hash?: string | null;
+  isSpent: boolean;
+  spentInTx?: string | null;
+}
+
+// Enhanced transaction with UTXO relationships
+export interface EnhancedTransaction extends Transaction {
+  inputs: TransactionInput[];
+  outputs: TransactionOutput[];
+  relatedUtxos: UTXO[];
+}
+
 // The final state of the entire wallet
 export interface WalletState {
   status: 'found' | 'not_found' | 'invalid_address';
@@ -78,6 +102,24 @@ type AddressInfoResponse = {
 type AccountInfoResponse = {
   stake_address: string;
   controlled_amount: string; // This is the total lovelace balance
+};
+
+type BlockfrostUTXO = {
+  address: string;
+  tx_hash: string;
+  output_index: number;
+  amount: BlockfrostAmount[];
+  block: string;
+  data_hash?: string | null;
+  inline_datum?: string | null;
+  reference_script_hash?: string | null;
+};
+
+type AddressTransactionResponse = {
+  tx_hash: string;
+  tx_index: number;
+  block_height: number;
+  block_time: number;
 };
 
 const BLOCKFROST_API_URLS = {
@@ -188,10 +230,29 @@ function hexToString(hex: string): string {
  */
 async function getPaymentAddresses(apiUrl: string, apiKey: string, stakeAddress: string): Promise<string[]> {
   const endpoint = `${apiUrl}/accounts/${stakeAddress}/addresses`;
+
+  console.log('Fetching payment addresses:', {
+    endpoint,
+    stakeAddress,
+    hasApiKey: !!apiKey,
+    apiKeyPrefix: apiKey ? apiKey.substring(0, 8) + '...' : 'none',
+  });
+
   const response = await fetch(endpoint, {
     headers: { project_id: apiKey },
   });
-  if (!response.ok) throw new Error(`Failed to fetch payment addresses: ${response.statusText}`);
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Blockfrost API Error:', {
+      status: response.status,
+      statusText: response.statusText,
+      errorBody: errorText,
+      endpoint,
+    });
+    throw new Error(`Failed to fetch payment addresses: ${response.status} ${response.statusText} - ${errorText}`);
+  }
+
   const data: { address: string }[] = await response.json();
   return data.map(item => item.address);
 }
@@ -229,6 +290,56 @@ async function getAddressTransactions(apiUrl: string, apiKey: string, address: s
 }
 
 /**
+ * Fetches current UTXOs for a specific address.
+ */
+async function getAddressUTXOs(apiUrl: string, apiKey: string, address: string): Promise<BlockfrostUTXO[]> {
+  const allUtxos: BlockfrostUTXO[] = [];
+  let page = 1;
+  const count = 100;
+
+  while (true) {
+    const endpoint = `${apiUrl}/addresses/${address}/utxos?page=${page}&count=${count}`;
+    const response = await fetch(endpoint, {
+      headers: { project_id: apiKey },
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) break; // No UTXOs found
+      throw new Error(`Failed to fetch UTXOs for address ${address}: ${response.statusText}`);
+    }
+
+    const data: BlockfrostUTXO[] = await response.json();
+
+    if (data.length === 0) break;
+
+    allUtxos.push(...data);
+
+    if (data.length < count) break; // Last page
+    page++;
+  }
+
+  return allUtxos;
+}
+
+/**
+ * Fetches all UTXOs for an account via stake address.
+ */
+async function getAccountUTXOs(apiUrl: string, apiKey: string, stakeAddress: string): Promise<BlockfrostUTXO[]> {
+  const endpoint = `${apiUrl}/accounts/${stakeAddress}/utxos`;
+  const response = await fetch(endpoint, {
+    headers: { project_id: apiKey },
+  });
+
+  if (!response.ok) {
+    if (response.status === 404) return []; // No UTXOs found
+    throw new Error(`Failed to fetch account UTXOs: ${response.statusText}`);
+  }
+
+  const data: BlockfrostUTXO[] = await response.json();
+  return data;
+}
+
+/**
  * Fetches detailed transaction information.
  */
 async function getTransactionDetails(apiUrl: string, apiKey: string, txHash: string): Promise<TransactionDetails> {
@@ -240,22 +351,67 @@ async function getTransactionDetails(apiUrl: string, apiKey: string, txHash: str
   const txData: Transaction = await txResponse.json();
 
   // Fetch transaction inputs and outputs
-  const [inputsResponse, outputsResponse] = await Promise.all([
-    fetch(`${apiUrl}/txs/${txHash}/utxos`, { headers: { project_id: apiKey } }),
-    fetch(`${apiUrl}/txs/${txHash}/utxos`, { headers: { project_id: apiKey } }),
-  ]);
+  const utxosResponse = await fetch(`${apiUrl}/txs/${txHash}/utxos`, {
+    headers: { project_id: apiKey },
+  });
 
-  if (!inputsResponse.ok || !outputsResponse.ok) {
+  if (!utxosResponse.ok) {
     throw new Error(`Failed to fetch UTXOs for transaction ${txHash}`);
   }
 
-  const utxoData = await inputsResponse.json();
+  const utxoData = await utxosResponse.json();
 
   return {
     ...txData,
     inputs: utxoData.inputs || [],
     outputs: utxoData.outputs || [],
   };
+}
+
+/**
+ * Determines UTXO spent status by checking if they appear as inputs in subsequent transactions.
+ */
+async function determineUTXOSpentStatus(
+  apiUrl: string,
+  apiKey: string,
+  utxos: BlockfrostUTXO[],
+  transactions: AddressTransactionResponse[],
+): Promise<UTXO[]> {
+  const enhancedUtxos: UTXO[] = utxos.map(utxo => ({
+    ...utxo,
+    isSpent: false,
+    spentInTx: null,
+  }));
+
+  // For each transaction, check if any of our UTXOs are consumed as inputs
+  for (const tx of transactions) {
+    try {
+      const txUtxos = await fetch(`${apiUrl}/txs/${tx.tx_hash}/utxos`, {
+        headers: { project_id: apiKey },
+      });
+
+      if (!txUtxos.ok) continue;
+
+      const txData = await txUtxos.json();
+      const inputs = txData.inputs || [];
+
+      // Mark UTXOs as spent if they appear as inputs
+      for (const input of inputs) {
+        const utxoIndex = enhancedUtxos.findIndex(
+          utxo => utxo.tx_hash === input.tx_hash && utxo.output_index === input.output_index,
+        );
+
+        if (utxoIndex !== -1) {
+          enhancedUtxos[utxoIndex].isSpent = true;
+          enhancedUtxos[utxoIndex].spentInTx = tx.tx_hash;
+        }
+      }
+    } catch (error) {
+      console.warn(`Failed to process transaction ${tx.tx_hash} for UTXO analysis:`, error);
+    }
+  }
+
+  return enhancedUtxos;
 }
 
 // --- Main Exported Function ---
@@ -270,7 +426,7 @@ export const getWalletState = async (wallet: Wallet): Promise<WalletState> => {
   const address = wallet.address;
 
   // For spoofed wallets, we might need to determine the stake address from the input
-  let stakeAddress = wallet.stakeAddress;
+  let stakeAddress: string | null = wallet.stakeAddress;
   let status: 'found' | 'not_found' = 'found';
 
   if (!stakeAddress) {
@@ -368,8 +524,16 @@ export const getTransactions = async (wallet: Wallet): Promise<TransactionDetail
   const stakeAddress = wallet.stakeAddress;
 
   if (!stakeAddress) {
+    console.log('No stake address found for wallet, returning empty transactions');
     return [];
   }
+
+  console.log('Fetching transactions for wallet:', {
+    walletId: wallet.id,
+    stakeAddress,
+    hasApiKey: !!apiKey,
+    network: wallet.network,
+  });
 
   try {
     // Get all payment addresses for this stake address
@@ -398,6 +562,91 @@ export const getTransactions = async (wallet: Wallet): Promise<TransactionDetail
       .sort((a, b) => b.block_time - a.block_time);
   } catch (error) {
     console.error('Failed to fetch transactions:', error);
+    return [];
+  }
+};
+
+/**
+ * Fetches all UTXOs for a wallet with spent/unspent status determination.
+ * This is the core function for the developer wallet's UTXO management.
+ */
+export const getWalletUTXOs = async (wallet: Wallet): Promise<UTXO[]> => {
+  const { apiUrl, apiKey } = await getApiConfigForWallet(wallet);
+  const stakeAddress = wallet.stakeAddress;
+
+  if (!stakeAddress) {
+    console.log('No stake address found for wallet, returning empty UTXOs');
+    return [];
+  }
+
+  console.log('Fetching UTXOs for wallet:', {
+    walletId: wallet.id,
+    stakeAddress,
+    hasApiKey: !!apiKey,
+    network: wallet.network,
+  });
+
+  try {
+    // Get current unspent UTXOs for the account
+    const currentUtxos = await getAccountUTXOs(apiUrl, apiKey, stakeAddress);
+
+    // Get all payment addresses to fetch transaction history
+    const paymentAddresses = await getPaymentAddresses(apiUrl, apiKey, stakeAddress);
+
+    // Get transaction history for UTXO spent analysis
+    const allTransactionsPromises = paymentAddresses.map(async address => {
+      const endpoint = `${apiUrl}/addresses/${address}/transactions?order=desc&count=100`;
+      const response = await fetch(endpoint, {
+        headers: { project_id: apiKey },
+      });
+
+      if (!response.ok) return [];
+
+      const data: AddressTransactionResponse[] = await response.json();
+      return data;
+    });
+
+    const allTransactionsArrays = await Promise.all(allTransactionsPromises);
+    const allTransactions = allTransactionsArrays.flat();
+
+    // Current UTXOs are unspent by definition
+    const unspentUtxos: UTXO[] = currentUtxos.map(utxo => ({
+      ...utxo,
+      isSpent: false,
+      spentInTx: null,
+    }));
+
+    // To get spent UTXOs, we need to analyze transaction history
+    // For now, return current unspent UTXOs - spent UTXO tracking would require
+    // more complex historical analysis
+
+    return unspentUtxos.sort((a, b) => b.tx_hash.localeCompare(a.tx_hash));
+  } catch (error) {
+    console.error('Failed to fetch wallet UTXOs:', error);
+    return [];
+  }
+};
+
+/**
+ * Fetches enhanced transaction data with related UTXO information.
+ */
+export const getEnhancedTransactions = async (wallet: Wallet): Promise<EnhancedTransaction[]> => {
+  try {
+    const [transactions, utxos] = await Promise.all([getTransactions(wallet), getWalletUTXOs(wallet)]);
+
+    // Enhance transactions with related UTXO data
+    const enhancedTransactions: EnhancedTransaction[] = transactions.map(tx => {
+      const relatedUtxos = utxos.filter(utxo => utxo.tx_hash === tx.hash || utxo.spentInTx === tx.hash);
+
+      return {
+        ...tx,
+        relatedUtxos,
+      };
+    });
+
+    return enhancedTransactions;
+  } catch (error) {
+    console.error('Failed to fetch enhanced transactions:', error);
     return [];
   }
 };

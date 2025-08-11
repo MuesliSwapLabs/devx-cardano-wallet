@@ -1,7 +1,8 @@
-import { walletsStorage } from '@extension/storage';
+import { walletsStorage, transactionsStorage } from '@extension/storage';
+import { WalletSyncService } from '@extension/blockchain-provider';
 import { createNewWallet, importWallet, spoofWallet } from '@extension/wallet-manager';
 import { decrypt, encrypt } from '@extension/shared';
-import { getTransactions } from '@extension/blockchain-provider';
+import { getTransactions, getWalletUTXOs, getEnhancedTransactions } from '@extension/blockchain-provider';
 import type { Wallet } from '@extension/shared';
 // Crypto operations moved to frontend - no longer needed in background
 
@@ -129,6 +130,124 @@ export const handleWalletMessages = async (
         } catch (error) {
           console.error('Failed to fetch transactions:', error);
           const errorMessage = error instanceof Error ? error.message : 'Failed to fetch transactions';
+          sendResponse({ success: false, error: errorMessage });
+        }
+        return true;
+      }
+
+      case 'GET_ENHANCED_TRANSACTIONS': {
+        const wallet = findWallet(message.payload.walletId);
+        if (!wallet) {
+          throw new Error('Wallet not found.');
+        }
+
+        try {
+          // Use cached data with auto-sync if stale
+          const { transactions } = await WalletSyncService.getWalletData(wallet, true);
+          sendResponse({ success: true, transactions });
+        } catch (error) {
+          console.error('Failed to fetch enhanced transactions:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Failed to fetch enhanced transactions';
+          sendResponse({ success: false, error: errorMessage });
+        }
+        return true;
+      }
+
+      case 'GET_WALLET_UTXOS': {
+        const { walletId, includeSpent = false } = message.payload;
+        const wallet = findWallet(walletId);
+        if (!wallet) {
+          throw new Error('Wallet not found.');
+        }
+
+        try {
+          // Use cached data with auto-sync if stale
+          const { utxos } = await WalletSyncService.getWalletData(wallet, true);
+          const filteredUtxos = includeSpent ? utxos : utxos.filter(utxo => !utxo.isSpent);
+          sendResponse({ success: true, utxos: filteredUtxos });
+        } catch (error) {
+          console.error('Failed to fetch wallet UTXOs:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Failed to fetch wallet UTXOs';
+          sendResponse({ success: false, error: errorMessage });
+        }
+        return true;
+      }
+
+      case 'GET_UTXO_DETAILS': {
+        const { txHash, outputIndex } = message.payload;
+
+        try {
+          const utxo = await transactionsStorage.getUTXO(txHash, outputIndex);
+          if (!utxo) {
+            sendResponse({ success: false, error: 'UTXO not found' });
+            return true;
+          }
+          sendResponse({ success: true, utxo });
+        } catch (error) {
+          console.error('Failed to fetch UTXO details:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Failed to fetch UTXO details';
+          sendResponse({ success: false, error: errorMessage });
+        }
+        return true;
+      }
+
+      case 'SYNC_WALLET': {
+        const { walletId, forceFullSync = false } = message.payload;
+        const wallet = findWallet(walletId);
+        if (!wallet) {
+          throw new Error('Wallet not found.');
+        }
+
+        try {
+          const result = await WalletSyncService.syncWallet(wallet, { forceFullSync });
+          sendResponse({ success: true, result });
+        } catch (error) {
+          console.error('Failed to sync wallet:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Failed to sync wallet';
+          sendResponse({ success: false, error: errorMessage });
+        }
+        return true;
+      }
+
+      case 'GET_SYNC_STATUS': {
+        const { walletId } = message.payload;
+
+        try {
+          const status = await WalletSyncService.getSyncStatus(walletId);
+          sendResponse({ success: true, status });
+        } catch (error) {
+          console.error('Failed to get sync status:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Failed to get sync status';
+          sendResponse({ success: false, error: errorMessage });
+        }
+        return true;
+      }
+
+      case 'GET_STORAGE_STATS': {
+        try {
+          const stats = await transactionsStorage.getStats();
+          sendResponse({ success: true, stats });
+        } catch (error) {
+          console.error('Failed to get storage stats:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Failed to get storage stats';
+          sendResponse({ success: false, error: errorMessage });
+        }
+        return true;
+      }
+
+      case 'RESET_WALLET_DATA': {
+        const { walletId } = message.payload;
+        const wallet = findWallet(walletId);
+        if (!wallet) {
+          throw new Error('Wallet not found.');
+        }
+
+        try {
+          const result = await WalletSyncService.resetAndResync(wallet);
+          sendResponse({ success: true, result });
+        } catch (error) {
+          console.error('Failed to reset wallet data:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Failed to reset wallet data';
           sendResponse({ success: false, error: errorMessage });
         }
         return true;

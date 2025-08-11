@@ -72,7 +72,7 @@ export function createIndexedDBStorage<D>(dbName: string, storeName: string, fal
 
   const _openDB = (): Promise<IDBDatabase> => {
     return new Promise((resolve, reject) => {
-      if (db && db.readyState !== 'closed') {
+      if (db) {
         resolve(db);
         return;
       }

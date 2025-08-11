@@ -105,14 +105,14 @@ function MainLayout() {
           Assets
         </Link>
         <Link
-          to={`/wallet/${walletId}/history`}
-          className={`px-6 py-2 rounded-md transition ${view === 'history' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>
-          History
+          to={`/wallet/${walletId}/enhanced-transactions`}
+          className={`px-4 py-2 rounded-md transition text-sm ${view === 'enhanced-transactions' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>
+          Transactions
         </Link>
         <Link
-          to={`/wallet/${walletId}/test`}
-          className={`px-6 py-2 rounded-md transition ${view === 'test' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>
-          test
+          to={`/wallet/${walletId}/utxos`}
+          className={`px-6 py-2 rounded-md transition ${view === 'utxos' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>
+          UTXOs
         </Link>
       </footer>
     </>
