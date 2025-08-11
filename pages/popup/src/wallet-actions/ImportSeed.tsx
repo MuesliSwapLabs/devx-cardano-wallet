@@ -6,7 +6,7 @@ import * as Yup from 'yup';
 import { PrimaryButton, SecondaryButton, CancelButton } from '@src/components/buttons';
 import FloatingLabelInput from '@src/components/FloatingLabelInput'; // Make sure this path is correct
 import NetworkToggle from '@src/components/NetworkToggle';
-import { generateRootKeyFromMnemonic } from '../utils/crypto';
+import { generateRootKeyFromMnemonic, deriveAddressFromMnemonic } from '../utils/crypto';
 
 // Simple fuzzy search function
 const fuzzySearch = (query, words) => {
@@ -292,13 +292,16 @@ const ImportNewWallet = () => {
       const seedPhraseWords = Array.from({ length: wordCount }, (_, i) => values[`word_${i}`]);
       const seedPhrase = seedPhraseWords.join(' ');
 
-      // Generate rootKey from seedPhrase
+      // Derive addresses and generate rootKey from seedPhrase in frontend
+      const { address, stakeAddress } = await deriveAddressFromMnemonic(seedPhrase, values.network);
       const rootKey = await generateRootKeyFromMnemonic(seedPhrase);
 
       const payload = {
         name: values.walletName,
         network: values.network,
         seedPhrase: seedPhrase,
+        address: address,
+        stakeAddress: stakeAddress,
         password: values.skipPassword ? undefined : values.walletPassword,
         rootKey: rootKey,
       };

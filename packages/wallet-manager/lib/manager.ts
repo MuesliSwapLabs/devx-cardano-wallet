@@ -8,17 +8,19 @@ export async function createNewWallet(
   password?: string,
   seedPhrase?: string,
   address?: string,
+  stakeAddress?: string,
   rootKey?: string,
 ): Promise<Wallet> {
-  // Seed phrase and address should be provided by the background script
-  if (!seedPhrase || !address) {
-    throw new Error('Seed phrase and address must be provided by crypto operations');
+  // Seed phrase, address and stakeAddress should be provided by the background script
+  if (!seedPhrase || !address || !stakeAddress) {
+    throw new Error('Seed phrase, address, and stake address must be provided by crypto operations');
   }
 
   const wallet: Wallet = {
     id: uuidv4(),
     name,
     address,
+    stakeAddress,
     network,
     balance: '0',
     assets: [],
@@ -36,17 +38,19 @@ export async function importWallet(
   seedPhrase: string,
   password?: string,
   derivedAddress?: string,
+  stakeAddress?: string,
   rootKey?: string,
 ): Promise<Wallet> {
-  // Address should be provided by the background script after validation
-  if (!derivedAddress) {
-    throw new Error('Derived address must be provided by crypto operations');
+  // Address and stake address should be provided by the background script after validation
+  if (!derivedAddress || !stakeAddress) {
+    throw new Error('Derived address and stake address must be provided by crypto operations');
   }
 
   const wallet: Wallet = {
     id: uuidv4(),
     name,
     address: derivedAddress,
+    stakeAddress,
     network,
     balance: '0',
     assets: [],
@@ -58,12 +62,16 @@ export async function importWallet(
   return wallet;
 }
 
-export async function spoofWallet(name: string, address: string, network: 'Mainnet' | 'Preprod'): Promise<Wallet> {
+export async function spoofWallet(name: string, inputAddress: string, network: 'Mainnet' | 'Preprod'): Promise<Wallet> {
+  // Determine if input is stake address or payment address
+  const isStakeAddress = inputAddress.startsWith('stake1') || inputAddress.startsWith('stake_test1');
+
   // Create a temporary wallet object to get the network state
   const tempWallet: Wallet = {
     id: 'temp',
     name: 'temp',
-    address,
+    address: inputAddress,
+    stakeAddress: isStakeAddress ? inputAddress : '', // Will be populated by getWalletState
     network,
     balance: '0',
     assets: [],
@@ -88,8 +96,9 @@ export async function spoofWallet(name: string, address: string, network: 'Mainn
   const wallet: Wallet = {
     id: uuidv4(),
     name,
-    // We use the stake address as the primary identifier for the spoofed wallet.
-    address: state.stakeAddress || state.address,
+    // For spoofed wallets: address is the input address, stakeAddress is from blockchain
+    address: inputAddress,
+    stakeAddress: state.stakeAddress || inputAddress,
     network,
     balance: state.balance,
     assets: state.assets,

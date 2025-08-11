@@ -1,7 +1,8 @@
 export type Wallet = {
   id: string;
   name: string;
-  address: string;
+  address: string; // Payment address (for created/imported wallets) or spoofed address
+  stakeAddress: string; // Stake address (permanent account identifier)
   network: 'Mainnet' | 'Preprod';
   balance: string; // In Lovelaces
   assets: Asset[];

@@ -44,10 +44,10 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
 
       // Generate mnemonic and derive address in frontend (popup context)
       const seedPhrase = await generateMnemonic();
-      const { address } = await deriveAddressFromMnemonic(seedPhrase, values.network);
+      const { address, stakeAddress } = await deriveAddressFromMnemonic(seedPhrase, values.network);
       const rootKey = await generateRootKeyFromMnemonic(seedPhrase);
 
-      console.log('UI: Generated seedPhrase, address, and rootKey successfully');
+      console.log('UI: Generated seedPhrase, address, stakeAddress, and rootKey successfully');
 
       // Prepare the data payload with crypto operations completed
       const payload = {
@@ -56,6 +56,7 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
         password: values.skipPassword ? undefined : values.walletPassword,
         seedPhrase: seedPhrase,
         address: address,
+        stakeAddress: stakeAddress,
         rootKey: rootKey,
       };
 

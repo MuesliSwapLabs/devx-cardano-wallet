@@ -1,6 +1,7 @@
 import { walletsStorage } from '@extension/storage';
 import { createNewWallet, importWallet, spoofWallet } from '@extension/wallet-manager';
 import { decrypt, encrypt } from '@extension/shared';
+import { getTransactions } from '@extension/blockchain-provider';
 import type { Wallet } from '@extension/shared';
 // Crypto operations moved to frontend - no longer needed in background
 
@@ -16,34 +17,19 @@ export const handleWalletMessages = async (
     switch (message.type) {
       case 'CREATE_WALLET': {
         // Receive complete data from frontend - crypto operations already done in popup
-        const { name, network, password, seedPhrase, address, rootKey } = message.payload;
+        const { name, network, password, seedPhrase, address, stakeAddress, rootKey } = message.payload;
 
-        const wallet = await createNewWallet(name, network, password, seedPhrase, address, rootKey);
+        const wallet = await createNewWallet(name, network, password, seedPhrase, address, stakeAddress, rootKey);
         await walletsStorage.addWallet(wallet);
         sendResponse({ success: true, wallet });
         return true;
       }
 
       case 'IMPORT_WALLET': {
-        // Validate mnemonic and derive address using direct crypto operations
-        // const isValid = await validateMnemonic(message.payload.seedPhrase);
-        const isValid = true; // Mock validation - always true for now
-        if (!isValid) {
-          sendResponse({ success: false, error: 'Invalid mnemonic seed phrase' });
-          return true;
-        }
+        // Receive complete data from frontend - crypto operations already done in popup
+        const { name, network, seedPhrase, address, stakeAddress, password, rootKey } = message.payload;
 
-        // const { address } = await deriveAddressFromMnemonic(message.payload.seedPhrase, message.payload.network);
-        const address = 'test imported address yolo 42'; // Mock address
-
-        const wallet = await importWallet(
-          message.payload.name,
-          message.payload.network,
-          message.payload.seedPhrase,
-          message.payload.password,
-          address,
-          message.payload.rootKey,
-        );
+        const wallet = await importWallet(name, network, seedPhrase, password, address, stakeAddress, rootKey);
         await walletsStorage.addWallet(wallet);
         sendResponse({ success: true, wallet });
         return true;
@@ -128,6 +114,23 @@ export const handleWalletMessages = async (
           seedPhrase = wallet.seedPhrase;
         }
         sendResponse({ success: true, secret: seedPhrase });
+        return true;
+      }
+
+      case 'GET_TRANSACTIONS': {
+        const wallet = findWallet(message.payload.walletId);
+        if (!wallet) {
+          throw new Error('Wallet not found.');
+        }
+
+        try {
+          const transactions = await getTransactions(wallet);
+          sendResponse({ success: true, transactions });
+        } catch (error) {
+          console.error('Failed to fetch transactions:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Failed to fetch transactions';
+          sendResponse({ success: false, error: errorMessage });
+        }
         return true;
       }
 

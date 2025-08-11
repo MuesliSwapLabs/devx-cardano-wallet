@@ -12,56 +12,37 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ wallet }) => {
   const [expandedTx, setExpandedTx] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchTransactions = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+    const fetchTransactions = () => {
+      setLoading(true);
+      setError(null);
 
-        // For now, skip the blockchain provider import to fix build issues
-        // TODO: Re-enable once the module resolution is properly configured
-        // try {
-        //     const blockchainProvider = await import('@extension/blockchain-provider').catch(() => null);
-        //     if (blockchainProvider?.getTransactions) {
-        //         const txs = await blockchainProvider.getTransactions(wallet);
-        //         setTransactions(txs);
-        //         return;
-        //     }
-        // } catch (providerError) {
-        //     console.warn('Blockchain provider not available:', providerError);
-        // }
-
-        // Fallback to mock data if provider fails
-        const mockTransactions = [
-          {
-            hash: 'abc123def456...',
-            block_time: Date.now() / 1000 - 3600,
-            fees: '170000',
-            block_height: 12345,
-            size: 250,
-            valid_contract: true,
-          },
-          {
-            hash: 'def456ghi789...',
-            block_time: Date.now() / 1000 - 7200,
-            fees: '180000',
-            block_height: 12344,
-            size: 300,
-            valid_contract: true,
-          },
-        ];
-
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setTransactions(mockTransactions);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch transactions');
-      } finally {
-        setLoading(false);
-      }
+      // Fetch transactions via background service (more reliable)
+      chrome.runtime.sendMessage(
+        {
+          type: 'GET_TRANSACTIONS',
+          payload: { walletId: wallet.id },
+        },
+        response => {
+          if (response?.success) {
+            setTransactions(response.transactions || []);
+          } else {
+            console.error('Failed to fetch transactions:', response?.error);
+            // Check if it's an API key error
+            if (response?.error && response.error.includes('No API key configured')) {
+              setError(`${response.error}. Please configure your Blockfrost API key in Settings.`);
+            } else {
+              setError(
+                response?.error || 'Failed to fetch transactions. Please check your network connection and API key.',
+              );
+            }
+          }
+          setLoading(false);
+        },
+      );
     };
 
     fetchTransactions();
-  }, [wallet.address]);
+  }, [wallet.id]);
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleString();
@@ -143,7 +124,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ wallet }) => {
                     <strong>Valid contract:</strong> {tx.valid_contract ? 'Yes' : 'No'}
                   </div>
                   <div className="text-gray-500">
-                    <em>Currently showing mock transaction data. Real blockchain integration coming soon.</em>
+                    <em>Transaction data from Blockfrost API</em>
                   </div>
                 </div>
               </div>

@@ -269,27 +269,36 @@ async function getTransactionDetails(apiUrl: string, apiKey: string, txHash: str
 export const getWalletState = async (wallet: Wallet): Promise<WalletState> => {
   const address = wallet.address;
 
-  if (!isValidAddressFormat(address)) {
-    return {
-      status: 'invalid_address',
-      address,
-      stakeAddress: null,
-      balance: '0',
-      assets: [],
-    };
-  }
+  // For spoofed wallets, we might need to determine the stake address from the input
+  let stakeAddress = wallet.stakeAddress;
+  let status: 'found' | 'not_found' = 'found';
 
-  const { apiUrl, apiKey } = await getApiConfigForWallet(wallet);
-  const { stakeAddress, status } = await getStakeAddress(apiUrl, apiKey, address);
+  if (!stakeAddress) {
+    // Fallback: try to get stake address from the wallet address (for legacy compatibility)
+    if (!isValidAddressFormat(address)) {
+      return {
+        status: 'invalid_address',
+        address,
+        stakeAddress: null,
+        balance: '0',
+        assets: [],
+      };
+    }
 
-  if (status === 'not_found') {
-    return {
-      status: 'not_found',
-      address,
-      stakeAddress: null,
-      balance: '0',
-      assets: [],
-    };
+    const { apiUrl, apiKey } = await getApiConfigForWallet(wallet);
+    const result = await getStakeAddress(apiUrl, apiKey, address);
+    stakeAddress = result.stakeAddress;
+    status = result.status;
+
+    if (status === 'not_found') {
+      return {
+        status: 'not_found',
+        address,
+        stakeAddress: null,
+        balance: '0',
+        assets: [],
+      };
+    }
   }
 
   if (!stakeAddress) {
@@ -305,6 +314,8 @@ export const getWalletState = async (wallet: Wallet): Promise<WalletState> => {
   }
 
   try {
+    const { apiUrl, apiKey } = await getApiConfigForWallet(wallet);
+
     // Fetch balance and assets in parallel for efficiency
     const [balance, rawAssets] = await Promise.all([
       getAccountBalance(apiUrl, apiKey, stakeAddress),
@@ -352,9 +363,11 @@ export const getWalletState = async (wallet: Wallet): Promise<WalletState> => {
  */
 export const getTransactions = async (wallet: Wallet): Promise<TransactionDetails[]> => {
   const { apiUrl, apiKey } = await getApiConfigForWallet(wallet);
-  const { stakeAddress, status } = await getStakeAddress(apiUrl, apiKey, wallet.address);
 
-  if (status === 'not_found' || !stakeAddress) {
+  // Use the wallet's stake address directly - it's always available now
+  const stakeAddress = wallet.stakeAddress;
+
+  if (!stakeAddress) {
     return [];
   }
 
