@@ -1,5 +1,77 @@
 import { createIndexedDBStorage } from '../base/indexeddb';
-import type { UTXO, EnhancedTransaction } from '@extension/blockchain-provider';
+
+// Local type definitions to avoid circular imports
+export interface BlockfrostAmount {
+  unit: string;
+  quantity: string;
+}
+
+export interface TransactionInput {
+  address: string;
+  amount: BlockfrostAmount[];
+  tx_hash: string;
+  output_index: number;
+}
+
+export interface TransactionOutput {
+  address: string;
+  amount: BlockfrostAmount[];
+  output_index: number;
+  data_hash?: string | null;
+  inline_datum?: string | null;
+  reference_script_hash?: string | null;
+}
+
+export interface Transaction {
+  hash: string;
+  block: string;
+  block_height: number;
+  block_time: number;
+  slot: number;
+  index: number;
+  output_amount: BlockfrostAmount[];
+  fees: string;
+  deposit: string;
+  size: number;
+  invalid_before: string | null;
+  invalid_hereafter: string | null;
+  utxo_count: number;
+  withdrawal_count: number;
+  mir_cert_count: number;
+  delegation_count: number;
+  stake_cert_count: number;
+  pool_update_count: number;
+  pool_retire_count: number;
+  asset_mint_or_burn_count: number;
+  redeemer_count: number;
+  valid_contract: boolean;
+}
+
+export interface EnhancedTransaction extends Transaction {
+  inputs: TransactionInput[];
+  outputs: TransactionOutput[];
+  relatedUtxos: UTXO[];
+}
+
+export interface UTXO {
+  address: string;
+  tx_hash: string;
+  output_index: number;
+  amount: BlockfrostAmount[];
+  block: string;
+  data_hash?: string | null;
+  inline_datum?: string | null;
+  reference_script_hash?: string | null;
+  isSpent: boolean;
+  spentInTx?: string | null;
+}
+
+// Re-export Asset type from shared and create EnrichedAsset
+import type { Asset } from '@extension/shared';
+export interface EnrichedAsset extends Asset {
+  policyId: string;
+  name: string;
+}
 
 // Storage data structures
 export interface TransactionRecord extends EnhancedTransaction {
@@ -9,6 +81,7 @@ export interface TransactionRecord extends EnhancedTransaction {
     inputs?: Array<{
       transaction_id: string;
       output_index: number;
+      address: string;
       amount?: Array<{
         unit: string;
         quantity: string;

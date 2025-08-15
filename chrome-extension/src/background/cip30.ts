@@ -2,6 +2,7 @@ import { walletsStorage } from '@extension/storage';
 
 // CIP-30 Permission Storage (in-memory for now)
 const dappPermissions = new Map<string, { origin: string; approved: boolean; timestamp: number }>();
+const pendingPermissions = new Map<string, { resolve: Function; reject: Function }>();
 
 export const handleCip30Messages = async (
   message: any,
@@ -12,16 +13,66 @@ export const handleCip30Messages = async (
     switch (message.type) {
       case 'CIP30_ENABLE_REQUEST': {
         const { origin } = message.payload;
+        const tabId = sender.tab?.id;
 
-        // For now, auto-approve all requests (in real implementation, show popup)
-        // TODO: Show actual permission popup to user
-        dappPermissions.set(origin, {
-          origin,
-          approved: true,
-          timestamp: Date.now(),
-        });
+        // Check if already approved
+        const existingPermission = dappPermissions.get(origin);
+        if (existingPermission?.approved) {
+          sendResponse({ success: true, approved: true });
+          return true;
+        }
 
-        sendResponse({ success: true, approved: true });
+        // Open extension popup and navigate to permission page
+        try {
+          // Store pending request
+          const permissionKey = `${origin}_${tabId}`;
+          pendingPermissions.set(permissionKey, {
+            resolve: (approved: boolean) => {
+              if (approved) {
+                dappPermissions.set(origin, {
+                  origin,
+                  approved: true,
+                  timestamp: Date.now(),
+                });
+              }
+              sendResponse({ success: true, approved });
+            },
+            reject: (error: any) => {
+              sendResponse({ success: false, error });
+            },
+          });
+
+          // Open extension popup with permission page
+          await chrome.action.openPopup();
+
+          // Send navigation message to popup
+          setTimeout(() => {
+            chrome.runtime.sendMessage({
+              type: 'NAVIGATE_TO_PERMISSION',
+              payload: {
+                origin,
+                tabId,
+              },
+            });
+          }, 100); // Small delay to ensure popup is open
+        } catch (error) {
+          console.error('Failed to open extension popup:', error);
+          sendResponse({ success: false, error: 'Failed to show permission dialog' });
+        }
+        return true;
+      }
+
+      case 'CIP30_PERMISSION_RESPONSE': {
+        const { origin, approved, tabId } = message.payload;
+        const permissionKey = `${origin}_${tabId}`;
+
+        const pending = pendingPermissions.get(permissionKey);
+        if (pending) {
+          pending.resolve(approved);
+          pendingPermissions.delete(permissionKey);
+        }
+
+        sendResponse({ success: true });
         return true;
       }
 

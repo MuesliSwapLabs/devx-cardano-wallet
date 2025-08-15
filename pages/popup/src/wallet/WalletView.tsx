@@ -2,7 +2,7 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useStorage, walletsStorage } from '@extension/storage';
 import { Wallet } from '@extension/shared';
-import { EnrichedAsset } from '@extension/blockchain-provider';
+import { EnrichedAsset } from '@extension/storage';
 import TransactionHistory from './TransactionHistory';
 import EnhancedTransactions from './EnhancedTransactions';
 import UTXOsView from './UTXOsView';

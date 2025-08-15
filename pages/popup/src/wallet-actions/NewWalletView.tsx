@@ -1,10 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PrimaryButton, SecondaryButton } from '@src/components/buttons';
+import { onboardingStorage } from '@extension/storage';
 
 const AddWallet = () => {
   const navigate = useNavigate();
   const [showTooltip, setShowTooltip] = useState(false);
+
+  // Set onboarding state when this screen loads
+  useEffect(() => {
+    const updateOnboardingState = async () => {
+      await onboardingStorage.goToStep('select-method');
+      await onboardingStorage.setCurrentRoute('/add-wallet');
+    };
+    updateOnboardingState();
+  }, []);
 
   return (
     <div className="flex flex-col items-center h-full">

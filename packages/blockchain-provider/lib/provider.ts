@@ -249,8 +249,19 @@ async function getPaymentAddresses(apiUrl: string, apiKey: string, stakeAddress:
       statusText: response.statusText,
       errorBody: errorText,
       endpoint,
+      apiKey: apiKey ? `${apiKey.slice(0, 8)}...` : 'MISSING',
+      stakeAddress,
     });
-    throw new Error(`Failed to fetch payment addresses: ${response.status} ${response.statusText} - ${errorText}`);
+
+    if (response.status === 400) {
+      throw new Error(`Invalid stake address: ${stakeAddress}. Check if the wallet stake address is correct.`);
+    } else if (response.status === 403) {
+      throw new Error(`Blockfrost API key invalid or missing. Please configure your API key in Settings.`);
+    } else if (response.status === 404) {
+      throw new Error(`Stake address not found: ${stakeAddress}. This might be a new wallet with no transactions.`);
+    } else {
+      throw new Error(`Failed to fetch payment addresses: ${response.status} ${response.statusText} - ${errorText}`);
+    }
   }
 
   const data: { address: string }[] = await response.json();
@@ -593,7 +604,7 @@ export const getWalletUTXOs = async (wallet: Wallet): Promise<UTXO[]> => {
     // Get all payment addresses to fetch transaction history
     const paymentAddresses = await getPaymentAddresses(apiUrl, apiKey, stakeAddress);
 
-    // Get transaction history for UTXO spent analysis
+    // Get comprehensive transaction history for UTXO analysis
     const allTransactionsPromises = paymentAddresses.map(async address => {
       const endpoint = `${apiUrl}/addresses/${address}/transactions?order=desc&count=100`;
       const response = await fetch(endpoint, {
@@ -609,18 +620,115 @@ export const getWalletUTXOs = async (wallet: Wallet): Promise<UTXO[]> => {
     const allTransactionsArrays = await Promise.all(allTransactionsPromises);
     const allTransactions = allTransactionsArrays.flat();
 
-    // Current UTXOs are unspent by definition
-    const unspentUtxos: UTXO[] = currentUtxos.map(utxo => ({
-      ...utxo,
-      isSpent: false,
-      spentInTx: null,
-    }));
+    // Build comprehensive UTXO set by analyzing transaction outputs
+    const allUtxosMap = new Map<string, UTXO>();
 
-    // To get spent UTXOs, we need to analyze transaction history
-    // For now, return current unspent UTXOs - spent UTXO tracking would require
-    // more complex historical analysis
+    // First, collect all UTXOs created by transaction outputs
+    for (const tx of allTransactions) {
+      try {
+        const txDetails = await getTransactionDetails(apiUrl, apiKey, tx.tx_hash);
 
-    return unspentUtxos.sort((a, b) => b.tx_hash.localeCompare(a.tx_hash));
+        console.log(`\n=== Transaction: ${tx.tx_hash.slice(0, 5)}... ===`);
+        console.log('  Inputs:');
+        txDetails.inputs.forEach((input, idx) => {
+          const belongsToWallet = paymentAddresses.includes(input.address);
+          const assetList = input.amount
+            .map(a => `${a.quantity} ${a.unit === 'lovelace' ? 'ADA' : a.unit.slice(0, 8)}`)
+            .join(', ');
+          console.log(
+            `    - Input ${idx}: ${input.tx_hash.slice(0, 8)}:${input.output_index} (${assetList}) [${belongsToWallet ? 'WALLET' : 'EXTERNAL'}]`,
+          );
+        });
+
+        console.log('  Outputs:');
+        txDetails.outputs.forEach((output, idx) => {
+          const belongsToWallet = paymentAddresses.includes(output.address);
+          const assetList = output.amount
+            .map(a => `${a.quantity} ${a.unit === 'lovelace' ? 'ADA' : a.unit.slice(0, 8)}`)
+            .join(', ');
+          console.log(
+            `    - Output ${idx}: ${output.address.slice(0, 12)}... (${assetList}) [${belongsToWallet ? 'WALLET' : 'EXTERNAL'}]`,
+          );
+        });
+
+        // Process outputs to create UTXOs
+        txDetails.outputs.forEach((output, index) => {
+          // Only include outputs that belong to this wallet's addresses
+          if (paymentAddresses.includes(output.address)) {
+            const utxoKey = `${tx.tx_hash}:${index}`;
+            allUtxosMap.set(utxoKey, {
+              address: output.address,
+              tx_hash: tx.tx_hash,
+              output_index: index,
+              amount: output.amount,
+              block: txDetails.block,
+              data_hash: output.data_hash,
+              inline_datum: output.inline_datum,
+              reference_script_hash: output.reference_script_hash,
+              isSpent: false, // Initially mark as unspent
+              spentInTx: null,
+            });
+            console.log(`    --> Stored UTXO: ${utxoKey}`);
+          }
+        });
+      } catch (error) {
+        console.warn(`Failed to fetch details for transaction ${tx.tx_hash}:`, error);
+      }
+    }
+
+    // Now determine which UTXOs are spent by checking transaction inputs
+    console.log('\n=== UTXO SPENDING ANALYSIS ===');
+    for (const tx of allTransactions) {
+      try {
+        const txDetails = await getTransactionDetails(apiUrl, apiKey, tx.tx_hash);
+
+        console.log(`\nAnalyzing inputs for transaction: ${tx.tx_hash.slice(0, 5)}...`);
+
+        // Process inputs to mark UTXOs as spent
+        txDetails.inputs.forEach((input, idx) => {
+          const utxoKey = `${input.tx_hash}:${input.output_index}`;
+          const utxo = allUtxosMap.get(utxoKey);
+          const belongsToWallet = paymentAddresses.includes(input.address);
+
+          console.log(
+            `  - Input ${idx}: Looking for UTXO ${input.tx_hash.slice(0, 8)}:${input.output_index} [${belongsToWallet ? 'WALLET' : 'EXTERNAL'}]`,
+          );
+
+          if (utxo && belongsToWallet) {
+            utxo.isSpent = true;
+            utxo.spentInTx = tx.tx_hash;
+            console.log(`    --> FOUND and marked as spent in ${tx.tx_hash.slice(0, 8)}...`);
+          } else if (belongsToWallet && !utxo) {
+            console.log(`    --> MISSING: This UTXO belongs to wallet but not found in our database!`);
+          } else if (!belongsToWallet) {
+            console.log(`    --> SKIPPED: External UTXO (not our wallet)`);
+          }
+        });
+      } catch (error) {
+        console.warn(`Failed to analyze inputs for transaction ${tx.tx_hash}:`, error);
+      }
+    }
+
+    // Convert map to array and sort
+    const allUtxos = Array.from(allUtxosMap.values());
+
+    console.log('\n=== FINAL UTXO SUMMARY ===');
+    console.log(`Total UTXOs stored: ${allUtxos.length}`);
+    console.log(`Unspent UTXOs: ${allUtxos.filter(u => !u.isSpent).length}`);
+    console.log(`Spent UTXOs: ${allUtxos.filter(u => u.isSpent).length}`);
+    console.log(`Current unspent from Blockfrost API: ${currentUtxos.length}`);
+
+    console.log('\nDetailed UTXO list:');
+    allUtxos.forEach((utxo, idx) => {
+      const assetList = utxo.amount
+        .map(a => `${a.quantity} ${a.unit === 'lovelace' ? 'ADA' : a.unit.slice(0, 8)}`)
+        .join(', ');
+      console.log(
+        `  ${idx + 1}. ${utxo.tx_hash.slice(0, 8)}:${utxo.output_index} (${assetList}) [${utxo.isSpent ? `SPENT in ${utxo.spentInTx?.slice(0, 8)}` : 'UNSPENT'}]`,
+      );
+    });
+
+    return allUtxos.sort((a, b) => b.tx_hash.localeCompare(a.tx_hash));
   } catch (error) {
     console.error('Failed to fetch wallet UTXOs:', error);
     return [];

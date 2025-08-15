@@ -14,6 +14,8 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet }) => {
   const [filter, setFilter] = useState<'all' | 'unspent' | 'spent'>('unspent');
   const [syncStatus, setSyncStatus] = useState<any>(null);
   const [expandedUtxo, setExpandedUtxo] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isAutoSyncing, setIsAutoSyncing] = useState(false);
 
   useEffect(() => {
     const fetchUTXOs = () => {
@@ -28,6 +30,15 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet }) => {
         response => {
           if (response?.success) {
             setUtxos(response.utxos || []);
+
+            // Handle sync status and show auto-sync indicator
+            if (response.syncStatus) {
+              setSyncStatus(response.syncStatus);
+              if (response.syncStatus.isStale && !response.syncStatus.isActive) {
+                setIsAutoSyncing(true);
+                // Auto-sync will complete in background, listen for updates
+              }
+            }
           } else {
             console.error('Failed to fetch UTXOs:', response?.error);
             if (response?.error && response.error.includes('No API key configured')) {
@@ -57,6 +68,25 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet }) => {
 
     fetchUTXOs();
     fetchSyncStatus();
+
+    // Listen for sync status updates from background
+    const handleMessage = (message: any) => {
+      if (message.type === 'SYNC_STATUS_UPDATE' && message.payload.walletId === wallet.id) {
+        setSyncStatus(message.payload.status);
+        setIsAutoSyncing(message.payload.status.isActive);
+
+        // Refresh data when sync completes
+        if (!message.payload.status.isActive && !message.payload.status.isStale) {
+          fetchUTXOs();
+        }
+      }
+    };
+
+    chrome.runtime.onMessage.addListener(handleMessage);
+
+    return () => {
+      chrome.runtime.onMessage.removeListener(handleMessage);
+    };
   }, [wallet.id]);
 
   const formatAda = (lovelace: string) => {
@@ -108,15 +138,45 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet }) => {
   };
 
   const filteredUtxos = utxos.filter(utxo => {
+    // First apply the spent/unspent filter
+    let passesSpentFilter = true;
     switch (filter) {
       case 'unspent':
-        return !utxo.isSpent;
+        passesSpentFilter = !utxo.isSpent;
+        break;
       case 'spent':
-        return utxo.isSpent;
+        passesSpentFilter = utxo.isSpent;
+        break;
       case 'all':
       default:
-        return true;
+        passesSpentFilter = true;
+        break;
     }
+
+    if (!passesSpentFilter) return false;
+
+    // Then apply the search filter
+    if (!searchQuery.trim()) return true;
+
+    const query = searchQuery.toLowerCase();
+
+    // Search in transaction hash
+    if (utxo.tx_hash.toLowerCase().includes(query)) return true;
+
+    // Search in output index
+    if (utxo.output_index.toString().includes(query)) return true;
+
+    // Search in address
+    if (utxo.address.toLowerCase().includes(query)) return true;
+
+    // Search in asset units/policy IDs
+    if (utxo.amount.some(asset => asset.unit.toLowerCase().includes(query) || asset.quantity.includes(query)))
+      return true;
+
+    // Search in spent transaction hash if available
+    if (utxo.spentInTx && utxo.spentInTx.toLowerCase().includes(query)) return true;
+
+    return false;
   });
 
   const stats = {
@@ -134,14 +194,23 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet }) => {
   if (loading) {
     return (
       <div>
-        <div className="flex justify-between items-center mb-2 border-b border-gray-300 dark:border-gray-600 pb-2">
-          <h3 className="text-md font-semibold">UTXOs</h3>
-          <button
-            onClick={handleManualSync}
-            disabled={loading}
-            className="text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50">
-            Sync
-          </button>
+        <div className="mb-2 border-b border-gray-300 dark:border-gray-600 pb-2">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="text-md font-semibold">UTXOs</h3>
+            <button
+              onClick={handleManualSync}
+              disabled={loading}
+              className="text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50">
+              Sync
+            </button>
+          </div>
+          <input
+            type="text"
+            placeholder="Search UTXOs (hash, address, asset, etc.)"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
         </div>
         <div className="flex items-center justify-center py-8">
           <div className="text-sm text-gray-500">Loading UTXOs...</div>
@@ -153,13 +222,22 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet }) => {
   if (error) {
     return (
       <div>
-        <div className="flex justify-between items-center mb-2 border-b border-gray-300 dark:border-gray-600 pb-2">
-          <h3 className="text-md font-semibold">UTXOs</h3>
-          <button
-            onClick={handleManualSync}
-            className="text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
-            Retry
-          </button>
+        <div className="mb-2 border-b border-gray-300 dark:border-gray-600 pb-2">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="text-md font-semibold">UTXOs</h3>
+            <button
+              onClick={handleManualSync}
+              className="text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
+              Retry
+            </button>
+          </div>
+          <input
+            type="text"
+            placeholder="Search UTXOs (hash, address, asset, etc.)"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
         </div>
         <div className="text-red-500 text-sm mt-4">Error: {error}</div>
       </div>
@@ -168,22 +246,37 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet }) => {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-2 border-b border-gray-300 dark:border-gray-600 pb-2">
-        <h3 className="text-md font-semibold">UTXOs</h3>
-        <div className="flex items-center gap-2">
-          {syncStatus && (
-            <div className="text-xs text-gray-500">
-              Last sync: {syncStatus.lastSync === 0 ? 'Never' : formatTimeSince(syncStatus.lastSync)}
-              {syncStatus.isSyncing && ' (Syncing...)'}
-            </div>
-          )}
-          <button
-            onClick={handleManualSync}
-            disabled={syncStatus?.isSyncing}
-            className="text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50">
-            {syncStatus?.isSyncing ? 'Syncing...' : 'Sync'}
-          </button>
+      <div className="mb-2 border-b border-gray-300 dark:border-gray-600 pb-2">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-md font-semibold">UTXOs</h3>
+          <div className="flex items-center gap-2">
+            {isAutoSyncing && (
+              <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+                <div className="animate-spin rounded-full h-3 w-3 border border-blue-600 border-t-transparent"></div>
+                <span>Syncing new data...</span>
+              </div>
+            )}
+            {syncStatus && !isAutoSyncing && (
+              <div className="text-xs text-gray-500">
+                Last sync: {syncStatus.lastSync === 0 ? 'Never' : formatTimeSince(syncStatus.lastSync)}
+                {syncStatus.isActive && ' (Syncing...)'}
+              </div>
+            )}
+            <button
+              onClick={handleManualSync}
+              disabled={syncStatus?.isActive || isAutoSyncing}
+              className="text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50">
+              {syncStatus?.isActive || isAutoSyncing ? 'Syncing...' : 'Sync'}
+            </button>
+          </div>
         </div>
+        <input
+          type="text"
+          placeholder="Search UTXOs (hash, address, asset, etc.)"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
       </div>
 
       {/* Filter Tabs */}
@@ -216,6 +309,7 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet }) => {
         <div className="grid grid-cols-2 gap-2">
           <div>
             <strong>Total UTXOs:</strong> {stats.total}
+            {filteredUtxos.length !== stats.total && ` (${filteredUtxos.length} shown)`}
           </div>
           <div>
             <strong>Unspent Value:</strong> {formatAda(stats.totalValue.toString())}
@@ -232,9 +326,16 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet }) => {
       {filteredUtxos.length === 0 ? (
         <div>
           <p className="text-sm text-gray-400 mt-4">
-            No {filter === 'all' ? '' : filter + ' '}UTXOs found for this wallet.
+            {searchQuery.trim()
+              ? `No UTXOs match your search for \"${searchQuery}\"`
+              : `No ${filter === 'all' ? '' : filter + ' '}UTXOs found for this wallet.`}
           </p>
-          {syncStatus && (
+          {searchQuery.trim() && (
+            <button onClick={() => setSearchQuery('')} className="text-xs text-blue-500 hover:text-blue-600 mt-2">
+              Clear search
+            </button>
+          )}
+          {!searchQuery.trim() && syncStatus && (
             <div className="text-xs text-gray-500 mt-2">
               Last sync: {syncStatus.lastSync === 0 ? 'Never' : formatTimeSince(syncStatus.lastSync)}
             </div>
@@ -270,14 +371,24 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet }) => {
                           </div>
                         )}
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-mono">
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-mono break-all">
                         {utxo.tx_hash.slice(0, 16)}...:{utxo.output_index}
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">Address: {utxo.address.slice(0, 20)}...</div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        <span className="font-semibold">Address:</span>
+                        <div className="font-mono text-xs break-all mt-0.5 bg-gray-100 dark:bg-gray-700 p-1 rounded">
+                          {utxo.address}
+                        </div>
+                      </div>
                       <div className="text-xs text-gray-500 mt-1">Cached: {formatTimeSince(utxo.lastSynced)}</div>
                       {utxo.isSpent && utxo.spentInTx && (
                         <div className="text-xs text-red-600 dark:text-red-400 mt-1">
-                          Spent in: {utxo.spentInTx.slice(0, 16)}...
+                          Spent in:
+                          <Link
+                            to={`/wallet/${wallet.id}/enhanced-transactions`}
+                            className="ml-1 text-red-700 dark:text-red-300 hover:underline font-mono">
+                            {utxo.spentInTx.slice(0, 16)}...
+                          </Link>
                         </div>
                       )}
                     </div>
@@ -308,21 +419,53 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet }) => {
 
                       {/* Asset Details */}
                       <div>
-                        <strong>Assets:</strong>
+                        <strong>Assets ({utxo.amount.length}):</strong>
                         <div className="ml-2 mt-1 space-y-1">
                           {utxo.amount.map((asset, idx) => (
-                            <div key={idx} className="bg-gray-100 dark:bg-gray-700 p-2 rounded">
+                            <div
+                              key={idx}
+                              className={`p-2 rounded ${
+                                asset.unit === 'lovelace'
+                                  ? 'bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700'
+                                  : 'bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-700'
+                              }`}>
                               {asset.unit === 'lovelace' ? (
                                 <div>
-                                  <strong>ADA:</strong> {formatAda(asset.quantity)}
+                                  <div className="flex justify-between items-center">
+                                    <strong className="text-blue-900 dark:text-blue-100">Cardano (ADA)</strong>
+                                    <span className="font-bold text-blue-900 dark:text-blue-100">
+                                      {formatAda(asset.quantity)}
+                                    </span>
+                                  </div>
+                                  <div className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                                    {parseInt(asset.quantity).toLocaleString()} Lovelace
+                                  </div>
                                 </div>
                               ) : (
                                 <div>
-                                  <div>
-                                    <strong>Unit:</strong> {asset.unit.slice(0, 16)}...
+                                  <div className="flex justify-between items-start mb-1">
+                                    <strong className="text-purple-900 dark:text-purple-100 text-xs">
+                                      Native Asset
+                                    </strong>
+                                    <span className="font-bold text-purple-900 dark:text-purple-100">
+                                      {parseInt(asset.quantity).toLocaleString()}
+                                    </span>
                                   </div>
-                                  <div>
-                                    <strong>Quantity:</strong> {parseInt(asset.quantity).toLocaleString()}
+                                  <div className="text-xs text-purple-700 dark:text-purple-300">
+                                    <strong>Policy ID:</strong>
+                                    <div className="font-mono break-all mt-1">{asset.unit.slice(0, 56)}</div>
+                                  </div>
+                                  {asset.unit.length > 56 && (
+                                    <div className="text-xs text-purple-700 dark:text-purple-300 mt-1">
+                                      <strong>Asset Name:</strong>
+                                      <div className="font-mono break-all">{asset.unit.slice(56)}</div>
+                                    </div>
+                                  )}
+                                  <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                                    <strong>Full Unit:</strong>
+                                    <div className="font-mono break-all text-xs bg-white dark:bg-gray-800 p-1 rounded mt-1">
+                                      {asset.unit}
+                                    </div>
                                   </div>
                                 </div>
                               )}
@@ -356,17 +499,23 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet }) => {
                       )}
 
                       {/* Navigation Links */}
-                      <div className="border-t border-gray-300 dark:border-gray-500 pt-2 flex gap-2">
+                      <div className="border-t border-gray-300 dark:border-gray-500 pt-2 flex flex-wrap gap-2">
                         <Link
                           to={`/wallet/${wallet.id}/utxo/${utxo.tx_hash}/${utxo.output_index}`}
-                          className="text-blue-600 dark:text-blue-400 hover:underline">
-                          View Details
+                          className="text-blue-600 dark:text-blue-400 hover:underline text-xs">
+                          📄 View Details
                         </Link>
                         <Link
                           to={`/wallet/${wallet.id}/enhanced-transactions`}
-                          className="text-blue-600 dark:text-blue-400 hover:underline">
-                          View in Transactions
+                          className="text-blue-600 dark:text-blue-400 hover:underline text-xs">
+                          🔗 View in Transactions
                         </Link>
+                        {utxo.isSpent && utxo.spentInTx && (
+                          <span className="text-xs text-gray-500">💸 Spent in TX</span>
+                        )}
+                        {!utxo.isSpent && (
+                          <span className="text-xs text-green-600 dark:text-green-400">✅ Unspent</span>
+                        )}
                       </div>
 
                       <div className="text-gray-500 border-t border-gray-300 dark:border-gray-500 pt-2">

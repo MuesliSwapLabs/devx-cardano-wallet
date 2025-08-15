@@ -3,6 +3,7 @@ import { WalletSyncService } from '@extension/blockchain-provider';
 import { createNewWallet, importWallet, spoofWallet } from '@extension/wallet-manager';
 import { decrypt, encrypt } from '@extension/shared';
 import { getTransactions, getWalletUTXOs, getEnhancedTransactions } from '@extension/blockchain-provider';
+import { UnifiedSyncService } from './unifiedSyncService';
 import type { Wallet } from '@extension/shared';
 // Crypto operations moved to frontend - no longer needed in background
 
@@ -142,9 +143,19 @@ export const handleWalletMessages = async (
         }
 
         try {
-          // Use cached data with auto-sync if stale
-          const { transactions } = await WalletSyncService.getWalletData(wallet, true);
-          sendResponse({ success: true, transactions });
+          // Check if data is stale and trigger sync if needed
+          const syncStatus = await UnifiedSyncService.getSyncStatus(wallet.id);
+
+          if (syncStatus.isStale && !syncStatus.isActive) {
+            // Trigger background sync but don't wait for it
+            UnifiedSyncService.syncWallet(wallet.id, false).catch(error =>
+              console.warn('Background sync failed:', error),
+            );
+          }
+
+          // Always return cached data immediately
+          const { transactions } = await UnifiedSyncService.getCachedData(wallet.id);
+          sendResponse({ success: true, transactions, syncStatus });
         } catch (error) {
           console.error('Failed to fetch enhanced transactions:', error);
           const errorMessage = error instanceof Error ? error.message : 'Failed to fetch enhanced transactions';
@@ -161,10 +172,20 @@ export const handleWalletMessages = async (
         }
 
         try {
-          // Use cached data with auto-sync if stale
-          const { utxos } = await WalletSyncService.getWalletData(wallet, true);
+          // Check if data is stale and trigger sync if needed
+          const syncStatus = await UnifiedSyncService.getSyncStatus(wallet.id);
+
+          if (syncStatus.isStale && !syncStatus.isActive) {
+            // Trigger background sync but don't wait for it
+            UnifiedSyncService.syncWallet(wallet.id, false).catch(error =>
+              console.warn('Background sync failed:', error),
+            );
+          }
+
+          // Always return cached data immediately
+          const { utxos } = await UnifiedSyncService.getCachedData(wallet.id);
           const filteredUtxos = includeSpent ? utxos : utxos.filter(utxo => !utxo.isSpent);
-          sendResponse({ success: true, utxos: filteredUtxos });
+          sendResponse({ success: true, utxos: filteredUtxos, syncStatus });
         } catch (error) {
           console.error('Failed to fetch wallet UTXOs:', error);
           const errorMessage = error instanceof Error ? error.message : 'Failed to fetch wallet UTXOs';
@@ -199,7 +220,7 @@ export const handleWalletMessages = async (
         }
 
         try {
-          const result = await WalletSyncService.syncWallet(wallet, { forceFullSync });
+          const result = await UnifiedSyncService.syncWallet(walletId, forceFullSync);
           sendResponse({ success: true, result });
         } catch (error) {
           console.error('Failed to sync wallet:', error);
@@ -213,7 +234,7 @@ export const handleWalletMessages = async (
         const { walletId } = message.payload;
 
         try {
-          const status = await WalletSyncService.getSyncStatus(walletId);
+          const status = await UnifiedSyncService.getSyncStatus(walletId);
           sendResponse({ success: true, status });
         } catch (error) {
           console.error('Failed to get sync status:', error);

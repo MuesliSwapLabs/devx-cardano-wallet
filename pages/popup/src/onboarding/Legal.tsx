@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 // Import the unified settingsStorage
-import { settingsStorage } from '@extension/storage';
+import { settingsStorage, onboardingStorage } from '@extension/storage';
 import { PrimaryButton } from '@src/components/buttons';
 
 /**
@@ -14,8 +14,14 @@ function Legal() {
   const [countdown, setCountdown] = useState(1);
   const [buttonEnabled, setButtonEnabled] = useState(false);
 
-  // Start countdown on component mount
+  // Initialize onboarding state and start countdown on component mount
   useEffect(() => {
+    const initOnboarding = async () => {
+      await onboardingStorage.goToStep('legal');
+      await onboardingStorage.setCurrentRoute('/onboarding/legal');
+    };
+    initOnboarding();
+
     const timer = setInterval(() => {
       setCountdown(prevCount => {
         if (prevCount <= 1) {
@@ -32,9 +38,11 @@ function Legal() {
   }, []);
 
   // Handle clicking "I Agree"
-  const handleAgreeClick = () => {
+  const handleAgreeClick = async () => {
     // Use the convenience method on our new settings storage
-    settingsStorage.markLegalAccepted();
+    await settingsStorage.markLegalAccepted();
+    // Update onboarding progress
+    await onboardingStorage.goToStep('select-method');
     // Navigate to the next step in the onboarding flow
     navigate('/add-wallet');
   };

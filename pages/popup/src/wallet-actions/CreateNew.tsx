@@ -1,15 +1,18 @@
 import { ErrorMessage, Field, Form, Formik } from 'formik';
 import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import * as Yup from 'yup';
 import { CancelButton, PrimaryButton } from '@src/components/buttons';
 import FloatingLabelInput from '@src/components/FloatingLabelInput';
 import NetworkToggle from '@src/components/NetworkToggle';
+import { onboardingStorage, useStorage } from '@extension/storage';
 import { generateMnemonic, deriveAddressFromMnemonic, generateRootKeyFromMnemonic } from '../utils/crypto';
 
 interface CreateNewWalletProps {}
 
 const CreateNewWallet = ({}: CreateNewWalletProps) => {
   const navigate = useNavigate();
+  const onboardingState = useStorage(onboardingStorage);
 
   const validationSchema = Yup.object({
     walletName: Yup.string().required('Wallet name is required'),
@@ -31,15 +34,35 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
   });
 
   const initialValues = {
-    walletName: '',
-    network: 'Preprod' as 'Mainnet' | 'Preprod',
-    walletPassword: '',
+    walletName: onboardingState?.createFormData.walletName || '',
+    network: onboardingState?.createFormData.network || ('Preprod' as 'Mainnet' | 'Preprod'),
+    walletPassword: onboardingState?.createFormData.password || '',
     confirmPassword: '',
-    skipPassword: false,
+    skipPassword: !onboardingState?.createFormData.password,
   };
+
+  // Initialize onboarding state on component mount
+  useEffect(() => {
+    const initOnboarding = async () => {
+      if (!onboardingState?.isActive) {
+        await onboardingStorage.startOnboarding('create');
+      }
+      await onboardingStorage.setCurrentFlow('create');
+      await onboardingStorage.goToStep('create-form');
+      await onboardingStorage.setCurrentRoute('/create-new-wallet');
+    };
+    initOnboarding();
+  }, []);
 
   const handleSubmit = async (values: any) => {
     try {
+      // Save form data to onboarding state
+      await onboardingStorage.updateCreateFormData({
+        walletName: values.walletName,
+        network: values.network,
+        password: values.skipPassword ? undefined : values.walletPassword,
+      });
+
       console.log('UI: Generating mnemonic and deriving address...');
 
       // Generate mnemonic and derive address in frontend (popup context)
@@ -48,6 +71,12 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
       const rootKey = await generateRootKeyFromMnemonic(seedPhrase);
 
       console.log('UI: Generated seedPhrase, address, stakeAddress, and rootKey successfully');
+
+      // Update onboarding state with generated data
+      await onboardingStorage.updateCreateFormData({
+        ...values,
+        seedPhrase: seedPhrase,
+      });
 
       // Prepare the data payload with crypto operations completed
       const payload = {
@@ -80,6 +109,9 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
           // Handle the response from our background logic
           if (response?.success) {
             console.log('UI: Wallet created successfully!', response.wallet);
+            // Mark onboarding as complete and clear form data
+            onboardingStorage.goToStep('success');
+            onboardingStorage.clearFormData('create');
             navigate('/create-new-wallet-success');
           } else {
             console.error('UI: Failed to create wallet:', response?.error);
@@ -93,7 +125,9 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
     }
   };
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
+    // Rollback to select-method step
+    await onboardingStorage.goToStep('select-method');
     navigate('/add-wallet');
   };
 
@@ -102,92 +136,109 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
       <h2 className="text-xl font-medium">New Wallet</h2>
       <p className="text-center text-sm mt-2">Create a new wallet!</p>
 
-      <Formik initialValues={initialValues} validationSchema={validationSchema} onSubmit={handleSubmit}>
-        {({ values, errors, touched, setFieldValue, setFieldError, setFieldTouched }) => (
-          <Form className="flex flex-col mt-4 w-full max-w-sm h-full">
-            {/* Wallet Name Field */}
-            <div className="mb-4">
-              <FloatingLabelInput
-                name="walletName"
-                label="Wallet Name"
-                type="text"
-                required
-                error={touched.walletName && errors.walletName}
-              />
-              <ErrorMessage name="walletName" component="p" className="text-red-500 text-xs mt-1" />
-            </div>
+      <Formik
+        initialValues={initialValues}
+        validationSchema={validationSchema}
+        enableReinitialize
+        onSubmit={handleSubmit}>
+        {({ values, errors, touched, setFieldValue, setFieldError, setFieldTouched }) => {
+          // Save form data whenever values change
+          useEffect(() => {
+            if (onboardingState?.isActive) {
+              onboardingStorage.updateCreateFormData({
+                walletName: values.walletName,
+                network: values.network,
+                password: values.skipPassword ? undefined : values.walletPassword,
+              });
+            }
+          }, [values.walletName, values.network, values.walletPassword, values.skipPassword]);
 
-            {/* Network Selection Field */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                Network <span className="text-red-500">*</span>
-              </label>
-              <NetworkToggle value={values.network} onChange={network => setFieldValue('network', network)} />
-              <ErrorMessage name="network" component="p" className="text-red-500 text-xs mt-1" />
-            </div>
-
-            {/* Wallet Password Field */}
-            <div className="mb-4">
-              <FloatingLabelInput
-                name="walletPassword"
-                label="Password"
-                type="password"
-                disabled={values.skipPassword}
-                required={!values.skipPassword}
-                error={touched.walletPassword && errors.walletPassword}
-              />
-              <ErrorMessage name="walletPassword" component="p" className="text-red-500 text-xs mt-1" />
-            </div>
-
-            {/* Confirm Password Field */}
-            <div className="mb-4">
-              <FloatingLabelInput
-                name="confirmPassword"
-                label="Confirm Password"
-                type="password"
-                disabled={values.skipPassword}
-                required={!values.skipPassword}
-                error={touched.confirmPassword && errors.confirmPassword}
-              />
-              <ErrorMessage name="confirmPassword" component="p" className="text-red-500 text-xs mt-1" />
-            </div>
-
-            {/* Password Skip Option */}
-            <div className="mb-4">
-              <div className="flex items-start">
-                <Field
-                  type="checkbox"
-                  id="skipPassword"
-                  name="skipPassword"
-                  className="w-4 h-4 mt-0.5 mr-2"
-                  onChange={(e: any) => {
-                    const checked = e.target.checked;
-                    setFieldValue('skipPassword', checked);
-                    if (checked) {
-                      setFieldValue('walletPassword', '');
-                      setFieldValue('confirmPassword', '');
-                      setFieldError('walletPassword', undefined);
-                      setFieldError('confirmPassword', undefined);
-                      setFieldTouched('walletPassword', false);
-                      setFieldTouched('confirmPassword', false);
-                    }
-                  }}
+          return (
+            <Form className="flex flex-col mt-4 w-full max-w-sm h-full">
+              {/* Wallet Name Field */}
+              <div className="mb-4">
+                <FloatingLabelInput
+                  name="walletName"
+                  label="Wallet Name"
+                  type="text"
+                  required
+                  error={touched.walletName && errors.walletName}
                 />
-                <label htmlFor="skipPassword" className="block text-xs text-left">
-                  Create wallet without a password. I understand the security risks.
-                </label>
+                <ErrorMessage name="walletName" component="p" className="text-red-500 text-xs mt-1" />
               </div>
-            </div>
 
-            {/* Navigation Buttons */}
-            <div className="mt-auto flex space-x-4 justify-center">
-              <CancelButton type="button" onClick={handleCancel}>
-                Cancel
-              </CancelButton>
-              <PrimaryButton type="submit">Create</PrimaryButton>
-            </div>
-          </Form>
-        )}
+              {/* Network Selection Field */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  Network <span className="text-red-500">*</span>
+                </label>
+                <NetworkToggle value={values.network} onChange={network => setFieldValue('network', network)} />
+                <ErrorMessage name="network" component="p" className="text-red-500 text-xs mt-1" />
+              </div>
+
+              {/* Wallet Password Field */}
+              <div className="mb-4">
+                <FloatingLabelInput
+                  name="walletPassword"
+                  label="Password"
+                  type="password"
+                  disabled={values.skipPassword}
+                  required={!values.skipPassword}
+                  error={touched.walletPassword && errors.walletPassword}
+                />
+                <ErrorMessage name="walletPassword" component="p" className="text-red-500 text-xs mt-1" />
+              </div>
+
+              {/* Confirm Password Field */}
+              <div className="mb-4">
+                <FloatingLabelInput
+                  name="confirmPassword"
+                  label="Confirm Password"
+                  type="password"
+                  disabled={values.skipPassword}
+                  required={!values.skipPassword}
+                  error={touched.confirmPassword && errors.confirmPassword}
+                />
+                <ErrorMessage name="confirmPassword" component="p" className="text-red-500 text-xs mt-1" />
+              </div>
+
+              {/* Password Skip Option */}
+              <div className="mb-4">
+                <div className="flex items-start">
+                  <Field
+                    type="checkbox"
+                    id="skipPassword"
+                    name="skipPassword"
+                    className="w-4 h-4 mt-0.5 mr-2"
+                    onChange={(e: any) => {
+                      const checked = e.target.checked;
+                      setFieldValue('skipPassword', checked);
+                      if (checked) {
+                        setFieldValue('walletPassword', '');
+                        setFieldValue('confirmPassword', '');
+                        setFieldError('walletPassword', undefined);
+                        setFieldError('confirmPassword', undefined);
+                        setFieldTouched('walletPassword', false);
+                        setFieldTouched('confirmPassword', false);
+                      }
+                    }}
+                  />
+                  <label htmlFor="skipPassword" className="block text-xs text-left">
+                    Create wallet without a password. I understand the security risks.
+                  </label>
+                </div>
+              </div>
+
+              {/* Navigation Buttons */}
+              <div className="mt-auto flex space-x-4 justify-center">
+                <CancelButton type="button" onClick={handleCancel}>
+                  Cancel
+                </CancelButton>
+                <PrimaryButton type="submit">Create</PrimaryButton>
+              </div>
+            </Form>
+          );
+        }}
       </Formik>
     </div>
   );

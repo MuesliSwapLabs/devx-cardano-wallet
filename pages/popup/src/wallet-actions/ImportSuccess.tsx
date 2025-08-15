@@ -1,6 +1,6 @@
 // popup/src/pages/wallet-actions/ImportSuccess.tsx
 import { useNavigate } from 'react-router-dom';
-import { settingsStorage } from '@extension/storage';
+import { settingsStorage, onboardingStorage } from '@extension/storage';
 import { PrimaryButton, SecondaryButton } from '@src/components/buttons';
 
 function ImportSuccess() {
@@ -8,6 +8,7 @@ function ImportSuccess() {
 
   const handleFinishOnboardingClick = async () => {
     await settingsStorage.markOnboarded();
+    await onboardingStorage.completeOnboarding();
     navigate('/', { replace: true });
   };
 

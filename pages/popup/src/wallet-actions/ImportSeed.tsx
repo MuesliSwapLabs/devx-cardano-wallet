@@ -6,6 +6,7 @@ import * as Yup from 'yup';
 import { PrimaryButton, SecondaryButton, CancelButton } from '@src/components/buttons';
 import FloatingLabelInput from '@src/components/FloatingLabelInput'; // Make sure this path is correct
 import NetworkToggle from '@src/components/NetworkToggle';
+import { onboardingStorage, useStorage } from '@extension/storage';
 import { generateRootKeyFromMnemonic, deriveAddressFromMnemonic } from '../utils/crypto';
 
 // Simple fuzzy search function
@@ -51,6 +52,20 @@ const ImportNewWallet = () => {
   const [validWords, setValidWords] = useState({});
 
   const navigate = useNavigate();
+  const onboardingState = useStorage(onboardingStorage);
+
+  // Initialize onboarding state
+  useEffect(() => {
+    const initOnboarding = async () => {
+      if (!onboardingState?.isActive) {
+        await onboardingStorage.startOnboarding('import');
+      }
+      await onboardingStorage.setCurrentFlow('import');
+      await onboardingStorage.goToStep('import-form');
+      await onboardingStorage.setCurrentRoute('/import-wallet-from-seed-phrase');
+    };
+    initOnboarding();
+  }, []);
 
   // Load word list from file
   useEffect(() => {
@@ -106,17 +121,22 @@ const ImportNewWallet = () => {
   // Create initial values dynamically
   const createInitialValues = count => {
     const seedWords = {};
+
+    // Load seed phrase from onboarding state if available
+    const savedSeedPhrase = onboardingState?.importFormData.seedPhrase;
+    const savedWords = savedSeedPhrase ? savedSeedPhrase.split(' ') : [];
+
     for (let i = 0; i < count; i++) {
-      seedWords[`word_${i}`] = '';
+      seedWords[`word_${i}`] = savedWords[i] || '';
     }
 
     return {
       ...seedWords,
-      walletName: '',
-      network: 'Preprod',
-      walletPassword: '',
+      walletName: onboardingState?.importFormData.walletName || '',
+      network: onboardingState?.importFormData.network || 'Preprod',
+      walletPassword: onboardingState?.importFormData.password || '',
       confirmPassword: '',
-      skipPassword: false,
+      skipPassword: !onboardingState?.importFormData.password,
     };
   };
 
@@ -284,13 +304,23 @@ const ImportNewWallet = () => {
   };
 
   const handleBack = () => {
-    setStep(prev => prev - 1);
+    const newStep = Math.max(1, step - 1);
+    setStep(newStep);
+    // Don't change onboarding storage step for internal navigation within the same form
   };
 
   const handleImport = async (values: IFormValues, { setSubmitting }: FormikHelpers<IFormValues>) => {
     try {
       const seedPhraseWords = Array.from({ length: wordCount }, (_, i) => values[`word_${i}`]);
       const seedPhrase = seedPhraseWords.join(' ');
+
+      // Save form data to onboarding state
+      await onboardingStorage.updateImportFormData({
+        walletName: values.walletName,
+        seedPhrase: seedPhrase,
+        network: values.network,
+        password: values.skipPassword ? undefined : values.walletPassword,
+      });
 
       // Derive addresses and generate rootKey from seedPhrase in frontend
       const { address, stakeAddress } = await deriveAddressFromMnemonic(seedPhrase, values.network);
@@ -310,6 +340,9 @@ const ImportNewWallet = () => {
         if (chrome.runtime.lastError) {
           console.error('Message sending failed:', chrome.runtime.lastError.message);
         } else if (response?.success) {
+          // Mark onboarding as complete and clear form data
+          onboardingStorage.goToStep('success');
+          onboardingStorage.clearFormData('import');
           alert('Not implemented yet. Redirecting to success anyway.');
           navigate('/import-wallet-from-seed-phrase-success');
         } else {
@@ -323,7 +356,9 @@ const ImportNewWallet = () => {
     }
   };
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
+    // Rollback to select-method step
+    await onboardingStorage.goToStep('select-method');
     navigate('/add-wallet');
   };
 

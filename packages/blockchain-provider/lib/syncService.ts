@@ -1,5 +1,5 @@
-import { transactionsStorage } from '@extension/storage';
-import { getWalletUTXOs, getEnhancedTransactions } from './provider';
+import { transactionsStorage, type TransactionRecord, type UTXORecord } from '@extension/storage';
+import { getWalletUTXOs, getEnhancedTransactions, getTransactions } from './provider';
 import type { Wallet } from '@extension/shared';
 
 export interface SyncOptions {
@@ -79,11 +79,18 @@ export class WalletSyncService {
 
       console.log(`Starting sync for wallet ${walletId}...`);
 
-      // Fetch fresh data from Blockfrost
-      const [freshTransactions, freshUTXOs] = await Promise.all([
-        getEnhancedTransactions(wallet),
-        getWalletUTXOs(wallet),
-      ]);
+      // Fetch fresh UTXOs first, then use them for both transactions and UTXO storage
+      const freshUTXOs = await getWalletUTXOs(wallet);
+      const transactions = await getTransactions(wallet);
+
+      // Enhance transactions with the UTXOs we already fetched
+      const freshTransactions = transactions.map(tx => {
+        const relatedUtxos = freshUTXOs.filter(utxo => utxo.tx_hash === tx.hash || utxo.spentInTx === tx.hash);
+        return {
+          ...tx,
+          relatedUtxos,
+        };
+      });
 
       // Get existing data from storage
       const [existingTransactions, existingUTXOs] = await Promise.all([
@@ -135,12 +142,26 @@ export class WalletSyncService {
       };
     } catch (error) {
       console.error(`Sync failed for wallet ${walletId}:`, error);
+
+      let errorMessage = 'Unknown sync error';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        // Provide more helpful error messages for common issues
+        if (error.message.includes('API key invalid or missing')) {
+          errorMessage = 'Blockfrost API key not configured. Please set it in Settings.';
+        } else if (error.message.includes('Invalid stake address')) {
+          errorMessage = 'Invalid wallet stake address. Please check wallet configuration.';
+        } else if (error.message.includes('Stake address not found')) {
+          errorMessage = 'Wallet has no on-chain activity yet. This is normal for new wallets.';
+        }
+      }
+
       return {
         success: false,
         newTransactions: 0,
         newUTXOs: 0,
         updatedUTXOs: 0,
-        error: error instanceof Error ? error.message : 'Unknown sync error',
+        error: errorMessage,
         syncDuration: Date.now() - startTime,
       };
     } finally {

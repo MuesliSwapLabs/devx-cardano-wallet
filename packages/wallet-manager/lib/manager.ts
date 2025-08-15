@@ -92,13 +92,20 @@ export async function spoofWallet(name: string, inputAddress: string, network: '
     throw new Error('This address is valid but has no on-chain history.');
   }
 
+  // Check if the address has a stake address - required for spoof wallets
+  if (!state.stakeAddress) {
+    throw new Error(
+      'This address cannot be used for spoofing. Please provide a base address (one that participates in staking) rather than an enterprise address. Base addresses start with "addr1" or "addr_test1" and have an associated stake address for delegation.',
+    );
+  }
+
   // If the address is found, we use the real on-chain data to build the wallet.
   const wallet: Wallet = {
     id: uuidv4(),
     name,
     // For spoofed wallets: address is the input address, stakeAddress is from blockchain
     address: inputAddress,
-    stakeAddress: state.stakeAddress || inputAddress,
+    stakeAddress: state.stakeAddress,
     network,
     balance: state.balance,
     assets: state.assets,

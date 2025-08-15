@@ -1,6 +1,6 @@
 // popup/src/pages/wallet-actions/CreateSuccess.tsx
 import { useNavigate } from 'react-router-dom';
-import { settingsStorage } from '@extension/storage';
+import { settingsStorage, onboardingStorage } from '@extension/storage';
 import { PrimaryButton, SecondaryButton } from '@src/components/buttons';
 
 function CreateSuccess() {
@@ -9,6 +9,7 @@ function CreateSuccess() {
   const handleFinishOnboardingClick = async () => {
     // Use the new settings storage to mark onboarding as complete
     await settingsStorage.markOnboarded();
+    await onboardingStorage.completeOnboarding();
     navigate('/', { replace: true });
   };
 

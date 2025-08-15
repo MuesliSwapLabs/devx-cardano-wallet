@@ -87,10 +87,19 @@ function MainLayout() {
                   {(parseInt(currentWallet?.balance || '0') / 1_000_000).toLocaleString()} ₳
                 </p>
               </div>
-              <div className="flex justify-center space-x-4">
-                <PrimaryButton className="flex-1">Send</PrimaryButton>
-                <SecondaryButton className="flex-1">Receive</SecondaryButton>
-              </div>
+              {currentWallet?.type === 'SPOOFED' ? (
+                <div className="text-center">
+                  <p className="text-red-500 font-semibold mb-2">Spoofed wallets are not able to send/receive.</p>
+                  <Link to="/spoofed-info" className="text-blue-500 hover:text-blue-600 underline text-sm">
+                    Learn more about read-only wallets
+                  </Link>
+                </div>
+              ) : (
+                <div className="flex justify-center space-x-4">
+                  <PrimaryButton className="flex-1">Send</PrimaryButton>
+                  <SecondaryButton className="flex-1">Receive</SecondaryButton>
+                </div>
+              )}
             </div>
           </div>
         </div>
