@@ -41,9 +41,9 @@ const manifest = deepmerge(
       default_popup: 'popup/index.html',
       default_icon: 'devx_icon.png',
     },
-    chrome_url_overrides: {
-      newtab: 'new-tab/index.html',
-    },
+    // chrome_url_overrides: {
+    //   newtab: 'new-tab/index.html',
+    // },
     icons: {
       128: 'icon-128.png',
     },
@@ -52,10 +52,6 @@ const manifest = deepmerge(
         matches: ['http://*/*', 'https://*/*', '<all_urls>'],
         js: ['content/index.iife.js'],
         run_at: 'document_start',
-      },
-      {
-        matches: ['http://*/*', 'https://*/*', '<all_urls>'],
-        js: ['content-ui/index.iife.js'],
       },
       {
         matches: ['http://*/*', 'https://*/*', '<all_urls>'],
