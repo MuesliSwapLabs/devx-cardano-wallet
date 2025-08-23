@@ -40,7 +40,7 @@ const WalletView = () => {
         <div>
           <h3 className="text-md font-semibold mb-2 border-b border-gray-300 dark:border-gray-600">Tokens</h3>
           {wallet.assets && wallet.assets.length > 0 ? (
-            <div className="max-h-64 overflow-y-auto">
+            <div className="h-full overflow-y-auto">
               {(wallet.assets as EnrichedAsset[]).map(asset => (
                 <AssetDisplay key={asset.unit} asset={asset} />
               ))}
