@@ -2,11 +2,6 @@ import { Asset, Wallet } from '@extension/shared';
 import { settingsStorage } from '@extension/storage';
 
 // --- Type Definitions ---
-// The final, rich asset information we want to return
-export interface EnrichedAsset extends Asset {
-  policyId: string;
-  name: string;
-}
 
 // Transaction-related types
 export interface TransactionInput {
@@ -82,7 +77,7 @@ export interface WalletState {
   address: string;
   stakeAddress: string | null;
   balance: string; // Lovelace
-  assets: EnrichedAsset[];
+  assets: Asset[];
 }
 
 // Blockfrost API response types
@@ -207,6 +202,123 @@ async function getAccountAssets(apiUrl: string, apiKey: string, stakeAddress: st
   const data: Asset[] = await response.json();
   // Blockfrost returns ADA as an asset here, so we filter it out.
   return data.filter(asset => asset.unit !== 'lovelace');
+}
+
+/**
+ * Fetches metadata for a specific asset from Blockfrost
+ */
+async function getAssetMetadata(apiUrl: string, apiKey: string, unit: string): Promise<Partial<Asset>> {
+  try {
+    const endpoint = `${apiUrl}/assets/${unit}`;
+    const response = await fetch(endpoint, {
+      headers: { project_id: apiKey },
+    });
+    if (!response.ok) {
+      console.warn(`Failed to fetch metadata for asset ${unit}: ${response.statusText}`);
+      return {};
+    }
+    const data = await response.json();
+
+    // Extract metadata from Blockfrost response
+    const metadata: Partial<Asset> = {};
+
+    // Helper function to try extracting logo/image from all possible sources
+    const extractLogo = (): string | undefined => {
+      const checkAndReturn = (value: unknown): string | undefined => {
+        return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+      };
+
+      // 1. Try onchain_metadata.image (IPFS URLs)
+      const onchainImage = checkAndReturn(data.onchain_metadata?.image);
+      if (onchainImage) return onchainImage;
+
+      // 2. Try onchain_metadata.logo
+      const onchainLogo = checkAndReturn(data.onchain_metadata?.logo);
+      if (onchainLogo) return onchainLogo;
+
+      // 3. Try CIP-25 721 structure image
+      if (data.onchain_metadata?.['721']) {
+        const policyData = data.onchain_metadata['721'][unit.slice(0, 56)];
+        if (policyData) {
+          const assetData = policyData[unit.slice(56)] || Object.values(policyData)[0];
+          if (assetData) {
+            const cip25Image = checkAndReturn(assetData.image);
+            if (cip25Image) return cip25Image;
+            const cip25Logo = checkAndReturn(assetData.logo);
+            if (cip25Logo) return cip25Logo;
+          }
+        }
+      }
+
+      // 4. Try off-chain metadata.logo (base64 encoded)
+      const metadataLogo = checkAndReturn(data.metadata?.logo);
+      if (metadataLogo) {
+        // Base64 encoded logos start with data:image or just the base64 string
+        if (metadataLogo.startsWith('data:image')) return metadataLogo;
+        if (metadataLogo.startsWith('iVBOR') || metadataLogo.startsWith('/9j/') || metadataLogo.startsWith('UklGR')) {
+          // Common base64 prefixes for PNG, JPG, WEBP
+          return `data:image/png;base64,${metadataLogo}`;
+        }
+        return metadataLogo; // Return as-is, might be URL
+      }
+
+      // 5. Try metadata.image
+      const metadataImage = checkAndReturn(data.metadata?.image);
+      if (metadataImage) return metadataImage;
+
+      return undefined;
+    };
+
+    if (data.onchain_metadata) {
+      const onchainMeta = data.onchain_metadata;
+
+      // Check for direct metadata first (CIP-68 or simple format)
+      if (onchainMeta.name) metadata.name = onchainMeta.name;
+      if (onchainMeta.description) metadata.description = onchainMeta.description;
+      if (onchainMeta.mediaType) metadata.mediaType = onchainMeta.mediaType;
+      if (onchainMeta.attributes) metadata.attributes = onchainMeta.attributes;
+
+      // Also check CIP-25 721 structure
+      if (onchainMeta['721']) {
+        const policyData = onchainMeta['721'][unit.slice(0, 56)];
+        if (policyData) {
+          const assetData = policyData[unit.slice(56)] || Object.values(policyData)[0];
+          if (assetData) {
+            metadata.name = assetData.name || metadata.name;
+            metadata.description = assetData.description || metadata.description;
+            metadata.mediaType = assetData.mediaType || metadata.mediaType;
+            metadata.attributes = assetData.attributes || metadata.attributes;
+          }
+        }
+      }
+    }
+
+    // Extract logo/image from any available source
+    const extractedLogo = extractLogo();
+    if (extractedLogo) {
+      metadata.image = extractedLogo;
+      metadata.logo = extractedLogo; // Store in both fields for compatibility
+    }
+
+    // Add other Blockfrost data
+    if (data.asset_name) {
+      metadata.ticker = hexToString(data.asset_name);
+    }
+    if (data.fingerprint) {
+      metadata.fingerprint = data.fingerprint;
+    }
+    if (data.initial_mint_tx_hash) {
+      metadata.firstMintTx = data.initial_mint_tx_hash;
+    }
+    if (data.mint_or_burn_count) {
+      metadata.mintCount = data.mint_or_burn_count.toString();
+    }
+
+    return metadata;
+  } catch (error) {
+    console.warn(`Error fetching metadata for asset ${unit}:`, error);
+    return {};
+  }
 }
 
 /**
@@ -489,17 +601,27 @@ export const getWalletState = async (wallet: Wallet): Promise<WalletState> => {
       getAccountAssets(apiUrl, apiKey, stakeAddress),
     ]);
 
-    // Enrich asset data with readable names and policy IDs
-    const enrichedAssets: EnrichedAsset[] = rawAssets.map(asset => {
-      const policyId = asset.unit.slice(0, 56);
-      const hexName = asset.unit.slice(56);
-      console.log(`Enriching asset: ${asset.unit} with policyId: ${policyId} and hexName: ${hexName}`);
-      return {
-        ...asset,
-        policyId,
-        name: hexToString(hexName),
-      };
-    });
+    // Enrich asset data with readable names, policy IDs, and metadata
+    const enrichedAssets: Asset[] = await Promise.all(
+      rawAssets.map(async asset => {
+        const policyId = asset.unit.slice(0, 56);
+        const hexName = asset.unit.slice(56);
+
+        // Fetch metadata for this asset
+        const metadata = await getAssetMetadata(apiUrl, apiKey, asset.unit);
+
+        return {
+          ...asset,
+          policyId,
+          assetName: hexName,
+          name: metadata.name || hexToString(hexName),
+          // Merge in all metadata fields
+          ...metadata,
+          // Set lastUpdated timestamp
+          lastUpdated: Date.now(),
+        };
+      }),
+    );
 
     return {
       status: 'found',

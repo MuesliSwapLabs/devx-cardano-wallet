@@ -66,12 +66,8 @@ export interface UTXO {
   spentInTx?: string | null;
 }
 
-// Re-export Asset type from shared and create EnrichedAsset
-import type { Asset } from '@extension/shared';
-export interface EnrichedAsset extends Asset {
-  policyId: string;
-  name: string;
-}
+// Re-export Asset type from shared
+export type { Asset } from '@extension/shared';
 
 // Storage data structures
 export interface TransactionRecord extends EnhancedTransaction {
