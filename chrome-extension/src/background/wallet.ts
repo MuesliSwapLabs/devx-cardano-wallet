@@ -153,14 +153,64 @@ export const handleWalletMessages = async (
       }
 
       case 'GET_UTXO_DETAILS': {
-        const { txHash, outputIndex } = message.payload;
+        const { txHash, outputIndex, walletId } = message.payload;
 
         try {
-          const utxo = await transactionsStorage.getUTXO(txHash, outputIndex);
+          let utxo = await transactionsStorage.getUTXO(txHash, outputIndex);
+
+          // If UTXO not found or has incomplete data, fetch it on-demand
+          if (!utxo || !utxo.block) {
+            // Get wallet to determine network
+            const wallets = await walletsStorage.get();
+            const wallet = wallets.wallets.find(w => w.id === walletId);
+            if (!wallet) {
+              sendResponse({ success: false, error: 'Wallet not found' });
+              return true;
+            }
+
+            // Get API config
+            const { apiUrl, apiKey } = await getApiConfig(wallet);
+
+            try {
+              // Fetch complete UTXO data from the transaction
+              const utxosResponse = await fetch(`${apiUrl}/txs/${txHash}/utxos`, {
+                headers: { project_id: apiKey },
+              });
+
+              if (utxosResponse.ok) {
+                const utxoData = await utxosResponse.json();
+                const output = utxoData.outputs?.[outputIndex];
+
+                if (output) {
+                  // Create or update UTXO with complete data
+                  const completeUtxo: UTXO = {
+                    tx_hash: txHash,
+                    output_index: outputIndex,
+                    address: output.address,
+                    amount: output.amount,
+                    block: '', // We'd need another API call for block info
+                    data_hash: output.data_hash || null,
+                    inline_datum: output.inline_datum || null,
+                    reference_script_hash: output.reference_script_hash || null,
+                    isSpent: utxo?.isSpent || false,
+                    spentInTx: utxo?.spentInTx || null,
+                  };
+
+                  // Store the complete UTXO for future use
+                  await transactionsStorage.storeUTXOs(wallet.id, [completeUtxo]);
+                  utxo = await transactionsStorage.getUTXO(txHash, outputIndex);
+                }
+              }
+            } catch (fetchError) {
+              console.warn(`Failed to fetch complete UTXO data for ${txHash}:${outputIndex}:`, fetchError);
+            }
+          }
+
           if (!utxo) {
             sendResponse({ success: false, error: 'UTXO not found' });
             return true;
           }
+
           sendResponse({ success: true, utxo });
         } catch (error) {
           console.error('Failed to fetch UTXO details:', error);
@@ -276,8 +326,8 @@ async function performTransactionSync(
 
   for (const txHash of Array.from(allTransactionHashes)) {
     processedCount++;
-    if (onProgress) {
-      onProgress(processedCount, totalTxCount, `Fetching transaction ${processedCount}/${totalTxCount}`);
+    if (onProgress && totalTxCount > 0) {
+      onProgress(processedCount, totalTxCount, 'Updating...');
     }
 
     // Fetch transaction details AND UTXO data
@@ -346,71 +396,44 @@ async function performTransactionSync(
     }
   }
 
-  // Fetch complete data for missing UTXOs (hybrid approach)
+  // Store basic UTXO data from inputs (without fetching external transactions)
+  // We'll fetch complete data on-demand when user clicks on a specific UTXO
   const externalUTXOs: UTXO[] = [];
   if (missingUTXOs.size > 0) {
-    if (onProgress) {
-      onProgress(totalTxCount, totalTxCount, `Fetching ${missingUTXOs.size} missing UTXO details...`);
-    }
+    // Create basic UTXO records from transaction inputs
+    for (const [utxoKey, utxoInfo] of Array.from(missingUTXOs)) {
+      // Find which transaction spent this UTXO
+      let spentInTx: string | null = null;
+      let inputData: TransactionInput | undefined;
 
-    // Group by transaction to minimize API calls
-    const txToFetch = new Map<string, number[]>();
-    for (const [_, utxoInfo] of Array.from(missingUTXOs)) {
-      if (!txToFetch.has(utxoInfo.tx_hash)) {
-        txToFetch.set(utxoInfo.tx_hash, []);
-      }
-      txToFetch.get(utxoInfo.tx_hash)!.push(utxoInfo.output_index);
-    }
-
-    // Fetch each external transaction's UTXO data
-    for (const [txHash, outputIndexes] of Array.from(txToFetch)) {
-      try {
-        const utxosResponse = await fetch(`${apiUrl}/txs/${txHash}/utxos`, {
-          headers: { project_id: apiKey },
-        });
-
-        if (utxosResponse.ok) {
-          const utxoData = await utxosResponse.json();
-
-          // Extract only the outputs we need
-          for (const outputIndex of outputIndexes) {
-            const output = utxoData.outputs?.[outputIndex];
-            if (output) {
-              // Find which transaction(s) spent this UTXO
-              let spentInTx: string | null = null;
-              for (const tx of transactions) {
-                if (tx.inputs?.some(input => input.tx_hash === txHash && input.output_index === outputIndex)) {
-                  spentInTx = tx.hash;
-                  break;
-                }
-              }
-
-              externalUTXOs.push({
-                tx_hash: txHash,
-                output_index: outputIndex,
-                address: output.address,
-                amount: output.amount,
-                block: '', // We could fetch this but it's not critical
-                data_hash: output.data_hash || null,
-                inline_datum: output.inline_datum || null,
-                reference_script_hash: output.reference_script_hash || null,
-                isSpent: true, // If it's an input, it's spent
-                spentInTx: spentInTx,
-              });
-            }
-          }
+      for (const tx of transactions) {
+        const input = tx.inputs?.find(i => i.tx_hash === utxoInfo.tx_hash && i.output_index === utxoInfo.output_index);
+        if (input) {
+          spentInTx = tx.hash;
+          inputData = input;
+          break;
         }
-      } catch (error) {
-        console.warn(`Failed to fetch UTXO data for transaction ${txHash}:`, error);
+      }
+
+      if (inputData) {
+        // Create UTXO from input data (we have address and amount from the input)
+        externalUTXOs.push({
+          tx_hash: utxoInfo.tx_hash,
+          output_index: utxoInfo.output_index,
+          address: inputData.address,
+          amount: inputData.amount,
+          block: '', // Will be fetched on-demand
+          data_hash: null, // Will be fetched on-demand
+          inline_datum: null, // Will be fetched on-demand
+          reference_script_hash: null, // Will be fetched on-demand
+          isSpent: true, // It's an input, so it's spent
+          spentInTx: spentInTx,
+        });
       }
     }
   }
 
   // Build complete UTXO set from transactions with lifecycle tracking
-  if (onProgress) {
-    onProgress(totalTxCount, totalTxCount, 'Building UTXO lifecycle...');
-  }
-
   const completeUTXOs: UTXO[] = [];
   const utxoMap = new Map<string, UTXO>(); // key: "tx_hash:output_index"
 
@@ -474,9 +497,6 @@ async function performTransactionSync(
   completeUTXOs.push(...Array.from(utxoMap.values()));
 
   // Store all UTXOs with lifecycle data
-  if (onProgress) {
-    onProgress(totalTxCount, totalTxCount, `Storing ${completeUTXOs.length} UTXOs...`);
-  }
   if (completeUTXOs.length > 0) {
     await transactionsStorage.storeUTXOs(wallet.id, completeUTXOs);
     console.log(
@@ -485,9 +505,6 @@ async function performTransactionSync(
   }
 
   // Update last sync block
-  if (onProgress) {
-    onProgress(totalTxCount, totalTxCount, 'Updating sync status...');
-  }
   await settingsStorage.set({
     ...settings,
     lastSyncBlock: {
@@ -497,9 +514,6 @@ async function performTransactionSync(
   });
 
   // Return all transactions from storage
-  if (onProgress) {
-    onProgress(totalTxCount, totalTxCount, 'Finalizing sync...');
-  }
   const allStoredTransactions = await transactionsStorage.getWalletTransactions(wallet.id);
   const allUTXOs = await transactionsStorage.getWalletUTXOs(wallet.id);
 

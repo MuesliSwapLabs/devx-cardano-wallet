@@ -323,37 +323,59 @@ const WalletView = () => {
         </div>
       )}
 
-      {view === 'transactions' &&
-        (syncPromise ? (
-          <div className="flex flex-col items-center justify-center py-8">
-            <div className="mb-4 size-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              {syncProgress.message || 'Loading transactions...'}
+      {view === 'transactions' && (
+        <div className="relative flex h-full flex-col">
+          {/* Background sync indicator */}
+          {syncPromise && (
+            <div className="absolute inset-x-0 top-0 z-10 bg-blue-50 px-3 py-2 dark:bg-blue-900/30">
+              <div className="flex items-center gap-2">
+                <div className="size-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
+                <div className="text-sm text-blue-700 dark:text-blue-300">
+                  {syncProgress.total > 0 ? `Updating... ${syncProgress.current}/${syncProgress.total}` : 'Updating...'}
+                </div>
+              </div>
             </div>
-            {syncProgress.total > 0 && (
-              <div className="mt-2 text-xs text-gray-500">
-                {syncProgress.current} / {syncProgress.total}
-              </div>
-            )}
-          </div>
-        ) : (
-          <EnhancedTransactions wallet={wallet} transactions={transactions} onRefresh={syncTransactions} />
-        ))}
+          )}
 
-      {view === 'utxos' &&
-        (syncPromise ? (
-          <div className="flex flex-col items-center justify-center py-8">
-            <div className="mb-4 size-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">{syncProgress.message || 'Loading UTXOs...'}</div>
-            {syncProgress.total > 0 && (
-              <div className="mt-2 text-xs text-gray-500">
-                {syncProgress.current} / {syncProgress.total}
+          {/* Always show transactions if we have them */}
+          {transactions.length === 0 && !syncPromise ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <div className="text-sm text-gray-600 dark:text-gray-400">No transactions yet</div>
+            </div>
+          ) : (
+            <div className={syncPromise ? 'mt-10' : ''}>
+              <EnhancedTransactions wallet={wallet} transactions={transactions} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {view === 'utxos' && (
+        <div className="relative flex h-full flex-col">
+          {/* Background sync indicator */}
+          {syncPromise && (
+            <div className="absolute inset-x-0 top-0 z-10 bg-blue-50 px-3 py-2 dark:bg-blue-900/30">
+              <div className="flex items-center gap-2">
+                <div className="size-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
+                <div className="text-sm text-blue-700 dark:text-blue-300">
+                  {syncProgress.total > 0 ? `Updating... ${syncProgress.current}/${syncProgress.total}` : 'Updating...'}
+                </div>
               </div>
-            )}
-          </div>
-        ) : (
-          <UTXOsView wallet={wallet} utxos={utxos} onRefresh={syncTransactions} />
-        ))}
+            </div>
+          )}
+
+          {/* Always show UTXOs if we have them */}
+          {utxos.length === 0 && !syncPromise ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <div className="text-sm text-gray-600 dark:text-gray-400">No UTXOs yet</div>
+            </div>
+          ) : (
+            <div className={syncPromise ? 'mt-10' : ''}>
+              <UTXOsView wallet={wallet} utxos={utxos} />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

@@ -6,10 +6,9 @@ import type { UTXORecord } from '@extension/storage';
 interface UTXOsViewProps {
   wallet: Wallet;
   utxos: UTXORecord[];
-  onRefresh: () => Promise<void>;
 }
 
-const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos, onRefresh }) => {
+const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos }) => {
   const [filter, setFilter] = useState<'all' | 'unspent' | 'spent' | 'external'>('unspent');
   const [expandedUtxo, setExpandedUtxo] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -83,11 +82,8 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos, onRefresh }) => {
   return (
     <div>
       <div className="mb-2 border-b border-gray-300 pb-2 dark:border-gray-600">
-        <div className="mb-2 flex items-center justify-between">
+        <div className="mb-2">
           <h3 className="text-md font-semibold">UTXOs</h3>
-          <button onClick={onRefresh} className="rounded bg-blue-500 px-2 py-1 text-xs text-white hover:bg-blue-600">
-            Refresh
-          </button>
         </div>
         <input
           type="text"
@@ -223,9 +219,15 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos, onRefresh }) => {
                         </div>
                       )}
                     </div>
-                    <div className="text-right">
+                    <div className="ml-2 text-right">
                       <div className="text-sm font-medium">{adaAmount ? formatAda(adaAmount.quantity) : '0 ADA'}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">Block: {utxo.block}</div>
+                      {utxo.block && (
+                        <div
+                          className="mt-1 max-w-[150px] truncate text-xs text-gray-500 dark:text-gray-400"
+                          title={`Block: ${utxo.block}`}>
+                          Block: {utxo.block.slice(0, 8)}...
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -235,17 +237,18 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos, onRefresh }) => {
                     <div className="space-y-3 text-xs">
                       <div>
                         <strong>Full Hash:</strong>
-                        <span className="ml-2 break-all font-mono">{utxo.tx_hash}</span>
+                        <div className="mt-1 break-all font-mono text-xs">{utxo.tx_hash}</div>
                       </div>
                       <div>
                         <strong>Output Index:</strong> {utxo.output_index}
                       </div>
                       <div>
                         <strong>Full Address:</strong>
-                        <span className="ml-2 break-all font-mono">{utxo.address}</span>
+                        <div className="mt-1 break-all font-mono text-xs">{utxo.address}</div>
                       </div>
                       <div>
-                        <strong>Block:</strong> {utxo.block}
+                        <strong>Block:</strong>
+                        <div className="mt-1 break-all font-mono text-xs">{utxo.block}</div>
                       </div>
                       {utxo.isExternal && (
                         <div className="rounded border border-orange-200 bg-orange-50 p-2 dark:border-orange-700 dark:bg-orange-900/30">

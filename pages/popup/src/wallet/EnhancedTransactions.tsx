@@ -7,10 +7,9 @@ import TransactionDetail from './TransactionDetail';
 interface EnhancedTransactionsProps {
   wallet: Wallet;
   transactions: TransactionRecord[];
-  onRefresh: () => Promise<void>;
 }
 
-const EnhancedTransactions: React.FC<EnhancedTransactionsProps> = ({ wallet, transactions, onRefresh }) => {
+const EnhancedTransactions: React.FC<EnhancedTransactionsProps> = ({ wallet, transactions }) => {
   const [expandedTx, setExpandedTx] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -49,11 +48,8 @@ const EnhancedTransactions: React.FC<EnhancedTransactionsProps> = ({ wallet, tra
   return (
     <div>
       <div className="mb-2 border-b border-gray-300 pb-2 dark:border-gray-600">
-        <div className="mb-2 flex items-center justify-between">
+        <div className="mb-2">
           <h3 className="text-md font-semibold">Transactions</h3>
-          <button onClick={onRefresh} className="rounded bg-blue-500 px-2 py-1 text-xs text-white hover:bg-blue-600">
-            Refresh
-          </button>
         </div>
         <input
           type="text"

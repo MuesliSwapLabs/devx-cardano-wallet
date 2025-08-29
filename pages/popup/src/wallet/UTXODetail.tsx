@@ -31,7 +31,7 @@ const UTXODetail: React.FC = () => {
       chrome.runtime.sendMessage(
         {
           type: 'GET_UTXO_DETAILS',
-          payload: { txHash, outputIndex: parseInt(outputIndex) },
+          payload: { txHash, outputIndex: parseInt(outputIndex), walletId: wallet.id },
         },
         response => {
           if (response?.success) {
