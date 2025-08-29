@@ -205,7 +205,7 @@ const SpoofWallet = () => {
   // Loading state
   if (!settings) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex h-full items-center justify-center">
         <p>Loading...</p>
       </div>
     );
@@ -226,9 +226,9 @@ const SpoofWallet = () => {
   }
 
   return (
-    <div className="flex flex-col items-center h-full">
+    <div className="flex h-full flex-col items-center">
       <h2 className="text-xl font-medium">Spoof Wallet</h2>
-      <p className="text-center text-sm mt-2">Create a wallet with a custom address for testing!</p>
+      <p className="mt-2 text-center text-sm">Create a wallet with a custom address for testing!</p>
 
       <Formik<IFormValues>
         initialValues={initialValues}
@@ -244,7 +244,7 @@ const SpoofWallet = () => {
           }, [values]);
 
           return (
-            <Form className="w-full max-w-sm flex flex-col h-full mt-4">
+            <Form className="mt-4 flex size-full max-w-sm flex-col">
               <div className="mb-4">
                 <Field
                   name="walletName"
@@ -254,12 +254,12 @@ const SpoofWallet = () => {
                   required
                   error={touched.walletName && errors.walletName}
                 />
-                <ErrorMessage name="walletName" component="p" className="text-red-500 text-sm mt-1" />
+                <ErrorMessage name="walletName" component="p" className="mt-1 text-sm text-red-500" />
               </div>
 
               {/* Network Selection Field */}
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                <label className="mb-3 block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Network <span className="text-red-500">*</span>
                 </label>
                 <NetworkToggle value={values.network} onChange={network => setFieldValue('network', network)} />
@@ -275,7 +275,7 @@ const SpoofWallet = () => {
                   )}
                 </div>
 
-                <ErrorMessage name="network" component="p" className="text-red-500 text-xs mt-1" />
+                <ErrorMessage name="network" component="p" className="mt-1 text-xs text-red-500" />
               </div>
 
               <div className="mb-4">
@@ -287,7 +287,7 @@ const SpoofWallet = () => {
                   required
                   error={touched.walletAddress && errors.walletAddress}
                 />
-                <ErrorMessage name="walletAddress" component="p" className="text-red-500 text-sm mt-1" />
+                <ErrorMessage name="walletAddress" component="p" className="mt-1 text-sm text-red-500" />
               </div>
 
               <div className="mt-auto flex justify-center space-x-4">

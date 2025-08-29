@@ -45,12 +45,9 @@ export interface Transaction {
   asset_mint_or_burn_count: number;
   redeemer_count: number;
   valid_contract: boolean;
-}
-
-export interface EnhancedTransaction extends Transaction {
-  inputs: TransactionInput[];
-  outputs: TransactionOutput[];
-  relatedUtxos: UTXO[];
+  // Input/Output data for complete UTXO tracking
+  inputs?: TransactionInput[];
+  outputs?: TransactionOutput[];
 }
 
 export interface UTXO {
@@ -70,27 +67,10 @@ export interface UTXO {
 export type { Asset } from '@extension/shared';
 
 // Storage data structures
-export interface TransactionRecord extends EnhancedTransaction {
+export interface TransactionRecord extends Transaction {
   walletId: string;
   lastSynced: number;
-  enhancedData?: {
-    inputs?: Array<{
-      transaction_id: string;
-      output_index: number;
-      address: string;
-      amount?: Array<{
-        unit: string;
-        quantity: string;
-      }>;
-    }>;
-    outputs?: Array<{
-      address: string;
-      amount: Array<{
-        unit: string;
-        quantity: string;
-      }>;
-    }>;
-  };
+  isExternal?: boolean; // Mark transactions not directly related to wallet
 }
 
 export interface UTXORecord extends UTXO {
@@ -159,7 +139,7 @@ export const transactionsStorage = {
   },
 
   // Store multiple transactions
-  async storeTransactions(walletId: string, transactions: EnhancedTransaction[]): Promise<void> {
+  async storeTransactions(walletId: string, transactions: Transaction[]): Promise<void> {
     const now = Date.now();
 
     await storage.set(data => {
@@ -181,6 +161,7 @@ export const transactionsStorage = {
     await storage.set(data => {
       for (const utxo of utxos) {
         const key = `${utxo.tx_hash}:${utxo.output_index}`;
+
         data.utxos[key] = {
           ...utxo,
           walletId,

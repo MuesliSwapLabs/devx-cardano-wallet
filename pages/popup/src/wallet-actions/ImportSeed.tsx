@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Formik, Form, Field, ErrorMessage, FormikHelpers } from 'formik';
+import type { FormikHelpers } from 'formik';
+import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 
 import { PrimaryButton, SecondaryButton, CancelButton } from '@src/components/buttons';
@@ -369,9 +370,9 @@ const ImportNewWallet = () => {
   }[step];
 
   return (
-    <div className="flex flex-col items-center h-full">
-      <h2 className="text-xl font-medium mb-1">Import Wallet</h2>
-      <p className="text-sm mb-6">
+    <div className="flex h-full flex-col items-center">
+      <h2 className="mb-1 text-xl font-medium">Import Wallet</h2>
+      <p className="mb-6 text-sm">
         Step {step}/3 — {stepSubtitle}
       </p>
 
@@ -381,11 +382,11 @@ const ImportNewWallet = () => {
         onSubmit={step === 3 ? handleImport : handleNext}
         enableReinitialize={true}>
         {({ values, errors, touched, setFieldValue, setFieldError, setFieldTouched, isSubmitting }) => (
-          <Form className="w-full max-w-sm flex flex-col h-full">
+          <Form className="flex size-full max-w-sm flex-col">
             {/* Step 1: Choose Word Count */}
             {step === 1 && (
               <div className="flex flex-col items-center">
-                <p className="text-center mb-4">How many words does your seed phrase have?</p>
+                <p className="mb-4 text-center">How many words does your seed phrase have?</p>
                 <div className="flex space-x-4">
                   <SecondaryButton onClick={() => handleWordCountChange(15)}>15 Words</SecondaryButton>
                   <SecondaryButton onClick={() => handleWordCountChange(24)}>24 Words</SecondaryButton>
@@ -396,8 +397,8 @@ const ImportNewWallet = () => {
             {/* Step 2: Enter Seed Phrase (Unchanged) */}
             {step === 2 && (
               <div className="w-full">
-                <p className="text-center mb-4">Enter your {wordCount}-word seed phrase</p>
-                <div className="grid grid-cols-3 gap-2 relative">
+                <p className="mb-4 text-center">Enter your {wordCount}-word seed phrase</p>
+                <div className="relative grid grid-cols-3 gap-2">
                   {Array.from({ length: wordCount }).map((_, idx) => {
                     const fieldName = `word_${idx}`;
                     const hasError = errors[fieldName] && touched[fieldName];
@@ -409,9 +410,9 @@ const ImportNewWallet = () => {
                         <Field
                           name={fieldName}
                           type="text"
-                          className={`p-1 rounded border w-full ${
+                          className={`w-full rounded border p-1 ${
                             validWords[idx]
-                              ? 'bg-blue-100 border-transparent'
+                              ? 'border-transparent bg-blue-100'
                               : hasError
                                 ? 'border-red-500'
                                 : 'border-gray-300'
@@ -459,11 +460,11 @@ const ImportNewWallet = () => {
                         />
                         {currentSuggestions.length > 0 && (
                           <div
-                            className="absolute z-50 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-32 overflow-hidden"
+                            className="absolute z-50 max-h-32 w-full overflow-hidden rounded-md border border-gray-300 bg-white shadow-lg"
                             style={{ top: 'calc(100% + 4px)', left: 0 }}>
                             {scrollStates[idx]?.canScrollUp && (
-                              <div className="absolute top-0 left-0 right-0 z-20 flex justify-center py-1 bg-white bg-opacity-90 pointer-events-none">
-                                <div className="w-0 h-0 border-l-4 border-r-4 border-b-4 border-l-transparent border-r-transparent border-b-gray-400"></div>
+                              <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-center bg-white bg-opacity-90 py-1">
+                                <div className="size-0 border-x-4 border-b-4 border-x-transparent border-b-gray-400"></div>
                               </div>
                             )}
                             <div
@@ -477,7 +478,7 @@ const ImportNewWallet = () => {
                                   <button
                                     key={word}
                                     type="button"
-                                    className={`w-full text-left px-3 py-1 text-sm dark:text-black ${
+                                    className={`w-full px-3 py-1 text-left text-sm dark:text-black ${
                                       isActive ? 'bg-gray-200' : 'hover:bg-gray-100'
                                     }`}
                                     onMouseDown={e => e.preventDefault()}
@@ -492,8 +493,8 @@ const ImportNewWallet = () => {
                               })}
                             </div>
                             {scrollStates[idx]?.canScrollDown && (
-                              <div className="absolute bottom-0 left-0 right-0 z-20 flex justify-center py-1 bg-white bg-opacity-90 pointer-events-none">
-                                <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-400"></div>
+                              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center bg-white bg-opacity-90 py-1">
+                                <div className="size-0 border-x-4 border-t-4 border-x-transparent border-t-gray-400"></div>
                               </div>
                             )}
                           </div>
@@ -503,7 +504,7 @@ const ImportNewWallet = () => {
                   })}
                 </div>
                 {Object.keys(errors).some(key => key.startsWith('word_') && touched[key]) && (
-                  <p className="text-red-500 text-sm mt-2 text-center">Please fill out missing words</p>
+                  <p className="mt-2 text-center text-sm text-red-500">Please fill out missing words</p>
                 )}
               </div>
             )}
@@ -520,16 +521,16 @@ const ImportNewWallet = () => {
                     required
                     error={touched.walletName && errors.walletName}
                   />
-                  <ErrorMessage name="walletName" component="p" className="text-red-500 text-sm mt-1" />
+                  <ErrorMessage name="walletName" component="p" className="mt-1 text-sm text-red-500" />
                 </div>
 
                 {/* Network Selection Field */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  <label className="mb-3 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Network <span className="text-red-500">*</span>
                   </label>
                   <NetworkToggle value={values.network} onChange={network => setFieldValue('network', network)} />
-                  <ErrorMessage name="network" component="p" className="text-red-500 text-xs mt-1" />
+                  <ErrorMessage name="network" component="p" className="mt-1 text-xs text-red-500" />
                 </div>
 
                 {/* Wallet Password Field */}
@@ -542,7 +543,7 @@ const ImportNewWallet = () => {
                     required={!values.skipPassword}
                     error={touched.walletPassword && errors.walletPassword}
                   />
-                  <ErrorMessage name="walletPassword" component="p" className="text-red-500 text-sm mt-1" />
+                  <ErrorMessage name="walletPassword" component="p" className="mt-1 text-sm text-red-500" />
                 </div>
 
                 {/* Confirm Password Field */}
@@ -555,16 +556,16 @@ const ImportNewWallet = () => {
                     required={!values.skipPassword}
                     error={touched.confirmPassword && errors.confirmPassword}
                   />
-                  <ErrorMessage name="confirmPassword" component="p" className="text-red-500 text-sm mt-1" />
+                  <ErrorMessage name="confirmPassword" component="p" className="mt-1 text-sm text-red-500" />
                 </div>
 
                 {/* Password Skip Option */}
                 <div className="mb-4">
-                  <label className="flex items-center space-x-2 cursor-pointer">
+                  <label className="flex cursor-pointer items-center space-x-2">
                     <Field
                       type="checkbox"
                       name="skipPassword"
-                      className="w-4 h-4"
+                      className="size-4"
                       onChange={e => {
                         const checked = e.target.checked;
                         setFieldValue('skipPassword', checked);

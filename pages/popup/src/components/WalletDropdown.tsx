@@ -66,7 +66,7 @@ function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps
     return (
       <Link
         to="/add-wallet"
-        className="px-3 py-1.5 border border-gray-400 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+        className="rounded-md border border-gray-400 bg-blue-600 px-3 py-1.5 text-white transition-colors hover:bg-blue-700">
         <span className="font-semibold">Add First Wallet</span>
       </Link>
     );
@@ -75,17 +75,17 @@ function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps
   return (
     <div className="relative">
       <button
-        className="flex items-center justify-between w-40 px-2 py-1 rounded-md bg-transparent hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+        className="flex w-40 items-center justify-between rounded-md bg-transparent px-2 py-1 transition-colors hover:bg-gray-200 dark:hover:bg-gray-700"
         onClick={e => {
           e.stopPropagation();
           setDropdownOpen(!dropdownOpen);
         }}>
-        <div className="flex items-center flex-grow justify-center">
-          <span className="font-semibold text-lg truncate">{currentWallet?.name || 'Select Wallet'}</span>
+        <div className="flex grow items-center justify-center">
+          <span className="truncate text-lg font-semibold">{currentWallet?.name || 'Select Wallet'}</span>
         </div>
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          className={`h-5 w-5 transition-transform flex-shrink-0 ${dropdownOpen ? 'rotate-180' : ''}`}
+          className={`size-5 shrink-0 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor">
@@ -94,12 +94,12 @@ function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps
       </button>
 
       {dropdownOpen && (
-        <div className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-lg overflow-hidden">
+        <div className="absolute z-10 mt-1 w-full overflow-hidden border border-gray-200 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-800">
           {/* Mainnet Section */}
           <div className="flex items-center py-1">
             <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
             <span
-              className="px-2 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide"
+              className="px-2 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400"
               style={{ fontSize: '10px' }}>
               mainnet
             </span>
@@ -109,10 +109,10 @@ function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps
             mainnetWallets.map(wallet => (
               <div
                 key={wallet.id}
-                className={`flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 px-2 ${currentWalletId === wallet.id ? 'bg-gray-200 dark:bg-gray-700' : ''}`}>
-                <div className="flex items-center flex-grow">
+                className={`flex items-center justify-between px-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${currentWalletId === wallet.id ? 'bg-gray-200 dark:bg-gray-700' : ''}`}>
+                <div className="flex grow items-center">
                   <button
-                    className="flex-grow text-center py-2 px-1"
+                    className="grow px-1 py-2 text-center"
                     onClick={() => handleWalletSelect(wallet.id)}
                     title={activeWalletId === wallet.id ? 'Active wallet for dApps' : 'Click to view wallet'}>
                     {wallet.name}
@@ -125,7 +125,7 @@ function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps
                     className="p-1 text-gray-500 hover:text-gray-700">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
+                      className="size-4"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor">
@@ -141,14 +141,14 @@ function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps
               </div>
             ))
           ) : (
-            <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 italic">No wallets in this network</div>
+            <div className="px-3 py-2 text-sm italic text-gray-500 dark:text-gray-400">No wallets in this network</div>
           )}
 
           {/* Preprod Section */}
           <div className="flex items-center py-1">
             <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
             <span
-              className="px-2 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide"
+              className="px-2 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400"
               style={{ fontSize: '10px' }}>
               preprod
             </span>
@@ -158,10 +158,10 @@ function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps
             preprodWallets.map(wallet => (
               <div
                 key={wallet.id}
-                className={`flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 px-2 ${currentWalletId === wallet.id ? 'bg-gray-200 dark:bg-gray-700' : ''}`}>
-                <div className="flex items-center flex-grow">
+                className={`flex items-center justify-between px-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${currentWalletId === wallet.id ? 'bg-gray-200 dark:bg-gray-700' : ''}`}>
+                <div className="flex grow items-center">
                   <button
-                    className="flex-grow text-center py-2 px-1"
+                    className="grow px-1 py-2 text-center"
                     onClick={() => handleWalletSelect(wallet.id)}
                     title={activeWalletId === wallet.id ? 'Active wallet for dApps' : 'Click to view wallet'}>
                     {wallet.name}
@@ -174,7 +174,7 @@ function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps
                     className="p-1 text-gray-200 hover:text-gray-700">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
+                      className="size-4"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor">
@@ -190,13 +190,13 @@ function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps
               </div>
             ))
           ) : (
-            <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 italic">No wallets in this network</div>
+            <div className="px-3 py-2 text-sm italic text-gray-500 dark:text-gray-400">No wallets in this network</div>
           )}
 
           <div className="border-t border-gray-200 dark:border-gray-600"></div>
           <Link
             to="/add-wallet"
-            className="block w-full text-center px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+            className="block w-full bg-blue-600 px-4 py-2 text-center text-white transition-colors hover:bg-blue-700"
             onClick={() => setDropdownOpen(false)}>
             Add New Wallet
           </Link>

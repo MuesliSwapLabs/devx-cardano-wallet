@@ -61,18 +61,18 @@ const FloatingLabelInput: React.FC<FloatingLabelInputProps> = ({
       <label
         htmlFor={name}
         className={`
-          absolute text-sm z-10 origin-[0] px-2 top-2 start-2.5 cursor-text transform 
-          transition-[color,transform] duration-300 ease-in-out -translate-y-4 scale-75
+          peer-not-placeholder-shown:scale-75 peer-not-placeholder-shown:-translate-y-4 absolute start-2.5 top-2 z-10 origin-[0] -translate-y-4 scale-75 
+          cursor-text bg-white px-2 text-sm transition-[color,transform]
+          duration-300 ease-in-out
           peer-placeholder-shown:translate-y-1.5 peer-placeholder-shown:scale-100
-          peer-not-placeholder-shown:scale-75 peer-not-placeholder-shown:-translate-y-4
-          bg-white dark:bg-gray-800
-          ${error ? 'text-red-500 dark:text-red-500' : 'text-gray-500 dark:text-gray-400 peer-focus:text-blue-600 peer-focus:dark:text-blue-500'}
+          dark:bg-gray-800
+          ${error ? 'text-red-500 dark:text-red-500' : 'text-gray-500 peer-focus:text-blue-600 dark:text-gray-400 peer-focus:dark:text-blue-500'}
           peer-focus:-translate-y-4 peer-focus:scale-75
-          peer-disabled:cursor-not-allowed peer-disabled:text-gray-400 dark:peer-disabled:text-gray-500
-          peer-disabled:bg-gray-100 dark:peer-disabled:bg-gray-700
+          peer-disabled:cursor-not-allowed peer-disabled:bg-gray-100 peer-disabled:text-gray-400
+          dark:peer-disabled:bg-gray-700 dark:peer-disabled:text-gray-500
         `}>
         {label}
-        {required && <span className="text-inherit ms-1">*</span>}
+        {required && <span className="ms-1 text-inherit">*</span>}
       </label>
 
       {/* --- Eye Icon Button Logic (unchanged) --- */}
@@ -86,7 +86,7 @@ const FloatingLabelInput: React.FC<FloatingLabelInputProps> = ({
           {showPassword ? (
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
+              className="size-5"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor">
@@ -100,7 +100,7 @@ const FloatingLabelInput: React.FC<FloatingLabelInputProps> = ({
           ) : (
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
+              className="size-5"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor">

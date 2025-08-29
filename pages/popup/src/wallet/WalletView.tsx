@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useStorage, walletsStorage } from '@extension/storage';
-import { Wallet, Asset } from '@extension/shared';
+import type { Wallet, Asset } from '@extension/shared';
+import type { TransactionRecord, UTXORecord } from '@extension/storage';
 import EnhancedTransactions from './EnhancedTransactions';
 import UTXOsView from './UTXOsView';
 
@@ -78,16 +79,16 @@ const TokenDisplay = ({ asset }: { asset: Asset }) => {
   const placeholderUrl = getPlaceholderSvg(asset.name, true);
 
   return (
-    <div className="flex justify-between items-center p-3 border-b border-gray-200 dark:border-gray-700">
+    <div className="flex items-center justify-between border-b border-gray-200 p-3 dark:border-gray-700">
       <div className="flex items-center gap-3">
         <img
           src={!hasError && imageUrl ? imageUrl : placeholderUrl}
           alt={asset.name}
-          className="w-8 h-8 rounded-full"
+          className="size-8 rounded-full"
           onError={() => setHasError(true)}
         />
         <div>
-          <div className="font-medium text-sm">{asset.name}</div>
+          <div className="text-sm font-medium">{asset.name}</div>
           {asset.ticker && <div className="text-xs text-gray-500 dark:text-gray-400">{asset.ticker}</div>}
         </div>
       </div>
@@ -121,17 +122,18 @@ const NFTDisplay = ({ asset }: { asset: Asset }) => {
 
       return () => clearTimeout(timeout);
     }
+    return undefined;
   }, [asset.image, isLoading]);
 
   return (
-    <div className="flex items-center gap-3 p-3 border-b border-gray-200 dark:border-gray-700">
-      <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden flex-shrink-0 relative">
+    <div className="flex items-center gap-3 border-b border-gray-200 p-3 dark:border-gray-700">
+      <div className="relative size-16 shrink-0 overflow-hidden rounded-lg bg-gray-200 dark:bg-gray-700">
         {asset.image ? (
           <>
             {/* Loading spinner */}
             {isLoading && !hasError && (
               <div className="absolute inset-0 flex items-center justify-center bg-gray-200 dark:bg-gray-700">
-                <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <div className="size-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
               </div>
             )}
 
@@ -140,7 +142,7 @@ const NFTDisplay = ({ asset }: { asset: Asset }) => {
               key={retryKey} // Force re-render on retry
               src={imageUrl}
               alt={asset.name}
-              className={`w-full h-full object-cover transition-opacity duration-200 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+              className={`size-full object-cover transition-opacity duration-200 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
               loading="lazy"
               onLoad={() => {
                 setIsLoading(false);
@@ -155,12 +157,8 @@ const NFTDisplay = ({ asset }: { asset: Asset }) => {
             {/* Error fallback with placeholder */}
             {hasError && (
               <div className="absolute inset-0">
-                <img
-                  src={getPlaceholderSvg(asset.name, false)}
-                  alt={asset.name}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs px-1 py-0.5 flex justify-between items-center">
+                <img src={getPlaceholderSvg(asset.name, false)} alt={asset.name} className="size-full object-cover" />
+                <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black bg-opacity-50 px-1 py-0.5 text-xs text-white">
                   <span>Error</span>
                   <button onClick={handleRetry} className="text-blue-300 underline hover:no-underline">
                     retry
@@ -170,15 +168,15 @@ const NFTDisplay = ({ asset }: { asset: Asset }) => {
             )}
           </>
         ) : (
-          <img src={getPlaceholderSvg(asset.name, false)} alt={asset.name} className="w-full h-full object-cover" />
+          <img src={getPlaceholderSvg(asset.name, false)} alt={asset.name} className="size-full object-cover" />
         )}
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="font-medium text-sm truncate">{asset.name}</div>
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-medium">{asset.name}</div>
         {asset.description && (
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">{asset.description}</div>
+          <div className="mt-1 truncate text-xs text-gray-500 dark:text-gray-400">{asset.description}</div>
         )}
-        <div className="text-xs text-gray-400 mt-1">Qty: {asset.quantity}</div>
+        <div className="mt-1 text-xs text-gray-400">Qty: {asset.quantity}</div>
       </div>
     </div>
   );
@@ -187,9 +185,82 @@ const NFTDisplay = ({ asset }: { asset: Asset }) => {
 const WalletView = () => {
   const { walletId, view = 'assets' } = useParams();
   const [activeTab, setActiveTab] = useState<'tokens' | 'nfts'>('tokens');
+  const [syncPromise, setSyncPromise] = useState<Promise<any> | null>(null);
+  const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0, message: '' });
+  const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
+  const [utxos, setUTXOs] = useState<UTXORecord[]>([]);
   const walletsData = useStorage(walletsStorage);
   const wallets = walletsData?.wallets || [];
   const wallet = wallets.find((w: Wallet) => w.id === walletId);
+
+  // Sync transactions when view changes to transactions or utxos
+  useEffect(() => {
+    if (!wallet || view === 'assets') return;
+
+    if (view === 'transactions' || view === 'utxos') {
+      syncTransactions();
+    }
+  }, [wallet?.id, view]);
+
+  // Listen for sync progress updates
+  useEffect(() => {
+    const handleMessage = (message: any) => {
+      if (message.type === 'SYNC_PROGRESS' && message.payload.walletId === wallet?.id) {
+        setSyncProgress(message.payload);
+      }
+    };
+
+    chrome.runtime.onMessage.addListener(handleMessage);
+    return () => chrome.runtime.onMessage.removeListener(handleMessage);
+  }, [wallet?.id]);
+
+  const syncTransactions = async () => {
+    if (!wallet || syncPromise) return;
+
+    const promise = new Promise(async (resolve, reject) => {
+      try {
+        // Add timeout to prevent infinite loading
+        const timeout = setTimeout(() => {
+          reject(new Error('Sync timeout after 60 seconds'));
+        }, 60000);
+
+        await new Promise((resolveMessage, rejectMessage) =>
+          chrome.runtime.sendMessage({ type: 'GET_TRANSACTIONS', payload: { walletId: wallet.id } }, response => {
+            clearTimeout(timeout);
+            if (response?.success) {
+              setTransactions(response.transactions || []);
+              setUTXOs(response.utxos || []);
+              resolveMessage(response);
+            } else {
+              rejectMessage(new Error(response?.error || 'Failed to fetch transactions'));
+            }
+          }),
+        );
+        resolve(undefined);
+      } catch (error) {
+        reject(error);
+      }
+    });
+
+    setSyncPromise(promise);
+
+    try {
+      await promise;
+    } catch (error) {
+      console.error('Sync failed:', error);
+      setSyncProgress({
+        current: 0,
+        total: 0,
+        message: `Sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
+      // Clear error message after 5 seconds
+      setTimeout(() => {
+        setSyncProgress({ current: 0, total: 0, message: '' });
+      }, 5000);
+    } finally {
+      setSyncPromise(null);
+    }
+  };
 
   if (!wallet) {
     return <div>Loading wallet...</div>;
@@ -202,16 +273,16 @@ const WalletView = () => {
   return (
     // This component now only contains the content for the <Outlet />
     // The main balance and wallet info is already in MainLayout.
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       {view === 'assets' && (
-        <div className="flex flex-col h-full">
+        <div className="flex h-full flex-col">
           {/* Tab switcher */}
-          <div className="flex border-b border-gray-300 dark:border-gray-600 mb-4">
+          <div className="mb-4 flex border-b border-gray-300 dark:border-gray-600">
             <button
               onClick={() => setActiveTab('tokens')}
               className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
                 activeTab === 'tokens'
-                  ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-400'
+                  ? 'border-b-2 border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
                   : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
               }`}>
               Tokens ({tokens.length})
@@ -220,7 +291,7 @@ const WalletView = () => {
               onClick={() => setActiveTab('nfts')}
               className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
                 activeTab === 'nfts'
-                  ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-400'
+                  ? 'border-b-2 border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
                   : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
               }`}>
               NFTs ({nfts.length})
@@ -237,7 +308,7 @@ const WalletView = () => {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-400 mt-8 text-center">No tokens found in this wallet.</p>
+                <p className="mt-8 text-center text-sm text-gray-400">No tokens found in this wallet.</p>
               )
             ) : nfts.length > 0 ? (
               <div>
@@ -246,15 +317,43 @@ const WalletView = () => {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-400 mt-8 text-center">No NFTs found in this wallet.</p>
+              <p className="mt-8 text-center text-sm text-gray-400">No NFTs found in this wallet.</p>
             )}
           </div>
         </div>
       )}
 
-      {view === 'enhanced-transactions' && <EnhancedTransactions wallet={wallet} />}
+      {view === 'transactions' &&
+        (syncPromise ? (
+          <div className="flex flex-col items-center justify-center py-8">
+            <div className="mb-4 size-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              {syncProgress.message || 'Loading transactions...'}
+            </div>
+            {syncProgress.total > 0 && (
+              <div className="mt-2 text-xs text-gray-500">
+                {syncProgress.current} / {syncProgress.total}
+              </div>
+            )}
+          </div>
+        ) : (
+          <EnhancedTransactions wallet={wallet} transactions={transactions} onRefresh={syncTransactions} />
+        ))}
 
-      {view === 'utxos' && <UTXOsView wallet={wallet} />}
+      {view === 'utxos' &&
+        (syncPromise ? (
+          <div className="flex flex-col items-center justify-center py-8">
+            <div className="mb-4 size-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">{syncProgress.message || 'Loading UTXOs...'}</div>
+            {syncProgress.total > 0 && (
+              <div className="mt-2 text-xs text-gray-500">
+                {syncProgress.current} / {syncProgress.total}
+              </div>
+            )}
+          </div>
+        ) : (
+          <UTXOsView wallet={wallet} utxos={utxos} onRefresh={syncTransactions} />
+        ))}
     </div>
   );
 };

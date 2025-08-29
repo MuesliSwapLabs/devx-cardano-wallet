@@ -132,9 +132,9 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
   };
 
   return (
-    <div className="flex flex-col items-center h-full">
+    <div className="flex h-full flex-col items-center">
       <h2 className="text-xl font-medium">New Wallet</h2>
-      <p className="text-center text-sm mt-2">Create a new wallet!</p>
+      <p className="mt-2 text-center text-sm">Create a new wallet!</p>
 
       <Formik
         initialValues={initialValues}
@@ -154,7 +154,7 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
           }, [values.walletName, values.network, values.walletPassword, values.skipPassword]);
 
           return (
-            <Form className="flex flex-col mt-4 w-full max-w-sm h-full">
+            <Form className="mt-4 flex size-full max-w-sm flex-col">
               {/* Wallet Name Field */}
               <div className="mb-4">
                 <FloatingLabelInput
@@ -164,16 +164,16 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
                   required
                   error={touched.walletName && errors.walletName}
                 />
-                <ErrorMessage name="walletName" component="p" className="text-red-500 text-xs mt-1" />
+                <ErrorMessage name="walletName" component="p" className="mt-1 text-xs text-red-500" />
               </div>
 
               {/* Network Selection Field */}
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                <label className="mb-3 block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Network <span className="text-red-500">*</span>
                 </label>
                 <NetworkToggle value={values.network} onChange={network => setFieldValue('network', network)} />
-                <ErrorMessage name="network" component="p" className="text-red-500 text-xs mt-1" />
+                <ErrorMessage name="network" component="p" className="mt-1 text-xs text-red-500" />
               </div>
 
               {/* Wallet Password Field */}
@@ -186,7 +186,7 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
                   required={!values.skipPassword}
                   error={touched.walletPassword && errors.walletPassword}
                 />
-                <ErrorMessage name="walletPassword" component="p" className="text-red-500 text-xs mt-1" />
+                <ErrorMessage name="walletPassword" component="p" className="mt-1 text-xs text-red-500" />
               </div>
 
               {/* Confirm Password Field */}
@@ -199,7 +199,7 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
                   required={!values.skipPassword}
                   error={touched.confirmPassword && errors.confirmPassword}
                 />
-                <ErrorMessage name="confirmPassword" component="p" className="text-red-500 text-xs mt-1" />
+                <ErrorMessage name="confirmPassword" component="p" className="mt-1 text-xs text-red-500" />
               </div>
 
               {/* Password Skip Option */}
@@ -209,7 +209,7 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
                     type="checkbox"
                     id="skipPassword"
                     name="skipPassword"
-                    className="w-4 h-4 mt-0.5 mr-2"
+                    className="mr-2 mt-0.5 size-4"
                     onChange={(e: any) => {
                       const checked = e.target.checked;
                       setFieldValue('skipPassword', checked);
@@ -223,14 +223,14 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
                       }
                     }}
                   />
-                  <label htmlFor="skipPassword" className="block text-xs text-left">
+                  <label htmlFor="skipPassword" className="block text-left text-xs">
                     Create wallet without a password. I understand the security risks.
                   </label>
                 </div>
               </div>
 
               {/* Navigation Buttons */}
-              <div className="mt-auto flex space-x-4 justify-center">
+              <div className="mt-auto flex justify-center space-x-4">
                 <CancelButton type="button" onClick={handleCancel}>
                   Cancel
                 </CancelButton>

@@ -14,6 +14,7 @@ export interface AppSettings {
   mainnetApiKey?: string;
   preprodApiKey?: string;
   activeWalletId?: string | null;
+  lastSyncBlock?: Record<string, number>; // walletId -> block height
 }
 
 // Define the default state for a first-time user.
@@ -24,6 +25,7 @@ const defaultSettings: AppSettings = {
   mainnetApiKey: '',
   preprodApiKey: '',
   activeWalletId: null,
+  lastSyncBlock: {},
 };
 
 // --- Define the custom methods for our new storage object ---

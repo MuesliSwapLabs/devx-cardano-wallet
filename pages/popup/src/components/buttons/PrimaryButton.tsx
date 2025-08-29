@@ -9,7 +9,7 @@ const PrimaryButton: React.FC<PrimaryButtonProps> = ({ children = 'Create New Wa
   return (
     <button
       {...props}
-      className={clsx('bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition', className)}>
+      className={clsx('rounded bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700', className)}>
       {children}
     </button>
   );

@@ -1,6 +1,6 @@
 // Consolidated storage using single IndexedDB with multiple stores
 import type { Wallet } from '@extension/shared';
-import type { UTXO, EnhancedTransaction } from './transactionsStorage';
+import type { UTXO, TransactionRecord } from './transactionsStorage';
 
 // Store names
 const STORE_NAMES = {
@@ -21,29 +21,6 @@ export interface AppSettings {
   mainnetApiKey?: string;
   preprodApiKey?: string;
   activeWalletId?: string | null;
-}
-
-export interface TransactionRecord extends EnhancedTransaction {
-  walletId: string;
-  lastSynced: number;
-  enhancedData?: {
-    inputs?: Array<{
-      transaction_id: string;
-      output_index: number;
-      address: string;
-      amount?: Array<{
-        unit: string;
-        quantity: string;
-      }>;
-    }>;
-    outputs?: Array<{
-      address: string;
-      amount: Array<{
-        unit: string;
-        quantity: string;
-      }>;
-    }>;
-  };
 }
 
 export interface UTXORecord extends UTXO {
@@ -254,7 +231,7 @@ class ConsolidatedStorage {
     });
   }
 
-  async storeTransactions(walletId: string, transactions: EnhancedTransaction[]): Promise<void> {
+  async storeTransactions(walletId: string, transactions: TransactionRecord[]): Promise<void> {
     const db = await this.getDatabase();
     const now = Date.now();
 

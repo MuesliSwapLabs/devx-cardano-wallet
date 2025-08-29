@@ -38,11 +38,11 @@ const ApiKeySetup = ({ network, onComplete, onCancel, title, subtitle }: ApiKeyS
   };
 
   return (
-    <div className="flex flex-col items-center h-full">
-      <h2 className="text-xl font-medium text-center">{title || defaultTitle}</h2>
-      <p className="text-center text-sm mt-2 mb-4 text-gray-600 dark:text-gray-300">{subtitle || defaultSubtitle}</p>
+    <div className="flex h-full flex-col items-center">
+      <h2 className="text-center text-xl font-medium">{title || defaultTitle}</h2>
+      <p className="mb-4 mt-2 text-center text-sm text-gray-600 dark:text-gray-300">{subtitle || defaultSubtitle}</p>
 
-      <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+      <div className="mb-4 rounded-lg bg-blue-50 p-4 dark:bg-blue-900/20">
         <p className="text-sm text-blue-800 dark:text-blue-200">
           Get your API key from{' '}
           <a
@@ -73,7 +73,7 @@ const ApiKeySetup = ({ network, onComplete, onCancel, title, subtitle }: ApiKeyS
           });
         }}>
         {({ values, errors, touched, isSubmitting, isValid }) => (
-          <Form className="w-full max-w-sm flex flex-col h-full mt-4">
+          <Form className="mt-4 flex size-full max-w-sm flex-col">
             <div className="mb-4">
               <Field
                 name="apiKey"
@@ -83,8 +83,8 @@ const ApiKeySetup = ({ network, onComplete, onCancel, title, subtitle }: ApiKeyS
                 required
                 error={touched.apiKey && errors.apiKey}
               />
-              {errors.apiKey && touched.apiKey && <p className="text-red-500 text-sm mt-1">{errors.apiKey}</p>}
-              {values.apiKey && !errors.apiKey && <p className="text-green-500 text-sm mt-1">Valid API key format</p>}
+              {errors.apiKey && touched.apiKey && <p className="mt-1 text-sm text-red-500">{errors.apiKey}</p>}
+              {values.apiKey && !errors.apiKey && <p className="mt-1 text-sm text-green-500">Valid API key format</p>}
             </div>
 
             <div className="mt-auto flex justify-center space-x-4">

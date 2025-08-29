@@ -59,9 +59,12 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ wallet }) => {
   if (loading) {
     return (
       <div>
-        <h3 className="text-md font-semibold mb-2 border-b border-gray-300 dark:border-gray-600">History</h3>
+        <h3 className="text-md mb-2 border-b border-gray-300 font-semibold dark:border-gray-600">History</h3>
         <div className="flex items-center justify-center py-8">
-          <div className="text-sm text-gray-500">Loading transactions...</div>
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <div className="size-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
+            <span>Fetching all transactions...</span>
+          </div>
         </div>
       </div>
     );
@@ -70,8 +73,8 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ wallet }) => {
   if (error) {
     return (
       <div>
-        <h3 className="text-md font-semibold mb-2 border-b border-gray-300 dark:border-gray-600">History</h3>
-        <div className="text-red-500 text-sm mt-4">Error: {error}</div>
+        <h3 className="text-md mb-2 border-b border-gray-300 font-semibold dark:border-gray-600">History</h3>
+        <div className="mt-4 text-sm text-red-500">Error: {error}</div>
       </div>
     );
   }
@@ -79,26 +82,26 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ wallet }) => {
   if (transactions.length === 0) {
     return (
       <div>
-        <h3 className="text-md font-semibold mb-2 border-b border-gray-300 dark:border-gray-600">History</h3>
-        <p className="text-sm text-gray-400 mt-4">No transactions found for this wallet.</p>
+        <h3 className="text-md mb-2 border-b border-gray-300 font-semibold dark:border-gray-600">History</h3>
+        <p className="mt-4 text-sm text-gray-400">No transactions found for this wallet.</p>
       </div>
     );
   }
 
   return (
     <div>
-      <h3 className="text-md font-semibold mb-2 border-b border-gray-300 dark:border-gray-600">History</h3>
-      <div className="space-y-2 mt-4">
+      <h3 className="text-md mb-2 border-b border-gray-300 font-semibold dark:border-gray-600">History</h3>
+      <div className="mt-4 space-y-2">
         {transactions.map((tx, index) => (
-          <div key={tx.hash || index} className="border border-gray-200 dark:border-gray-700 rounded-lg">
+          <div key={tx.hash || index} className="rounded-lg border border-gray-200 dark:border-gray-700">
             <div
-              className="p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+              className="cursor-pointer p-3 hover:bg-gray-50 dark:hover:bg-gray-800"
               onClick={() => toggleExpanded(tx.hash)}>
-              <div className="flex justify-between items-start">
+              <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="text-sm font-medium text-gray-900 dark:text-gray-100">Transaction</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{formatDate(tx.block_time)}</div>
-                  <div className="text-xs text-gray-400 dark:text-gray-500 mt-1 font-mono">{tx.hash}</div>
+                  <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">{formatDate(tx.block_time)}</div>
+                  <div className="mt-1 font-mono text-xs text-gray-400 dark:text-gray-500">{tx.hash}</div>
                 </div>
                 <div className="text-right">
                   <div className="text-sm font-medium">Fee: {formatAda(tx.fees)}</div>
@@ -108,11 +111,11 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ wallet }) => {
             </div>
 
             {expandedTx === tx.hash && (
-              <div className="border-t border-gray-200 dark:border-gray-700 p-3 bg-gray-50 dark:bg-gray-800">
+              <div className="border-t border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800">
                 <div className="space-y-3 text-xs">
                   <div>
                     <strong>Hash:</strong>
-                    <span className="font-mono ml-2 break-all">{tx.hash}</span>
+                    <span className="ml-2 break-all font-mono">{tx.hash}</span>
                   </div>
                   <div>
                     <strong>Size:</strong> {tx.size} bytes

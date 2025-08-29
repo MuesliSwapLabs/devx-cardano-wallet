@@ -27,17 +27,17 @@ function MainLayout() {
 
   return (
     <>
-      <header className="flex items-center justify-between px-4 pt-3 pb-2">
+      <header className="flex items-center justify-between px-4 pb-2 pt-3">
         <img src={iconUrl} alt="icon" width="34" height="34" />
-        <div className="flex items-center mx-auto">
+        <div className="mx-auto flex items-center">
           <WalletDropdown currentWalletId={walletId} onSelectWallet={handleWalletSelect} />
         </div>
         <Link
           to="/settings"
-          className="flex items-center justify-center h-8 w-8 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+          className="flex size-8 items-center justify-center rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5"
+            className="size-5"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor">
@@ -51,11 +51,11 @@ function MainLayout() {
           </svg>
         </Link>
       </header>
-      <div className="relative flex-1 flex flex-col overflow-hidden">
-        <div className="relative border-b border-gray-300 dark:border-gray-600 mt-1 mb-1">
+      <div className="relative flex flex-1 flex-col overflow-hidden">
+        <div className="relative my-1 border-b border-gray-300 dark:border-gray-600">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="absolute left-1/2 -translate-x-1/2 bottom-0 translate-y-1/2 px-2 h-6 bg-slate-50 dark:bg-gray-800 flex items-center justify-center focus:outline-none text-gray-400 dark:text-gray-500"
+            className="absolute bottom-0 left-1/2 flex h-6 -translate-x-1/2 translate-y-1/2 items-center justify-center bg-slate-50 px-2 text-gray-400 focus:outline-none dark:bg-gray-800 dark:text-gray-500"
             aria-expanded={isExpanded}>
             <div className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
               <svg width="16" height="12" viewBox="0 0 16 12" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -78,10 +78,10 @@ function MainLayout() {
           </button>
         </div>
         <div
-          className={`transition-all duration-300 ease-in-out grid ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+          className={`grid transition-all duration-300 ease-in-out ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
           <div className="overflow-hidden">
-            <div className="p-4 border-b border-gray-300 dark:border-gray-600">
-              <div className="text-center mb-3">
+            <div className="border-b border-gray-300 p-4 dark:border-gray-600">
+              <div className="mb-3 text-center">
                 <p className="text-xs text-gray-500">Current Balance</p>
                 <p className="text-2xl font-bold">
                   {(parseInt(currentWallet?.balance || '0') / 1_000_000).toLocaleString()} ₳
@@ -89,8 +89,8 @@ function MainLayout() {
               </div>
               {currentWallet?.type === 'SPOOFED' ? (
                 <div className="text-center">
-                  <p className="text-red-500 font-semibold mb-2">Spoofed wallets are not able to send/receive.</p>
-                  <Link to="/spoofed-info" className="text-blue-500 hover:text-blue-600 underline text-sm">
+                  <p className="mb-2 font-semibold text-red-500">Spoofed wallets are not able to send/receive.</p>
+                  <Link to="/spoofed-info" className="text-sm text-blue-500 underline hover:text-blue-600">
                     Learn more about read-only wallets
                   </Link>
                 </div>
@@ -103,24 +103,24 @@ function MainLayout() {
             </div>
           </div>
         </div>
-        <main className="p-4 flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto p-4">
           <Outlet />
         </main>
       </div>
-      <footer className="p-4 border-t border-gray-300 dark:border-gray-600 flex justify-center space-x-4">
+      <footer className="flex justify-center space-x-4 border-t border-gray-300 p-4 dark:border-gray-600">
         <Link
           to={`/wallet/${walletId}/assets`}
-          className={`px-6 py-2 rounded-md transition ${view === 'assets' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>
+          className={`rounded-md px-6 py-2 transition ${view === 'assets' ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600'}`}>
           Assets
         </Link>
         <Link
-          to={`/wallet/${walletId}/enhanced-transactions`}
-          className={`px-4 py-2 rounded-md transition text-sm ${view === 'enhanced-transactions' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>
+          to={`/wallet/${walletId}/transactions`}
+          className={`rounded-md px-4 py-2 text-sm transition ${view === 'transactions' ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600'}`}>
           Transactions
         </Link>
         <Link
           to={`/wallet/${walletId}/utxos`}
-          className={`px-6 py-2 rounded-md transition ${view === 'utxos' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>
+          className={`rounded-md px-6 py-2 transition ${view === 'utxos' ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600'}`}>
           UTXOs
         </Link>
       </footer>

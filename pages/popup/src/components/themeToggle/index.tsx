@@ -23,13 +23,13 @@ const ThemeToggle = () => {
         <img
           src={dayModeIcon}
           alt="Day Mode"
-          className={`w-3.5 h-3.5 z-10 day-icon ${isDark ? 'icon-inactive' : 'icon-day'}`}
+          className={`day-icon z-10 size-3.5 ${isDark ? 'icon-inactive' : 'icon-day'}`}
           draggable="false"
         />
         <img
           src={nightModeIcon}
           alt="Night Mode"
-          className={`w-3.5 h-3.5 z-10 night-icon ${isDark ? 'icon-night' : 'icon-inactive'}`}
+          className={`night-icon z-10 size-3.5 ${isDark ? 'icon-night' : 'icon-inactive'}`}
           draggable="false"
         />
       </span>

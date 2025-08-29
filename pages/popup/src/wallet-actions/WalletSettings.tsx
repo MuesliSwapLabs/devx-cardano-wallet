@@ -23,7 +23,7 @@ const WalletSettings = () => {
 
   // Guard clause in case the wallet isn't found
   if (!currentWallet) {
-    return <div className="text-center p-4">Wallet not found.</div>;
+    return <div className="p-4 text-center">Wallet not found.</div>;
   }
 
   // --- Handlers for Form Submissions ---
@@ -97,15 +97,15 @@ const WalletSettings = () => {
             validationSchema={Yup.object({ walletName: Yup.string().required('Wallet name is required.') })}
             onSubmit={handleRenameSubmit}>
             {({ errors, touched, isSubmitting }) => (
-              <Form className="flex flex-col h-full">
-                <div className="flex-grow">
+              <Form className="flex h-full flex-col">
+                <div className="grow">
                   <FloatingLabelInput
                     name="walletName"
                     label="Wallet Name"
                     required
                     error={touched.walletName && !!errors.walletName}
                   />
-                  <ErrorMessage name="walletName" component="p" className="text-red-500 text-sm mt-1" />
+                  <ErrorMessage name="walletName" component="p" className="mt-1 text-sm text-red-500" />
                 </div>
                 <div className="mt-auto flex justify-center space-x-4">
                   <SecondaryButton type="button" onClick={() => setCurrentView('menu')}>
@@ -131,8 +131,8 @@ const WalletSettings = () => {
             })}
             onSubmit={handleAddPasswordSubmit}>
             {({ errors, touched, isSubmitting }) => (
-              <Form className="flex flex-col h-full">
-                <div className="flex-grow space-y-4">
+              <Form className="flex h-full flex-col">
+                <div className="grow space-y-4">
                   <div>
                     <FloatingLabelInput
                       name="newPassword"
@@ -141,7 +141,7 @@ const WalletSettings = () => {
                       required
                       error={touched.newPassword && !!errors.newPassword}
                     />
-                    <ErrorMessage name="newPassword" component="p" className="text-red-500 text-xs mt-1" />
+                    <ErrorMessage name="newPassword" component="p" className="mt-1 text-xs text-red-500" />
                   </div>
                   <div>
                     <FloatingLabelInput
@@ -151,7 +151,7 @@ const WalletSettings = () => {
                       required
                       error={touched.confirmNewPassword && !!errors.confirmNewPassword}
                     />
-                    <ErrorMessage name="confirmNewPassword" component="p" className="text-red-500 text-xs mt-1" />
+                    <ErrorMessage name="confirmNewPassword" component="p" className="mt-1 text-xs text-red-500" />
                   </div>
                 </div>
                 <div className="mt-auto flex justify-center space-x-4">
@@ -179,8 +179,8 @@ const WalletSettings = () => {
             })}
             onSubmit={handleChangePasswordSubmit}>
             {({ errors, touched, isSubmitting }) => (
-              <Form className="flex flex-col h-full">
-                <div className="flex-grow space-y-4">
+              <Form className="flex h-full flex-col">
+                <div className="grow space-y-4">
                   <div>
                     <FloatingLabelInput
                       name="currentPassword"
@@ -189,7 +189,7 @@ const WalletSettings = () => {
                       required
                       error={touched.currentPassword && !!errors.currentPassword}
                     />
-                    <ErrorMessage name="currentPassword" component="p" className="text-red-500 text-xs mt-1" />
+                    <ErrorMessage name="currentPassword" component="p" className="mt-1 text-xs text-red-500" />
                   </div>
                   <div>
                     <FloatingLabelInput
@@ -199,7 +199,7 @@ const WalletSettings = () => {
                       required
                       error={touched.newPassword && !!errors.newPassword}
                     />
-                    <ErrorMessage name="newPassword" component="p" className="text-red-500 text-xs mt-1" />
+                    <ErrorMessage name="newPassword" component="p" className="mt-1 text-xs text-red-500" />
                   </div>
                   <div>
                     <FloatingLabelInput
@@ -209,7 +209,7 @@ const WalletSettings = () => {
                       required
                       error={touched.confirmNewPassword && !!errors.confirmNewPassword}
                     />
-                    <ErrorMessage name="confirmNewPassword" component="p" className="text-red-500 text-xs mt-1" />
+                    <ErrorMessage name="confirmNewPassword" component="p" className="mt-1 text-xs text-red-500" />
                   </div>
                 </div>
                 <div className="mt-auto flex justify-center space-x-4">
@@ -227,13 +227,13 @@ const WalletSettings = () => {
       case 'reveal-seed':
         if (revealedSeed) {
           return (
-            <div className="flex flex-col h-full">
-              <div className="flex-grow">
+            <div className="flex h-full flex-col">
+              <div className="grow">
                 <p className="text-sm text-gray-600 dark:text-gray-300">Your secret seed phrase is:</p>
-                <div className="mt-2 p-4 bg-gray-100 dark:bg-gray-700 rounded-md break-words font-mono text-center">
+                <div className="mt-2 break-words rounded-md bg-gray-100 p-4 text-center font-mono dark:bg-gray-700">
                   {revealedSeed}
                 </div>
-                <p className="text-xs text-red-500 mt-4">Do not share this phrase with anyone. Store it securely.</p>
+                <p className="mt-4 text-xs text-red-500">Do not share this phrase with anyone. Store it securely.</p>
               </div>
               <div className="mt-auto flex justify-center">
                 <SecondaryButton
@@ -254,9 +254,9 @@ const WalletSettings = () => {
             validationSchema={Yup.object({ password: Yup.string().required('Password is required.') })}
             onSubmit={handleRevealSeedSubmit}>
             {({ errors, touched, isSubmitting }) => (
-              <Form className="flex flex-col h-full">
-                <p className="text-center mb-4">Enter your password to reveal the seed phrase.</p>
-                <div className="flex-grow">
+              <Form className="flex h-full flex-col">
+                <p className="mb-4 text-center">Enter your password to reveal the seed phrase.</p>
+                <div className="grow">
                   <FloatingLabelInput
                     name="password"
                     label="Password"
@@ -264,7 +264,7 @@ const WalletSettings = () => {
                     required
                     error={touched.password && !!errors.password}
                   />
-                  <ErrorMessage name="password" component="p" className="text-red-500 text-sm mt-1" />
+                  <ErrorMessage name="password" component="p" className="mt-1 text-sm text-red-500" />
                 </div>
                 <div className="mt-auto flex justify-center space-x-4">
                   <SecondaryButton type="button" onClick={() => setCurrentView('menu')}>
@@ -296,7 +296,7 @@ const WalletSettings = () => {
               </SecondaryButton>
             )}
             {currentWallet.type === 'SPOOFED' ? (
-              <div className="w-full p-2 text-center text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 rounded">
+              <div className="w-full rounded bg-gray-100 p-2 text-center text-xs text-gray-500 dark:bg-gray-700">
                 Spoofed wallets do not have a seed phrase.
               </div>
             ) : (
@@ -309,7 +309,7 @@ const WalletSettings = () => {
     }
   };
 
-  return <div className="flex flex-col h-full">{renderContent()}</div>;
+  return <div className="flex h-full flex-col">{renderContent()}</div>;
 };
 
 export default WalletSettings;

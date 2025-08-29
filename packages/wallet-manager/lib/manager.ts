@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
-import { Wallet, encrypt } from '@extension/shared';
+import type { Wallet } from '@extension/shared';
+import { encrypt } from '@extension/shared';
 import { getWalletState } from '@extension/blockchain-provider';
 
 export async function createNewWallet(

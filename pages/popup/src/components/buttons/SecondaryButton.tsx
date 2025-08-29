@@ -10,7 +10,7 @@ const SecondaryButton: React.FC<SecondaryButtonProps> = ({ children = 'Spoof Wal
     <button
       {...props}
       className={clsx(
-        'bg-transparent border border-blue-600 py-2 px-4 rounded hover:bg-blue-700 hover:text-white transition',
+        'rounded border border-blue-600 bg-transparent px-4 py-2 transition hover:bg-blue-700 hover:text-white',
         className,
       )}>
       {children}

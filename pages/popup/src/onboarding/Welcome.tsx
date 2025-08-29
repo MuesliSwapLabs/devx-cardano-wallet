@@ -22,8 +22,8 @@ const Welcome = () => {
   }, []);
 
   return (
-    <div className="flex flex-col items-center h-full text-center">
-      <div className="flex-grow flex flex-col justify-center">
+    <div className="flex h-full flex-col items-center text-center">
+      <div className="flex grow flex-col justify-center">
         <h1 className="text-2xl font-bold">Welcome!</h1>
         <p className="mt-2">Thank you for installing DevX wallet.</p>
         <p className="mt-2">
@@ -32,7 +32,7 @@ const Welcome = () => {
         </p>
       </div>
 
-      <div className="w-full mt-auto pt-6">
+      <div className="mt-auto w-full pt-6">
         <PrimaryButton
           onClick={async () => {
             await onboardingStorage.goToStep('legal');

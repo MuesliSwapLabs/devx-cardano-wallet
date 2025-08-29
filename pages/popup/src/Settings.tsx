@@ -143,8 +143,8 @@ function Settings() {
     <div className="flex flex-col space-y-6">
       {/* General Settings */}
       <div>
-        <h2 className="text-lg font-medium mb-2">General</h2>
-        <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-700 rounded-lg shadow">
+        <h2 className="mb-2 text-lg font-medium">General</h2>
+        <div className="flex items-center justify-between rounded-lg bg-white p-4 shadow dark:bg-gray-700">
           <span className="font-medium">Theme</span>
           <ThemeToggle />
         </div>
@@ -152,21 +152,21 @@ function Settings() {
 
       {/* Blockfrost API Keys Section */}
       <div>
-        <h2 className="text-lg font-medium mb-1">Blockfrost API Keys</h2>
+        <h2 className="mb-1 text-lg font-medium">Blockfrost API Keys</h2>
         <a
           href="https://blockfrost.io/dashboard"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline mb-2 inline-block">
+          className="mb-2 inline-block text-sm text-blue-600 underline hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
           Get API Key here
         </a>
-        <div className="flex flex-col space-y-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div className="flex flex-col space-y-4 rounded-lg bg-white p-4 shadow dark:bg-gray-800">
           {/* --- Mainnet API Key --- */}
           <div>
             {mainnetKeyExists ? (
               // --- DISPLAY MODE ---
               <div className="flex items-center space-x-2">
-                <div className="flex-grow">
+                <div className="grow">
                   <FloatingLabelInput
                     label="Mainnet API Key"
                     name="mainnetApiKey_display"
@@ -175,7 +175,7 @@ function Settings() {
                   />
                 </div>
                 <button type="button" onClick={() => handleDelete('Mainnet')} className="p-1">
-                  <TrashIcon className="h-5 w-5 text-gray-400 hover:text-red-500" />
+                  <TrashIcon className="size-5 text-gray-400 hover:text-red-500" />
                 </button>
               </div>
             ) : (
@@ -215,7 +215,7 @@ function Settings() {
                         />
                       )}
                     </Field>
-                    <div className="h-4 pt-1 px-1 text-xs">
+                    <div className="h-4 px-1 pt-1 text-xs">
                       {errors.mainnetInput ? (
                         <span className="text-red-500">{errors.mainnetInput}</span>
                       ) : (
@@ -233,7 +233,7 @@ function Settings() {
             {preprodKeyExists ? (
               // --- DISPLAY MODE ---
               <div className="flex items-center space-x-2">
-                <div className="flex-grow">
+                <div className="grow">
                   <FloatingLabelInput
                     label="Preprod API Key"
                     name="preprodApiKey_display"
@@ -242,7 +242,7 @@ function Settings() {
                   />
                 </div>
                 <button type="button" onClick={() => handleDelete('Preprod')} className="p-1">
-                  <TrashIcon className="h-5 w-5 text-gray-400 hover:text-red-500" />
+                  <TrashIcon className="size-5 text-gray-400 hover:text-red-500" />
                 </button>
               </div>
             ) : (
@@ -282,7 +282,7 @@ function Settings() {
                         />
                       )}
                     </Field>
-                    <div className="h-4 pt-1 px-1 text-xs">
+                    <div className="h-4 px-1 pt-1 text-xs">
                       {errors.preprodInput ? (
                         <span className="text-red-500">{errors.preprodInput}</span>
                       ) : (
@@ -299,13 +299,13 @@ function Settings() {
 
       {/* Danger Zone (unchanged) */}
       <div>
-        <h2 className="text-lg font-medium mb-2 text-red-500">Danger Zone</h2>
-        <div className="bg-white dark:bg-gray-700 rounded-lg shadow">
+        <h2 className="mb-2 text-lg font-medium text-red-500">Danger Zone</h2>
+        <div className="rounded-lg bg-white shadow dark:bg-gray-700">
           <button
             onClick={() => setIsDangerZoneOpen(!isDangerZoneOpen)}
-            className="w-full flex justify-between items-center p-4 font-medium text-red-500">
+            className="flex w-full items-center justify-between p-4 font-medium text-red-500">
             <span>Reset Application Data</span>
-            {isDangerZoneOpen ? <ChevronUpIcon className="h-5 w-5" /> : <ChevronDownIcon className="h-5 w-5" />}
+            {isDangerZoneOpen ? <ChevronUpIcon className="size-5" /> : <ChevronDownIcon className="size-5" />}
           </button>
           {isDangerZoneOpen && (
             <div className="px-4 pb-4">

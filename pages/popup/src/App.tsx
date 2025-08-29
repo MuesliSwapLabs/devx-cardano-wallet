@@ -130,7 +130,7 @@ function App() {
     <Router>
       <NavigationHandler />
       <div className={isDark ? 'dark' : ''}>
-        <div className="App dark:bg-gray-800 bg-slate-50 dark:text-white text-black flex flex-col h-screen">
+        <div className="App flex h-screen flex-col bg-slate-50 text-black dark:bg-gray-800 dark:text-white">
           <Routes>
             {/* Initial Onboarding Flow */}
             <Route path="/onboarding" element={<OnboardingLayout />}>

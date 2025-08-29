@@ -1,5 +1,5 @@
 import { METHOD, SENDER, TARGET } from '../../lib/config/messaging';
-import { MethodCallback } from './types';
+import type { MethodCallback } from './types';
 
 const enable_handler: MethodCallback = (request, sendResponse) => {
   (async () => 'asdf')()

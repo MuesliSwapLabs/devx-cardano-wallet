@@ -1,6 +1,6 @@
 import { METHOD, SENDER, TARGET, APIError } from '../config/messaging';
 import { HANDLERS } from './handlers';
-import { IMessage, MethodCallback, IWhitelistedResponse } from './types';
+import type { IMessage, MethodCallback, IWhitelistedResponse } from './types';
 
 /**
  * InternalController

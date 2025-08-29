@@ -17,22 +17,22 @@ function ImportSuccess() {
   };
 
   return (
-    <div className="h-full flex flex-col items-center text-center">
-      <div className="flex-grow flex flex-col justify-center items-center">
-        <div className="flex flex-row items-center text-green-600 font-bold mb-4">
-          <h2 className="text-3xl mt-2">SUCCESS</h2>
+    <div className="flex h-full flex-col items-center text-center">
+      <div className="flex grow flex-col items-center justify-center">
+        <div className="mb-4 flex flex-row items-center font-bold text-green-600">
+          <h2 className="mt-2 text-3xl">SUCCESS</h2>
         </div>
         <p className="mb-4">Your wallet was successfully imported.</p>
-        <p className="text-center mb-4 text-sm text-gray-500">
+        <p className="mb-4 text-center text-sm text-gray-500">
           You can export your account details at any time in the settings.
         </p>
       </div>
 
-      <div className="w-full mt-auto space-y-2 flex flex-col items-center">
+      <div className="mt-auto flex w-full flex-col items-center space-y-2">
         <SecondaryButton onClick={handleExportAccountClick} className="w-4/5">
           Export Account
         </SecondaryButton>
-        <div className="pt-4 w-full flex justify-center">
+        <div className="flex w-full justify-center pt-4">
           <PrimaryButton onClick={handleFinishOnboardingClick} className="w-4/5">
             Finish Onboarding
           </PrimaryButton>

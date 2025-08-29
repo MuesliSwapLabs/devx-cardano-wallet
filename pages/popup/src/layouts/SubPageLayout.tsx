@@ -47,13 +47,13 @@ function SubPageLayout() {
 
   return (
     <>
-      <header className="flex items-center justify-between px-4 py-3 relative border-b border-gray-300 dark:border-gray-600">
+      <header className="relative flex items-center justify-between border-b border-gray-300 px-4 py-3 dark:border-gray-600">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center justify-center h-8 w-8 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+          className="flex size-8 items-center justify-center rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5"
+            className="size-5"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor">
@@ -61,12 +61,12 @@ function SubPageLayout() {
           </svg>
         </button>
 
-        <span className="absolute left-1/2 transform -translate-x-1/2 text-xl font-semibold">{getTitle()}</span>
+        <span className="absolute left-1/2 -translate-x-1/2 text-xl font-semibold">{getTitle()}</span>
 
         <div className="w-8"></div>
       </header>
 
-      <main className="p-4 flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto p-4">
         <Outlet />
       </main>
     </>

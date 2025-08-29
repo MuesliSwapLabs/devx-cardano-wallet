@@ -48,45 +48,45 @@ function Legal() {
   };
 
   return (
-    <div className="flex flex-col items-center min-h-full">
+    <div className="flex min-h-full flex-col items-center">
       {/* Centered Warning and Text */}
-      <div className="flex flex-col items-center flex-grow">
+      <div className="flex grow flex-col items-center">
         {/* Warning Section */}
-        <div className="flex flex-col items-center text-red-600 font-bold mb-4">
+        <div className="mb-4 flex flex-col items-center font-bold text-red-600">
           <img src={warningIconUrl} alt="Warning icon" width="40" height="40" />
-          <h2 className="text-3xl mt-2">WARNING</h2>
+          <h2 className="mt-2 text-3xl">WARNING</h2>
         </div>
 
-        <p className="text-center mb-4">
+        <p className="mb-4 text-center">
           DevX is a wallet aimed at developers and is not meant to be used for trading!
         </p>
 
-        <p className="text-center mb-6">
+        <p className="mb-6 text-center">
           We assume no liability for damages arising from the use of this product/service.
         </p>
       </div>
 
       {/* Bottom Section: Legal Text and Button */}
-      <div className="w-full mt-auto flex flex-col items-center">
+      <div className="mt-auto flex w-full flex-col items-center">
         {/* Legal Text at the very bottom */}
-        <p className="text-center mt-4 mb-4">
+        <p className="my-4 text-center">
           By continuing, you agree to our
-          <a href="#" className="text-blue-600 hover:underline ml-1">
+          <a href="#" className="ml-1 text-blue-600 hover:underline">
             Terms of Service
           </a>{' '}
           and
-          <a href="#" className="text-blue-600 hover:underline ml-1">
+          <a href="#" className="ml-1 text-blue-600 hover:underline">
             Privacy Policy
           </a>
           .
         </p>
 
         {/* Button */}
-        <div className="w-full flex justify-center">
+        <div className="flex w-full justify-center">
           <PrimaryButton
             onClick={handleAgreeClick}
             disabled={!buttonEnabled}
-            className={!buttonEnabled ? 'opacity-50 cursor-not-allowed' : ''}>
+            className={!buttonEnabled ? 'cursor-not-allowed opacity-50' : ''}>
             {buttonEnabled ? 'I Agree' : `I Agree (${countdown})`}
           </PrimaryButton>
         </div>

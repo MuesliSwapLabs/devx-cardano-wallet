@@ -1,5 +1,5 @@
 import { transactionsStorage, type TransactionRecord, type UTXORecord } from '@extension/storage';
-import { getWalletUTXOs, getEnhancedTransactions, getTransactions } from './provider';
+import { getWalletUTXOs, getEnhancedTransactions, getTransactions, getWalletPaymentAddresses } from './provider';
 import type { Wallet } from '@extension/shared';
 
 export interface SyncOptions {
@@ -80,8 +80,11 @@ export class WalletSyncService {
       console.log(`Starting sync for wallet ${walletId}...`);
 
       // Fetch fresh UTXOs first, then use them for both transactions and UTXO storage
-      const freshUTXOs = await getWalletUTXOs(wallet);
-      const transactions = await getTransactions(wallet);
+      const [freshUTXOs, transactions, paymentAddresses] = await Promise.all([
+        getWalletUTXOs(wallet),
+        getTransactions(wallet),
+        getWalletPaymentAddresses(wallet),
+      ]);
 
       // Enhance transactions with the UTXOs we already fetched
       const freshTransactions = transactions.map(tx => {
@@ -120,7 +123,7 @@ export class WalletSyncService {
 
       if (newUTXOs.length > 0 || updatedUTXOs.length > 0) {
         const utxosToStore = [...newUTXOs, ...updatedUTXOs];
-        await transactionsStorage.storeUTXOs(walletId, utxosToStore);
+        await transactionsStorage.storeUTXOs(walletId, utxosToStore, paymentAddresses);
       }
 
       // Update sync timestamp

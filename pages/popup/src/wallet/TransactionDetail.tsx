@@ -31,7 +31,7 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
       </span>
       <button
         onClick={() => copyToClipboard(text)}
-        className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-xs"
+        className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
         title="Copy full text">
         📋
       </button>
@@ -39,12 +39,12 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
   );
 
   return (
-    <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+    <div className="border-t border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
       {/* General Info Section */}
-      <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-        <h4 className="font-semibold text-sm mb-3 text-gray-900 dark:text-gray-100">Transaction Details</h4>
+      <div className="border-b border-gray-200 p-3 dark:border-gray-700">
+        <h4 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Transaction Details</h4>
         <div className="grid grid-cols-1 gap-2 text-xs">
-          <div className="flex justify-between items-center">
+          <div className="flex items-center justify-between">
             <strong>Hash:</strong>
             {truncateWithCopy(tx.hash, 16, 8)}
           </div>
@@ -94,23 +94,23 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
       </div>
 
       {/* Filter Toggles */}
-      <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+      <div className="border-b border-gray-200 p-3 dark:border-gray-700">
         <div className="flex gap-2">
           <button
             onClick={() => setShowReferences(!showReferences)}
-            className={`px-3 py-1 text-xs rounded transition ${
+            className={`rounded px-3 py-1 text-xs transition ${
               showReferences
                 ? 'bg-purple-500 text-white'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
             }`}>
             {showReferences ? 'Hide' : 'Show'} References
           </button>
           <button
             onClick={() => setShowCollaterals(!showCollaterals)}
-            className={`px-3 py-1 text-xs rounded transition ${
+            className={`rounded px-3 py-1 text-xs transition ${
               showCollaterals
                 ? 'bg-orange-500 text-white'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
             }`}>
             {showCollaterals ? 'Hide' : 'Show'} Collaterals
           </button>
@@ -119,15 +119,15 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
 
       {/* From UTXOs Section */}
       {tx.inputs && tx.inputs.length > 0 && (
-        <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-2">
-            <h5 className="font-medium text-sm text-red-700 dark:text-red-300">Input UTXOs: {tx.inputs.length}</h5>
+        <div className="border-b border-gray-200 p-3 dark:border-gray-700">
+          <div className="mb-2 flex items-center justify-between">
+            <h5 className="text-sm font-medium text-red-700 dark:text-red-300">Input UTXOs: {tx.inputs.length}</h5>
             <button
               onClick={() => setExpandFromUTXOs(!expandFromUTXOs)}
-              className={`px-2 py-1 text-xs rounded transition ${
+              className={`rounded px-2 py-1 text-xs transition ${
                 expandFromUTXOs
                   ? 'bg-red-500 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
               }`}>
               {expandFromUTXOs ? 'Collapse' : 'Expand'}
             </button>
@@ -156,18 +156,18 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
                       <span className="text-gray-500">#{idx + 1}:</span>
                       <Link
                         to={`/wallet/${wallet.id}/utxo/${input.tx_hash}/${input.output_index}`}
-                        className="text-blue-600 dark:text-blue-400 hover:underline font-mono">
+                        className="font-mono text-blue-600 hover:underline dark:text-blue-400">
                         {input.tx_hash.slice(0, 8)}...:{input.output_index}
                       </Link>
                     </div>
                     <div className="flex items-center gap-1">
                       {showCollaterals && (input as any).collateral && (
-                        <span className="text-xs bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 px-1 py-0.5 rounded">
+                        <span className="rounded bg-orange-100 px-1 py-0.5 text-xs text-orange-800 dark:bg-orange-900 dark:text-orange-200">
                           Collateral
                         </span>
                       )}
                       {showReferences && (input as any).reference && (
-                        <span className="text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-1 py-0.5 rounded">
+                        <span className="rounded bg-purple-100 px-1 py-0.5 text-xs text-purple-800 dark:bg-purple-900 dark:text-purple-200">
                           Reference
                         </span>
                       )}
@@ -193,28 +193,28 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
                   return true;
                 })
                 .map((input, idx) => (
-                  <div key={idx} className="border border-gray-200 dark:border-gray-700 p-3 rounded">
+                  <div key={idx} className="rounded border border-gray-200 p-3 dark:border-gray-700">
                     {/* Address and tags */}
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="mb-2 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-sm">
                           {input.address.slice(0, 12)}...{input.address.slice(-6)}
                         </span>
                         <button
                           onClick={() => copyToClipboard(input.address)}
-                          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-xs"
+                          className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                           title="Copy address">
                           📋
                         </button>
                       </div>
                       <div className="flex items-center gap-1">
                         {showCollaterals && (input as any).collateral && (
-                          <span className="text-xs bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 px-2 py-1 rounded">
+                          <span className="rounded bg-orange-100 px-2 py-1 text-xs text-orange-800 dark:bg-orange-900 dark:text-orange-200">
                             Collateral
                           </span>
                         )}
                         {showReferences && (input as any).reference && (
-                          <span className="text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-1 rounded">
+                          <span className="rounded bg-purple-100 px-2 py-1 text-xs text-purple-800 dark:bg-purple-900 dark:text-purple-200">
                             Reference
                           </span>
                         )}
@@ -225,7 +225,7 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
                     {input.amount && (
                       <div className="space-y-1">
                         {input.amount.map((amt, amtIdx) => (
-                          <div key={amtIdx} className="text-sm font-mono text-gray-600 dark:text-gray-400">
+                          <div key={amtIdx} className="font-mono text-sm text-gray-600 dark:text-gray-400">
                             {amt.unit === 'lovelace' ? (
                               <div>{formatAda(amt.quantity)}</div>
                             ) : (
@@ -246,17 +246,17 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
 
       {/* To UTXOs Section */}
       {tx.outputs && tx.outputs.length > 0 && (
-        <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-2">
-            <h5 className="font-medium text-sm text-green-700 dark:text-green-300">
+        <div className="border-b border-gray-200 p-3 dark:border-gray-700">
+          <div className="mb-2 flex items-center justify-between">
+            <h5 className="text-sm font-medium text-green-700 dark:text-green-300">
               Output UTXOs: {tx.outputs.length}
             </h5>
             <button
               onClick={() => setExpandToUTXOs(!expandToUTXOs)}
-              className={`px-2 py-1 text-xs rounded transition ${
+              className={`rounded px-2 py-1 text-xs transition ${
                 expandToUTXOs
                   ? 'bg-green-500 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
               }`}>
               {expandToUTXOs ? 'Collapse' : 'Expand'}
             </button>
@@ -285,18 +285,18 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
                       <span className="text-gray-500">#{idx + 1}:</span>
                       <Link
                         to={`/wallet/${wallet.id}/utxo/${tx.hash}/${output.output_index}`}
-                        className="text-blue-600 dark:text-blue-400 hover:underline font-mono">
+                        className="font-mono text-blue-600 hover:underline dark:text-blue-400">
                         {tx.hash.slice(0, 8)}...:{output.output_index}
                       </Link>
                     </div>
                     <div className="flex items-center gap-1">
                       {showCollaterals && (output as any).collateral && (
-                        <span className="text-xs bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 px-1 py-0.5 rounded">
+                        <span className="rounded bg-orange-100 px-1 py-0.5 text-xs text-orange-800 dark:bg-orange-900 dark:text-orange-200">
                           Collateral
                         </span>
                       )}
                       {showReferences && (output as any).reference && (
-                        <span className="text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-1 py-0.5 rounded">
+                        <span className="rounded bg-purple-100 px-1 py-0.5 text-xs text-purple-800 dark:bg-purple-900 dark:text-purple-200">
                           Reference
                         </span>
                       )}
@@ -322,28 +322,28 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
                   return true;
                 })
                 .map((output, idx) => (
-                  <div key={idx} className="border border-gray-200 dark:border-gray-700 p-3 rounded">
+                  <div key={idx} className="rounded border border-gray-200 p-3 dark:border-gray-700">
                     {/* Address and tags */}
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="mb-2 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-sm">
                           {output.address.slice(0, 12)}...{output.address.slice(-6)}
                         </span>
                         <button
                           onClick={() => copyToClipboard(output.address)}
-                          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-xs"
+                          className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                           title="Copy address">
                           📋
                         </button>
                       </div>
                       <div className="flex items-center gap-1">
                         {showCollaterals && (output as any).collateral && (
-                          <span className="text-xs bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 px-2 py-1 rounded">
+                          <span className="rounded bg-orange-100 px-2 py-1 text-xs text-orange-800 dark:bg-orange-900 dark:text-orange-200">
                             Collateral
                           </span>
                         )}
                         {showReferences && (output as any).reference && (
-                          <span className="text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-1 rounded">
+                          <span className="rounded bg-purple-100 px-2 py-1 text-xs text-purple-800 dark:bg-purple-900 dark:text-purple-200">
                             Reference
                           </span>
                         )}
@@ -354,7 +354,7 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
                     {output.amount && (
                       <div className="space-y-1">
                         {output.amount.map((amt, amtIdx) => (
-                          <div key={amtIdx} className="text-sm font-mono text-gray-600 dark:text-gray-400">
+                          <div key={amtIdx} className="font-mono text-sm text-gray-600 dark:text-gray-400">
                             {amt.unit === 'lovelace' ? (
                               <div>{formatAda(amt.quantity)}</div>
                             ) : (
@@ -371,8 +371,8 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
                     {((output as any).data_hash ||
                       (output as any).inline_datum ||
                       (output as any).reference_script_hash) && (
-                      <div className="mt-2 pt-2 border-t border-gray-300 dark:border-gray-600">
-                        <div className="text-xs text-gray-700 dark:text-gray-300 mb-1">
+                      <div className="mt-2 border-t border-gray-300 pt-2 dark:border-gray-600">
+                        <div className="mb-1 text-xs text-gray-700 dark:text-gray-300">
                           <strong>Smart Contract Data:</strong>
                         </div>
                         {(output as any).data_hash && (
@@ -380,7 +380,7 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
                             <strong>Data Hash:</strong> {(output as any).data_hash.slice(0, 12)}...
                             <button
                               onClick={() => copyToClipboard((output as any).data_hash)}
-                              className="ml-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                              className="ml-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                               title="Copy data hash">
                               📋
                             </button>
@@ -391,7 +391,7 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
                             <strong>Inline Datum:</strong> {(output as any).inline_datum.slice(0, 20)}...
                             <button
                               onClick={() => copyToClipboard((output as any).inline_datum)}
-                              className="ml-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                              className="ml-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                               title="Copy inline datum">
                               📋
                             </button>
@@ -402,7 +402,7 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
                             <strong>Reference Script:</strong> {(output as any).reference_script_hash.slice(0, 12)}...
                             <button
                               onClick={() => copyToClipboard((output as any).reference_script_hash)}
-                              className="ml-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                              className="ml-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                               title="Copy reference script hash">
                               📋
                             </button>
@@ -419,8 +419,8 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
 
       {/* Withdrawals Section */}
       {tx.withdrawal_count > 0 && (
-        <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-          <h5 className="font-medium text-sm text-orange-700 dark:text-orange-300 mb-2">
+        <div className="border-b border-gray-200 p-3 dark:border-gray-700">
+          <h5 className="mb-2 text-sm font-medium text-orange-700 dark:text-orange-300">
             Withdrawals: {tx.withdrawal_count}
           </h5>
           <div className="text-xs text-gray-600 dark:text-gray-400">
@@ -431,20 +431,20 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
 
       {/* Metadata Section */}
       <div className="p-3">
-        <h5 className="font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">Metadata</h5>
-        <div className="text-xs bg-gray-100 dark:bg-gray-900 p-2 rounded border max-h-32 overflow-y-auto">
+        <h5 className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Metadata</h5>
+        <div className="max-h-32 overflow-y-auto rounded border bg-gray-100 p-2 text-xs dark:bg-gray-900">
           {/* Show actual transaction metadata if available */}
           {(tx as any).metadata ? (
             <pre className="whitespace-pre-wrap font-mono text-xs">{JSON.stringify((tx as any).metadata, null, 2)}</pre>
           ) : (
-            <div className="text-gray-500 dark:text-gray-400 italic">No metadata found for this transaction</div>
+            <div className="italic text-gray-500 dark:text-gray-400">No metadata found for this transaction</div>
           )}
         </div>
 
         {/* Smart Contract Activity */}
         {(tx.asset_mint_or_burn_count > 0 || tx.redeemer_count > 0) && (
-          <div className="mt-3 p-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded">
-            <div className="text-purple-700 dark:text-purple-300 text-xs">
+          <div className="mt-3 rounded border border-purple-200 bg-purple-50 p-2 dark:border-purple-700 dark:bg-purple-900/20">
+            <div className="text-xs text-purple-700 dark:text-purple-300">
               <strong>Smart Contract Activity:</strong>
               <div className="mt-1 space-y-1">
                 {tx.asset_mint_or_burn_count > 0 && <div>Asset Mint/Burn: {tx.asset_mint_or_burn_count}</div>}
@@ -454,7 +454,7 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
           </div>
         )}
 
-        <div className="text-gray-500 dark:text-gray-400 text-xs mt-2 pt-2 border-t border-gray-300 dark:border-gray-600">
+        <div className="mt-2 border-t border-gray-300 pt-2 text-xs text-gray-500 dark:border-gray-600 dark:text-gray-400">
           <em>Data from IndexedDB cache (synced with Blockfrost API)</em>
         </div>
       </div>

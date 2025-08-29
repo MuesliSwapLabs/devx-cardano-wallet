@@ -1,4 +1,4 @@
-import { Asset, Wallet } from '@extension/shared';
+import type { Asset, Wallet } from '@extension/shared';
 import { settingsStorage } from '@extension/storage';
 
 // --- Type Definitions ---
@@ -340,7 +340,7 @@ function hexToString(hex: string): string {
 /**
  * Fetches all payment addresses associated with a stake address.
  */
-async function getPaymentAddresses(apiUrl: string, apiKey: string, stakeAddress: string): Promise<string[]> {
+export async function getPaymentAddresses(apiUrl: string, apiKey: string, stakeAddress: string): Promise<string[]> {
   const endpoint = `${apiUrl}/accounts/${stakeAddress}/addresses`;
 
   console.log('Fetching payment addresses:', {
@@ -678,9 +678,8 @@ export const getTransactions = async (wallet: Wallet): Promise<TransactionDetail
     const allTxHashesArrays = await Promise.all(allTxHashesPromises);
     const allTxHashes = [...new Set(allTxHashesArrays.flat())]; // Remove duplicates
 
-    // Fetch detailed information for each transaction (limit to first 50 for performance)
-    const limitedTxHashes = allTxHashes.slice(0, 50);
-    const transactionDetailsPromises = limitedTxHashes.map(txHash =>
+    // Fetch detailed information for each transaction (no limit - get all transactions)
+    const transactionDetailsPromises = allTxHashes.map(txHash =>
       getTransactionDetails(apiUrl, apiKey, txHash).catch(error => {
         console.warn(`Failed to fetch details for transaction ${txHash}:`, error);
         return null;
@@ -744,11 +743,14 @@ export const getWalletUTXOs = async (wallet: Wallet): Promise<UTXO[]> => {
 
     // Build comprehensive UTXO set by analyzing transaction outputs
     const allUtxosMap = new Map<string, UTXO>();
+    const walletTransactionDetails = new Map<string, TransactionDetails>();
 
-    // First, collect all UTXOs created by transaction outputs
+    // First, collect all UTXOs created by transaction outputs AND cache transaction details
     for (const tx of allTransactions) {
       try {
         const txDetails = await getTransactionDetails(apiUrl, apiKey, tx.tx_hash);
+        // Cache the transaction details for later use
+        walletTransactionDetails.set(tx.tx_hash, txDetails);
 
         console.log(`\n=== Transaction: ${tx.tx_hash.slice(0, 5)}... ===`);
         console.log('  Inputs:');
@@ -775,22 +777,45 @@ export const getWalletUTXOs = async (wallet: Wallet): Promise<UTXO[]> => {
 
         // Process outputs to create UTXOs
         txDetails.outputs.forEach((output, index) => {
-          // Only include outputs that belong to this wallet's addresses
-          if (paymentAddresses.includes(output.address)) {
-            const utxoKey = `${tx.tx_hash}:${index}`;
+          // Include ALL outputs, marking external ones appropriately
+          const utxoKey = `${tx.tx_hash}:${index}`;
+          const belongsToWallet = paymentAddresses.includes(output.address);
+
+          allUtxosMap.set(utxoKey, {
+            address: output.address,
+            tx_hash: tx.tx_hash,
+            output_index: index,
+            amount: output.amount,
+            block: txDetails.block,
+            data_hash: output.data_hash,
+            inline_datum: output.inline_datum,
+            reference_script_hash: output.reference_script_hash,
+            isSpent: false, // Initially mark as unspent
+            spentInTx: null,
+          });
+          console.log(`    --> Stored UTXO: ${utxoKey} [${belongsToWallet ? 'WALLET' : 'EXTERNAL'}]`);
+        });
+
+        // Also store external UTXOs from transaction inputs
+        txDetails.inputs.forEach((input, idx) => {
+          const utxoKey = `${input.tx_hash}:${input.output_index}`;
+          const belongsToWallet = paymentAddresses.includes(input.address);
+
+          // Only store if it's not already in our map and is external
+          if (!allUtxosMap.has(utxoKey) && !belongsToWallet) {
             allUtxosMap.set(utxoKey, {
-              address: output.address,
-              tx_hash: tx.tx_hash,
-              output_index: index,
-              amount: output.amount,
-              block: txDetails.block,
-              data_hash: output.data_hash,
-              inline_datum: output.inline_datum,
-              reference_script_hash: output.reference_script_hash,
-              isSpent: false, // Initially mark as unspent
-              spentInTx: null,
+              address: input.address,
+              tx_hash: input.tx_hash,
+              output_index: input.output_index,
+              amount: input.amount,
+              block: txDetails.block, // We don't have the original block, use current tx block
+              data_hash: null,
+              inline_datum: null,
+              reference_script_hash: null,
+              isSpent: true, // External UTXOs are spent (they're inputs)
+              spentInTx: tx.tx_hash,
             });
-            console.log(`    --> Stored UTXO: ${utxoKey}`);
+            console.log(`    --> Stored external input UTXO: ${utxoKey} [EXTERNAL]`);
           }
         });
       } catch (error) {
@@ -798,13 +823,11 @@ export const getWalletUTXOs = async (wallet: Wallet): Promise<UTXO[]> => {
       }
     }
 
-    // Now determine which UTXOs are spent by checking transaction inputs
+    // Now determine which UTXOs are spent by checking transaction inputs using cached data
     console.log('\n=== UTXO SPENDING ANALYSIS ===');
-    for (const tx of allTransactions) {
+    for (const [txHash, txDetails] of walletTransactionDetails.entries()) {
       try {
-        const txDetails = await getTransactionDetails(apiUrl, apiKey, tx.tx_hash);
-
-        console.log(`\nAnalyzing inputs for transaction: ${tx.tx_hash.slice(0, 5)}...`);
+        console.log(`\nAnalyzing inputs for transaction: ${txHash.slice(0, 5)}...`);
 
         // Process inputs to mark UTXOs as spent
         txDetails.inputs.forEach((input, idx) => {
@@ -818,16 +841,86 @@ export const getWalletUTXOs = async (wallet: Wallet): Promise<UTXO[]> => {
 
           if (utxo && belongsToWallet) {
             utxo.isSpent = true;
-            utxo.spentInTx = tx.tx_hash;
-            console.log(`    --> FOUND and marked as spent in ${tx.tx_hash.slice(0, 8)}...`);
+            utxo.spentInTx = txHash;
+            console.log(`    --> FOUND wallet UTXO and marked as spent in ${txHash.slice(0, 8)}...`);
           } else if (belongsToWallet && !utxo) {
             console.log(`    --> MISSING: This UTXO belongs to wallet but not found in our database!`);
-          } else if (!belongsToWallet) {
-            console.log(`    --> SKIPPED: External UTXO (not our wallet)`);
+          } else if (utxo && !belongsToWallet) {
+            // External UTXO found and already marked as spent
+            console.log(`    --> FOUND external UTXO (already marked as spent)`);
+          } else {
+            console.log(`    --> External UTXO not in our database (should have been stored earlier)`);
           }
         });
       } catch (error) {
-        console.warn(`Failed to analyze inputs for transaction ${tx.tx_hash}:`, error);
+        console.warn(`Failed to analyze inputs for transaction ${txHash}:`, error);
+      }
+    }
+
+    // Fetch external transactions for complete UTXO data
+    console.log('\n=== FETCHING EXTERNAL TRANSACTIONS ===');
+    const externalTxHashes = new Set<string>();
+    const inputReferences = new Map<string, { txHash: string; outputIndex: number }[]>();
+
+    // Collect all unique external transaction hashes using cached transaction details
+    for (const [txHash, txDetails] of walletTransactionDetails.entries()) {
+      for (const input of txDetails.inputs) {
+        // Check if we already have this transaction in our wallet transactions
+        const haveTransaction = walletTransactionDetails.has(input.tx_hash);
+
+        if (!haveTransaction) {
+          externalTxHashes.add(input.tx_hash);
+
+          // Track which specific UTXOs from this external tx we need
+          if (!inputReferences.has(input.tx_hash)) {
+            inputReferences.set(input.tx_hash, []);
+          }
+          inputReferences.get(input.tx_hash)!.push({
+            txHash: txHash,
+            outputIndex: input.output_index,
+          });
+        }
+      }
+    }
+
+    console.log(`Found ${externalTxHashes.size} external transactions to fetch for complete UTXO data`);
+
+    // Fetch external transactions and store complete UTXO data
+    for (const externalTxHash of externalTxHashes) {
+      try {
+        console.log(`  Fetching external transaction: ${externalTxHash.slice(0, 8)}...`);
+        const txDetails = await getTransactionDetails(apiUrl, apiKey, externalTxHash);
+
+        // Get the UTXOs we need from this external transaction
+        const neededUtxos = inputReferences.get(externalTxHash) || [];
+
+        for (const ref of neededUtxos) {
+          const output = txDetails.outputs[ref.outputIndex];
+          if (output) {
+            const utxoKey = `${externalTxHash}:${ref.outputIndex}`;
+            const belongsToWallet = paymentAddresses.includes(output.address);
+
+            // Replace incomplete data with complete data from the creating transaction
+            allUtxosMap.set(utxoKey, {
+              tx_hash: externalTxHash,
+              output_index: ref.outputIndex,
+              address: output.address,
+              amount: output.amount,
+              block: txDetails.block, // Now we have the CORRECT block!
+              data_hash: output.data_hash,
+              inline_datum: output.inline_datum,
+              reference_script_hash: output.reference_script_hash,
+              isSpent: true, // We know it's spent because it's an input
+              spentInTx: ref.txHash,
+            });
+
+            console.log(
+              `    --> Updated UTXO with complete data: ${utxoKey} [${belongsToWallet ? 'WALLET' : 'EXTERNAL'}] - spent in ${ref.txHash.slice(0, 8)}`,
+            );
+          }
+        }
+      } catch (error) {
+        console.warn(`Failed to fetch external transaction ${externalTxHash}:`, error);
       }
     }
 
@@ -877,6 +970,26 @@ export const getEnhancedTransactions = async (wallet: Wallet): Promise<EnhancedT
     return enhancedTransactions;
   } catch (error) {
     console.error('Failed to fetch enhanced transactions:', error);
+    return [];
+  }
+};
+
+/**
+ * Gets payment addresses for a wallet.
+ */
+export const getWalletPaymentAddresses = async (wallet: Wallet): Promise<string[]> => {
+  const { apiUrl, apiKey } = await getApiConfigForWallet(wallet);
+  const stakeAddress = wallet.stakeAddress;
+
+  if (!stakeAddress) {
+    console.log('No stake address found for wallet');
+    return [];
+  }
+
+  try {
+    return await getPaymentAddresses(apiUrl, apiKey, stakeAddress);
+  } catch (error) {
+    console.error('Failed to fetch wallet payment addresses:', error);
     return [];
   }
 };
