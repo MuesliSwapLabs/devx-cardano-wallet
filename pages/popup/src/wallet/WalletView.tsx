@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useStorage, walletsStorage } from '@extension/storage';
 import type { Wallet, Asset } from '@extension/shared';
 import type { TransactionRecord, UTXORecord } from '@extension/storage';
-import EnhancedTransactions from './EnhancedTransactions';
+import Transactions from './Transactions';
 import UTXOsView from './UTXOsView';
 
 // Helper to format token amounts with decimals
@@ -193,11 +193,14 @@ const WalletView = () => {
   const wallets = walletsData?.wallets || [];
   const wallet = wallets.find((w: Wallet) => w.id === walletId);
 
-  // Sync transactions when view changes to transactions or utxos
+  // Load existing data and sync when view changes to transactions or utxos
   useEffect(() => {
     if (!wallet || view === 'assets') return;
 
     if (view === 'transactions' || view === 'utxos') {
+      // First, load existing data from storage immediately
+      loadExistingData();
+      // Then sync in the background
       syncTransactions();
     }
   }, [wallet?.id, view]);
@@ -214,8 +217,27 @@ const WalletView = () => {
     return () => chrome.runtime.onMessage.removeListener(handleMessage);
   }, [wallet?.id]);
 
+  const loadExistingData = async () => {
+    if (!wallet) return;
+
+    try {
+      // Send a message to load existing data from storage without syncing
+      chrome.runtime.sendMessage({ type: 'GET_CACHED_DATA', payload: { walletId: wallet.id } }, response => {
+        if (response?.success) {
+          setTransactions(response.transactions || []);
+          setUTXOs(response.utxos || []);
+        }
+      });
+    } catch (error) {
+      console.error('Failed to load existing data:', error);
+    }
+  };
+
   const syncTransactions = async () => {
     if (!wallet || syncPromise) return;
+
+    // Reset sync progress when starting new sync
+    setSyncProgress({ current: 0, total: 0, message: '' });
 
     const promise = new Promise(async (resolve, reject) => {
       try {
@@ -327,7 +349,7 @@ const WalletView = () => {
         <div className="relative flex h-full flex-col">
           {/* Background sync indicator */}
           {syncPromise && (
-            <div className="absolute inset-x-0 top-0 z-10 bg-blue-50 px-3 py-2 dark:bg-blue-900/30">
+            <div className="fixed bottom-16 left-0 right-0 z-10 rounded-t-lg bg-blue-50 px-3 py-2 dark:bg-blue-900">
               <div className="flex items-center gap-2">
                 <div className="size-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
                 <div className="text-sm text-blue-700 dark:text-blue-300">
@@ -343,8 +365,8 @@ const WalletView = () => {
               <div className="text-sm text-gray-600 dark:text-gray-400">No transactions yet</div>
             </div>
           ) : (
-            <div className={syncPromise ? 'mt-10' : ''}>
-              <EnhancedTransactions wallet={wallet} transactions={transactions} />
+            <div>
+              <Transactions wallet={wallet} transactions={transactions} />
             </div>
           )}
         </div>
@@ -354,7 +376,7 @@ const WalletView = () => {
         <div className="relative flex h-full flex-col">
           {/* Background sync indicator */}
           {syncPromise && (
-            <div className="absolute inset-x-0 top-0 z-10 bg-blue-50 px-3 py-2 dark:bg-blue-900/30">
+            <div className="fixed bottom-16 left-0 right-0 z-10 rounded-t-lg bg-blue-50 px-3 py-2 dark:bg-blue-900">
               <div className="flex items-center gap-2">
                 <div className="size-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
                 <div className="text-sm text-blue-700 dark:text-blue-300">
@@ -370,7 +392,7 @@ const WalletView = () => {
               <div className="text-sm text-gray-600 dark:text-gray-400">No UTXOs yet</div>
             </div>
           ) : (
-            <div className={syncPromise ? 'mt-10' : ''}>
+            <div>
               <UTXOsView wallet={wallet} utxos={utxos} />
             </div>
           )}

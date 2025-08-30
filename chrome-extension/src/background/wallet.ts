@@ -152,6 +152,33 @@ export const handleWalletMessages = async (
         return true;
       }
 
+      case 'GET_CACHED_DATA': {
+        const { walletId } = message.payload;
+        const wallet = findWallet(walletId);
+        if (!wallet) {
+          sendResponse({ success: false, error: 'Wallet not found' });
+          return false;
+        }
+
+        // Load existing data from storage without syncing
+        try {
+          const [transactions, utxos] = await Promise.all([
+            transactionsStorage.getWalletTransactions(wallet.id),
+            transactionsStorage.getWalletUTXOs(wallet.id),
+          ]);
+
+          sendResponse({
+            success: true,
+            transactions,
+            utxos,
+          });
+        } catch (error) {
+          console.error('Failed to load cached data:', error);
+          sendResponse({ success: false, error: 'Failed to load cached data' });
+        }
+        return true;
+      }
+
       case 'GET_UTXO_DETAILS': {
         const { txHash, outputIndex, walletId } = message.payload;
 

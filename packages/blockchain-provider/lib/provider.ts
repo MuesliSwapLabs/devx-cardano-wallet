@@ -50,7 +50,7 @@ export interface TransactionDetails extends Transaction {
   outputs: TransactionOutput[];
 }
 
-// UTXO-related types for enhanced developer wallet
+// UTXO-related types for developer wallet
 export interface UTXO {
   address: string;
   tx_hash: string;
@@ -62,13 +62,6 @@ export interface UTXO {
   reference_script_hash?: string | null;
   isSpent: boolean;
   spentInTx?: string | null;
-}
-
-// Enhanced transaction with UTXO relationships
-export interface EnhancedTransaction extends Transaction {
-  inputs: TransactionInput[];
-  outputs: TransactionOutput[];
-  relatedUtxos: UTXO[];
 }
 
 // The final state of the entire wallet
@@ -500,7 +493,7 @@ async function determineUTXOSpentStatus(
   utxos: BlockfrostUTXO[],
   transactions: AddressTransactionResponse[],
 ): Promise<UTXO[]> {
-  const enhancedUtxos: UTXO[] = utxos.map(utxo => ({
+  const processedUtxos: UTXO[] = utxos.map(utxo => ({
     ...utxo,
     isSpent: false,
     spentInTx: null,
@@ -520,13 +513,13 @@ async function determineUTXOSpentStatus(
 
       // Mark UTXOs as spent if they appear as inputs
       for (const input of inputs) {
-        const utxoIndex = enhancedUtxos.findIndex(
+        const utxoIndex = processedUtxos.findIndex(
           utxo => utxo.tx_hash === input.tx_hash && utxo.output_index === input.output_index,
         );
 
         if (utxoIndex !== -1) {
-          enhancedUtxos[utxoIndex].isSpent = true;
-          enhancedUtxos[utxoIndex].spentInTx = tx.tx_hash;
+          processedUtxos[utxoIndex].isSpent = true;
+          processedUtxos[utxoIndex].spentInTx = tx.tx_hash;
         }
       }
     } catch (error) {
@@ -534,7 +527,7 @@ async function determineUTXOSpentStatus(
     }
   }
 
-  return enhancedUtxos;
+  return processedUtxos;
 }
 
 // --- Main Exported Function ---
@@ -946,30 +939,6 @@ export const getWalletUTXOs = async (wallet: Wallet): Promise<UTXO[]> => {
     return allUtxos.sort((a, b) => b.tx_hash.localeCompare(a.tx_hash));
   } catch (error) {
     console.error('Failed to fetch wallet UTXOs:', error);
-    return [];
-  }
-};
-
-/**
- * Fetches enhanced transaction data with related UTXO information.
- */
-export const getEnhancedTransactions = async (wallet: Wallet): Promise<EnhancedTransaction[]> => {
-  try {
-    const [transactions, utxos] = await Promise.all([getTransactions(wallet), getWalletUTXOs(wallet)]);
-
-    // Enhance transactions with related UTXO data
-    const enhancedTransactions: EnhancedTransaction[] = transactions.map(tx => {
-      const relatedUtxos = utxos.filter(utxo => utxo.tx_hash === tx.hash || utxo.spentInTx === tx.hash);
-
-      return {
-        ...tx,
-        relatedUtxos,
-      };
-    });
-
-    return enhancedTransactions;
-  } catch (error) {
-    console.error('Failed to fetch enhanced transactions:', error);
     return [];
   }
 };

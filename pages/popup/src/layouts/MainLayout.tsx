@@ -26,7 +26,7 @@ function MainLayout() {
   };
 
   return (
-    <>
+    <div className="flex h-full flex-col">
       <header className="flex items-center justify-between px-4 pb-2 pt-3">
         <img src={iconUrl} alt="icon" width="34" height="34" />
         <div className="mx-auto flex items-center">
@@ -124,7 +124,7 @@ function MainLayout() {
           UTXOs
         </Link>
       </footer>
-    </>
+    </div>
   );
 }
 

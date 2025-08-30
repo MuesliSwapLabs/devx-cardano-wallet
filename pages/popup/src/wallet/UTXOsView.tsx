@@ -12,6 +12,8 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos }) => {
   const [filter, setFilter] = useState<'all' | 'unspent' | 'spent' | 'external'>('unspent');
   const [expandedUtxo, setExpandedUtxo] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [itemsToShow, setItemsToShow] = useState(50);
+  const itemsPerLoad = 50;
 
   const formatAda = (lovelace: string) => {
     return (parseInt(lovelace) / 1000000).toFixed(6) + ' ADA';
@@ -65,6 +67,34 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos }) => {
 
     return false;
   });
+
+  // Get visible UTXOs
+  const visibleUtxos = filteredUtxos.slice(0, itemsToShow);
+
+  // Reset items when search or filter changes
+  useEffect(() => {
+    setItemsToShow(50);
+  }, [searchQuery, filter]);
+
+  // Handle scroll to load more
+  useEffect(() => {
+    const handleScroll = (e: Event) => {
+      const element = e.target as HTMLElement;
+      // Check if scrolled near bottom (within 100px)
+      if (element.scrollHeight - element.scrollTop <= element.clientHeight + 100) {
+        if (itemsToShow < filteredUtxos.length) {
+          setItemsToShow(prev => Math.min(prev + itemsPerLoad, filteredUtxos.length));
+        }
+      }
+    };
+
+    // Find the scrollable parent (main element with overflow-y-auto)
+    const scrollableParent = document.querySelector('main.overflow-y-auto');
+    if (scrollableParent) {
+      scrollableParent.addEventListener('scroll', handleScroll);
+      return () => scrollableParent.removeEventListener('scroll', handleScroll);
+    }
+  }, [itemsToShow, filteredUtxos.length]);
 
   const stats = {
     total: utxos.length,
@@ -166,7 +196,7 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos }) => {
         </div>
       ) : (
         <div className="space-y-2">
-          {filteredUtxos.map(utxo => {
+          {visibleUtxos.map(utxo => {
             const utxoKey = `${utxo.tx_hash}:${utxo.output_index}`;
             const adaAmount = utxo.amount.find(a => a.unit === 'lovelace');
             const otherAssets = utxo.amount.filter(a => a.unit !== 'lovelace');
@@ -376,6 +406,20 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos }) => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Show loading indicator or count */}
+      {filteredUtxos.length > 0 && (
+        <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+          {itemsToShow < filteredUtxos.length ? (
+            <div>
+              Showing {itemsToShow} of {filteredUtxos.length} UTXOs
+              <div className="mt-2 text-xs">Scroll down to load more</div>
+            </div>
+          ) : (
+            `All ${filteredUtxos.length} UTXOs loaded`
+          )}
         </div>
       )}
     </div>

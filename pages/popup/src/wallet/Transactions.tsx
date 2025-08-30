@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import type { Wallet } from '@extension/shared';
 import type { TransactionRecord } from '@extension/storage';
 import TransactionDetail from './TransactionDetail';
 
-interface EnhancedTransactionsProps {
+interface TransactionsProps {
   wallet: Wallet;
   transactions: TransactionRecord[];
 }
 
-const EnhancedTransactions: React.FC<EnhancedTransactionsProps> = ({ wallet, transactions }) => {
+const Transactions: React.FC<TransactionsProps> = ({ wallet, transactions }) => {
   const [expandedTx, setExpandedTx] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [itemsToShow, setItemsToShow] = useState(50);
+  const itemsPerLoad = 50;
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleString();
@@ -45,6 +46,35 @@ const EnhancedTransactions: React.FC<EnhancedTransactionsProps> = ({ wallet, tra
     return false;
   });
 
+  // Get visible transactions
+  const visibleTransactions = filteredTransactions.slice(0, itemsToShow);
+
+  // Reset items when search changes
+  useEffect(() => {
+    setItemsToShow(50);
+  }, [searchQuery]);
+
+  // Handle scroll to load more
+  useEffect(() => {
+    const handleScroll = (e: Event) => {
+      const element = e.target as HTMLElement;
+      // Check if scrolled near bottom (within 100px)
+      if (element.scrollHeight - element.scrollTop <= element.clientHeight + 100) {
+        if (itemsToShow < filteredTransactions.length) {
+          setItemsToShow(prev => Math.min(prev + itemsPerLoad, filteredTransactions.length));
+        }
+      }
+    };
+
+    // Find the scrollable parent (main element with overflow-y-auto)
+    const scrollableParent = document.querySelector('main.overflow-y-auto');
+    if (scrollableParent) {
+      scrollableParent.addEventListener('scroll', handleScroll);
+      return () => scrollableParent.removeEventListener('scroll', handleScroll);
+    }
+    return undefined;
+  }, [itemsToShow, filteredTransactions.length]);
+
   return (
     <div>
       <div className="mb-2 border-b border-gray-300 pb-2 dark:border-gray-600">
@@ -69,7 +99,7 @@ const EnhancedTransactions: React.FC<EnhancedTransactionsProps> = ({ wallet, tra
             </button>
           </div>
         ) : (
-          filteredTransactions.map((tx, index) => (
+          visibleTransactions.map((tx, index) => (
             <div key={tx.hash || index} className="rounded-lg border border-gray-200 dark:border-gray-700">
               <div
                 className="cursor-pointer p-3 hover:bg-gray-50 dark:hover:bg-gray-800"
@@ -101,8 +131,22 @@ const EnhancedTransactions: React.FC<EnhancedTransactionsProps> = ({ wallet, tra
       {transactions.length === 0 && (
         <p className="mt-4 text-center text-sm text-gray-400">No transactions found for this wallet.</p>
       )}
+
+      {/* Show loading indicator or count */}
+      {filteredTransactions.length > 0 && (
+        <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+          {itemsToShow < filteredTransactions.length ? (
+            <div>
+              Showing {itemsToShow} of {filteredTransactions.length} transactions
+              <div className="mt-2 text-xs">Scroll down to load more</div>
+            </div>
+          ) : (
+            `All ${filteredTransactions.length} transactions loaded`
+          )}
+        </div>
+      )}
     </div>
   );
 };
 
-export default EnhancedTransactions;
+export default Transactions;

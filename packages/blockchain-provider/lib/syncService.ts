@@ -1,5 +1,5 @@
 import { transactionsStorage, type TransactionRecord, type UTXORecord } from '@extension/storage';
-import { getWalletUTXOs, getEnhancedTransactions, getTransactions, getWalletPaymentAddresses } from './provider';
+import { getWalletUTXOs, getTransactions, getWalletPaymentAddresses } from './provider';
 import type { Wallet } from '@extension/shared';
 
 export interface SyncOptions {

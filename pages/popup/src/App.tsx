@@ -129,8 +129,8 @@ function App() {
   return (
     <Router>
       <NavigationHandler />
-      <div className={isDark ? 'dark' : ''}>
-        <div className="App flex h-screen flex-col bg-slate-50 text-black dark:bg-gray-800 dark:text-white">
+      <div className={`${isDark ? 'dark' : ''} h-full`}>
+        <div className="App flex h-full flex-col bg-slate-50 text-black dark:bg-gray-800 dark:text-white">
           <Routes>
             {/* Initial Onboarding Flow */}
             <Route path="/onboarding" element={<OnboardingLayout />}>
