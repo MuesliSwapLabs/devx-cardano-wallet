@@ -349,7 +349,7 @@ const WalletView = () => {
         <div className="relative flex h-full flex-col">
           {/* Background sync indicator */}
           {syncPromise && (
-            <div className="fixed bottom-16 left-0 right-0 z-10 rounded-t-lg bg-blue-50 px-3 py-2 dark:bg-blue-900">
+            <div className="fixed inset-x-0 bottom-16 z-10 rounded-t-lg bg-blue-50 px-3 py-2 dark:bg-blue-900">
               <div className="flex items-center gap-2">
                 <div className="size-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
                 <div className="text-sm text-blue-700 dark:text-blue-300">
@@ -376,7 +376,7 @@ const WalletView = () => {
         <div className="relative flex h-full flex-col">
           {/* Background sync indicator */}
           {syncPromise && (
-            <div className="fixed bottom-16 left-0 right-0 z-10 rounded-t-lg bg-blue-50 px-3 py-2 dark:bg-blue-900">
+            <div className="fixed inset-x-0 bottom-16 z-10 rounded-t-lg bg-blue-50 px-3 py-2 dark:bg-blue-900">
               <div className="flex items-center gap-2">
                 <div className="size-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
                 <div className="text-sm text-blue-700 dark:text-blue-300">

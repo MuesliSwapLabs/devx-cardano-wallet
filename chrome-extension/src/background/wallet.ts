@@ -1,5 +1,6 @@
 import { walletsStorage, transactionsStorage, settingsStorage } from '@extension/storage';
 import { createNewWallet, importWallet, spoofWallet } from '@extension/wallet-manager';
+import { getWalletState } from '@extension/blockchain-provider';
 import { decrypt, encrypt } from '@extension/shared';
 import type { Wallet } from '@extension/shared';
 import type { Transaction, TransactionInput, TransactionOutput, UTXO } from '@extension/storage';
@@ -242,6 +243,44 @@ export const handleWalletMessages = async (
         } catch (error) {
           console.error('Failed to fetch UTXO details:', error);
           const errorMessage = error instanceof Error ? error.message : 'Failed to fetch UTXO details';
+          sendResponse({ success: false, error: errorMessage });
+        }
+        return true;
+      }
+
+      case 'REFRESH_WALLET_BALANCE': {
+        const { walletId } = message.payload;
+        const wallet = findWallet(walletId);
+        if (!wallet) {
+          sendResponse({ success: false, error: 'Wallet not found' });
+          return true;
+        }
+
+        try {
+          // Get fresh wallet state from blockchain
+          const state = await getWalletState(wallet);
+
+          if (state.status !== 'found') {
+            sendResponse({ success: false, error: 'Failed to fetch wallet state from blockchain' });
+            return true;
+          }
+
+          // Update wallet with fresh balance and assets
+          await walletsStorage.updateWallet(walletId, {
+            balance: state.balance,
+            assets: state.assets,
+          });
+
+          // Send back the updated data with timestamp
+          sendResponse({
+            success: true,
+            balance: state.balance,
+            assets: state.assets,
+            lastSynced: Date.now(),
+          });
+        } catch (error) {
+          console.error('Failed to refresh wallet balance:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Failed to refresh wallet balance';
           sendResponse({ success: false, error: errorMessage });
         }
         return true;

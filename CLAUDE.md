@@ -22,6 +22,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `pnpm e2e` - Run end-to-end tests (requires built extension)
 - `pnpm e2e:firefox` - Run e2e tests for Firefox
 - `./test.sh` - Test Blockfrost API connectivity (preprod network)
+- `./get_transactions.sh <address> [api_key]` - Fetch transaction data for testing with Blockfrost API
 
 **Cleaning:**
 - `pnpm clean:bundle` - Clean dist folders
@@ -43,6 +44,8 @@ This is a **Cardano wallet Chrome extension** built with React, TypeScript, and 
 - **Crypto Operations**: Uses `@scure/bip39` for mnemonic generation and `bip39` for wallet derivation
 - **Build System**: Turborepo + Vite for fast builds and hot reload
 - **UI**: React + TailwindCSS with dark/light theme support
+- **Form Handling**: Formik + Yup for form validation and management
+- **Extension APIs**: Comprehensive Chrome extension API integration with TypeScript support
 
 ### Project Structure
 
@@ -56,12 +59,23 @@ This is a **Cardano wallet Chrome extension** built with React, TypeScript, and 
 - `packages/blockchain-provider/` - Cardano blockchain interaction layer
 - `packages/shared/` - Common types, messaging system, and shared utilities
 - `packages/storage/` - Chrome storage API wrappers with React hooks
+- `packages/ui/` - Shared UI components and design system
+- `packages/hmr/` - Hot module replacement system for development
+- `packages/vite-config/` - Shared Vite configuration
+- `packages/tailwind-config/` - Shared Tailwind CSS configuration
+- `packages/tsconfig/` - TypeScript configuration presets
+- `packages/i18n/` - Internationalization and localization system
+- `packages/dev-utils/` - Development utilities and scripts
+- `packages/zipper/` - Extension packaging utilities
 
 **Additional Pages:**
 - `pages/content/` - Content scripts for web page interaction
+- `pages/content-runtime/` - Runtime content script helpers
 - `pages/devtools/` - Browser developer tools integration
+- `pages/devtools-panel/` - Developer tools panel implementation
 - `pages/options/` - Extension settings page
 - `pages/side-panel/` - Chrome side panel integration
+- `pages/new-tab/` - New tab page functionality
 
 ### Communication Architecture
 

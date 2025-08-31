@@ -123,7 +123,7 @@ export class WalletSyncService {
 
       if (newUTXOs.length > 0 || updatedUTXOs.length > 0) {
         const utxosToStore = [...newUTXOs, ...updatedUTXOs];
-        await transactionsStorage.storeUTXOs(walletId, utxosToStore, paymentAddresses);
+        await transactionsStorage.storeUTXOs(walletId, utxosToStore);
       }
 
       // Update sync timestamp
