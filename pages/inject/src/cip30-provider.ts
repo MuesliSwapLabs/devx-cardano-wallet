@@ -16,6 +16,7 @@ interface WalletAPI {
   getBalance(): Promise<string>;
   getName(): Promise<string>;
   getUsedAddresses(paginate?: Paginate): Promise<string[]>;
+  getRewardAddresses(): Promise<string[]>;
 }
 
 interface APIError {
@@ -222,10 +223,44 @@ class DevXWalletAPI implements WalletAPI {
     if (paginate) {
       console.warn('DevX CIP-30: getUsedAddresses called without pagination, returning all addresses');
     }
-    // Return hexcoded
-    return [
-      '10da9525463841173ad1230b1d5a1b5d0a3116bbdeb4412327148a1b7aaa23d5bda014a4c030ce1d576bc37f921ba9fdfcb932ff669f187103',
-    ]; // DevX does not track used addresses
+
+    try {
+      const response = await this.sendMessage({
+        type: 'CIP30_GET_USED_ADDRESSES',
+      });
+
+      if (response.success) {
+        return response.addresses || [];
+      } else {
+        throw new APIError(response.error.code, response.error.info);
+      }
+    } catch (error) {
+      console.error('DevX CIP-30: getUsedAddresses failed:', error);
+      throw {
+        code: -7,
+        info: 'Failed to get used addresses',
+      } as APIError;
+    }
+  }
+
+  async getRewardAddresses(): Promise<string[]> {
+    try {
+      const response = await this.sendMessage({
+        type: 'CIP30_GET_REWARD_ADDRESSES',
+      });
+
+      if (response.success) {
+        return response.rewardAddresses || [];
+      } else {
+        throw new APIError(response.error.code, response.error.info);
+      }
+    } catch (error) {
+      console.error('DevX CIP-30: getRewardAddresses failed:', error);
+      throw {
+        code: -6,
+        info: 'Failed to get reward addresses',
+      } as APIError;
+    }
   }
 
   private async sendMessage(message: any): Promise<any> {

@@ -204,6 +204,52 @@ export const handleCip30Messages = async (
         return true;
       }
 
+      case 'CIP30_GET_REWARD_ADDRESSES': {
+        // Get active wallet's reward addresses (stake address)
+        const currentWallet = await walletsStorage.getActiveWallet();
+
+        if (!currentWallet) {
+          sendResponse({
+            success: false,
+            error: { code: -6, info: 'No wallet available' },
+          });
+          return true;
+        }
+
+        console.log('CIP30_GET_REWARD_ADDRESSES: Using wallet:', currentWallet.name);
+        console.log('CIP30_GET_REWARD_ADDRESSES: Wallet stakeAddress:', currentWallet.stakeAddress);
+        console.log('CIP30_GET_REWARD_ADDRESSES: Full wallet object keys:', Object.keys(currentWallet));
+
+        // Return array containing the wallet's stake address
+        sendResponse({
+          success: true,
+          rewardAddresses: [currentWallet.stakeAddress],
+        });
+        return true;
+      }
+
+      case 'CIP30_GET_USED_ADDRESSES': {
+        // Get active wallet's used addresses (wallet address)
+        const currentWallet = await walletsStorage.getActiveWallet();
+
+        if (!currentWallet) {
+          sendResponse({
+            success: false,
+            error: { code: -7, info: 'No wallet available' },
+          });
+          return true;
+        }
+
+        console.log('CIP30_GET_USED_ADDRESSES: Using wallet:', currentWallet.name);
+
+        // Return array containing the wallet's address
+        sendResponse({
+          success: true,
+          addresses: [currentWallet.address],
+        });
+        return true;
+      }
+
       default:
         // Not a CIP-30 message, let other handlers deal with it
         return false;
