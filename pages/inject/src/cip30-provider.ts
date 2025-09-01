@@ -160,8 +160,29 @@ class DevXWalletAPI implements WalletAPI {
       });
 
       if (response.success) {
-        // Balance should be returned as CBOR hex string
-        return response.balance || '00'; // Empty balance if none
+        // Convert balance from lovelace string to CBOR
+        const balanceLovelace = response.balance; // This is a string of lovelaces
+
+        // Simple CBOR encoding for integer without WASM
+        // CBOR major type 0 (unsigned integer)
+        const balance = BigInt(balanceLovelace);
+
+        if (balance === BigInt(0)) {
+          return '00'; // CBOR encoding of 0
+        } else if (balance <= BigInt(23)) {
+          return balance.toString(16).padStart(2, '0'); // Direct encoding
+        } else if (balance <= BigInt(255)) {
+          return '18' + balance.toString(16).padStart(2, '0'); // 1-byte integer
+        } else if (balance <= BigInt(65535)) {
+          const hex = balance.toString(16).padStart(4, '0');
+          return '19' + hex; // 2-byte integer
+        } else if (balance <= BigInt(4294967295)) {
+          const hex = balance.toString(16).padStart(8, '0');
+          return '1a' + hex; // 4-byte integer
+        } else {
+          const hex = balance.toString(16).padStart(16, '0');
+          return '1b' + hex; // 8-byte integer
+        }
       } else {
         throw new APIError(response.error.code, response.error.info);
       }

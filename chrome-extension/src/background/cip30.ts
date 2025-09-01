@@ -151,12 +151,12 @@ export const handleCip30Messages = async (
 
           console.log('CIP30_GET_BALANCE: Wallet stored balance:', storedBalance);
 
-          // Parse balance string, removing commas, currency symbols, and whitespace
-          const cleanBalanceStr = storedBalance.replace(/[,\s₳]/g, '');
-          const balanceFloat = parseFloat(cleanBalanceStr);
+          // The stored balance is already in lovelaces from Blockfrost
+          // No need to multiply by 1,000,000 since it's not in ADA format
+          const balanceLovelace = parseInt(storedBalance);
 
-          if (isNaN(balanceFloat)) {
-            console.error('Could not parse balance:', storedBalance);
+          if (isNaN(balanceLovelace)) {
+            console.error('Could not parse balance as lovelaces:', storedBalance);
             sendResponse({
               success: false,
               error: { code: -4, info: 'Invalid balance format' },
@@ -164,23 +164,14 @@ export const handleCip30Messages = async (
             return true;
           }
 
-          // Convert to lovelace (1 ADA = 1,000,000 lovelace)
-          const balanceLovelace = Math.floor(balanceFloat * 1_000_000);
-
-          // Convert balance to CBOR hex format
-          const balanceHex = balanceLovelace.toString(16);
-
           console.log('Balance conversion:', {
             original: storedBalance,
-            cleaned: cleanBalanceStr,
-            float: balanceFloat,
             lovelace: balanceLovelace,
-            hex: balanceHex,
           });
 
           sendResponse({
             success: true,
-            balance: balanceHex,
+            balance: balanceLovelace.toString(),
           });
         } catch (error) {
           console.error('Error getting balance:', error);

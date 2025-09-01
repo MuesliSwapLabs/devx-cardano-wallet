@@ -128,7 +128,11 @@ function MainLayout() {
                   </button>
                 </div>
                 <p className="text-2xl font-bold">
-                  {(parseInt(currentWallet?.balance || '0') / 1_000_000).toLocaleString()} ₳
+                  {(parseInt(currentWallet?.balance || '0') / 1_000_000).toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 6,
+                  })}{' '}
+                  ₳
                 </p>
                 <div className="mt-1 text-xs text-gray-400">
                   {isRefreshing ? (
