@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Wallet } from '@extension/shared';
+import { TruncateWithCopy } from '@extension/shared';
 import type { TransactionRecord } from '@extension/storage';
 
 interface TransactionDetailProps {
@@ -16,28 +17,6 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
   const [showReferences, setShowReferences] = useState(false);
   const [showCollaterals, setShowCollaterals] = useState(false);
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch (err) {
-      console.error('Failed to copy text: ', err);
-    }
-  };
-
-  const truncateWithCopy = (text: string, startChars: number = 8, endChars: number = 4) => (
-    <div className="flex items-center gap-2">
-      <span className="font-mono text-xs">
-        {text.slice(0, startChars)}...{text.slice(-endChars)}
-      </span>
-      <button
-        onClick={() => copyToClipboard(text)}
-        className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-        title="Copy full text">
-        📋
-      </button>
-    </div>
-  );
-
   return (
     <div className="border-t border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
       {/* General Info Section */}
@@ -46,7 +25,7 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
         <div className="grid grid-cols-1 gap-2 text-xs">
           <div className="flex items-center justify-between">
             <strong>Hash:</strong>
-            {truncateWithCopy(tx.hash, 16, 8)}
+            <TruncateWithCopy text={tx.hash} maxChars={16} />
           </div>
           <div className="flex justify-between">
             <strong>Time:</strong>
@@ -207,17 +186,7 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
                   <div key={idx} className="rounded border border-gray-200 p-3 dark:border-gray-700">
                     {/* Address and tags */}
                     <div className="mb-2 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm">
-                          {input.address.slice(0, 12)}...{input.address.slice(-6)}
-                        </span>
-                        <button
-                          onClick={() => copyToClipboard(input.address)}
-                          className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                          title="Copy address">
-                          📋
-                        </button>
-                      </div>
+                      <TruncateWithCopy text={input.address} maxChars={16} />
                       <div className="flex items-center gap-1">
                         {showCollaterals && (input as any).collateral && (
                           <span className="rounded bg-orange-100 px-2 py-1 text-xs text-orange-800 dark:bg-orange-900 dark:text-orange-200">
@@ -336,17 +305,7 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
                   <div key={idx} className="rounded border border-gray-200 p-3 dark:border-gray-700">
                     {/* Address and tags */}
                     <div className="mb-2 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm">
-                          {output.address.slice(0, 12)}...{output.address.slice(-6)}
-                        </span>
-                        <button
-                          onClick={() => copyToClipboard(output.address)}
-                          className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                          title="Copy address">
-                          📋
-                        </button>
-                      </div>
+                      <TruncateWithCopy text={output.address} maxChars={16} />
                       <div className="flex items-center gap-1">
                         {showCollaterals && (output as any).collateral && (
                           <span className="rounded bg-orange-100 px-2 py-1 text-xs text-orange-800 dark:bg-orange-900 dark:text-orange-200">
@@ -388,35 +347,28 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
                         </div>
                         {(output as any).data_hash && (
                           <div className="text-xs">
-                            <strong>Data Hash:</strong> {(output as any).data_hash.slice(0, 12)}...
-                            <button
-                              onClick={() => copyToClipboard((output as any).data_hash)}
-                              className="ml-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                              title="Copy data hash">
-                              📋
-                            </button>
+                            <strong>Data Hash:</strong>{' '}
+                            <TruncateWithCopy text={(output as any).data_hash} maxChars={12} className="inline-flex" />
                           </div>
                         )}
                         {(output as any).inline_datum && (
                           <div className="text-xs">
-                            <strong>Inline Datum:</strong> {(output as any).inline_datum.slice(0, 20)}...
-                            <button
-                              onClick={() => copyToClipboard((output as any).inline_datum)}
-                              className="ml-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                              title="Copy inline datum">
-                              📋
-                            </button>
+                            <strong>Inline Datum:</strong>{' '}
+                            <TruncateWithCopy
+                              text={(output as any).inline_datum}
+                              maxChars={20}
+                              className="inline-flex"
+                            />
                           </div>
                         )}
                         {(output as any).reference_script_hash && (
                           <div className="text-xs">
-                            <strong>Reference Script:</strong> {(output as any).reference_script_hash.slice(0, 12)}...
-                            <button
-                              onClick={() => copyToClipboard((output as any).reference_script_hash)}
-                              className="ml-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                              title="Copy reference script hash">
-                              📋
-                            </button>
+                            <strong>Reference Script:</strong>{' '}
+                            <TruncateWithCopy
+                              text={(output as any).reference_script_hash}
+                              maxChars={12}
+                              className="inline-flex"
+                            />
                           </div>
                         )}
                       </div>

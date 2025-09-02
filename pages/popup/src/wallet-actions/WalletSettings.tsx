@@ -6,6 +6,7 @@ import * as Yup from 'yup';
 import FloatingLabelInput from '../components/FloatingLabelInput';
 import { PrimaryButton, SecondaryButton } from '@src/components/buttons';
 import type { Wallet } from '@extension/shared';
+import { TruncateWithCopy } from '@extension/shared';
 
 // Define the possible views for this component
 type View = 'menu' | 'rename' | 'change-password' | 'add-password' | 'reveal-seed';
@@ -309,32 +310,10 @@ const WalletSettings = () => {
     }
   };
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch (err) {
-      console.error('Failed to copy text: ', err);
-    }
-  };
-
-  const truncateWithCopy = (text: string, startChars: number = 8, endChars: number = 4) => (
-    <div className="flex items-center gap-2">
-      <span className="font-mono text-xs">
-        {text.slice(0, startChars)}...{text.slice(-endChars)}
-      </span>
-      <button
-        onClick={() => copyToClipboard(text)}
-        className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-        title="Copy full text">
-        📋
-      </button>
-    </div>
-  );
-
   return (
     <div className="flex h-full flex-col">
-      Address: {truncateWithCopy(currentWallet.address, 16, 8)}
-      Stake: {truncateWithCopy(currentWallet.stakeAddress, 16, 8)}
+      Address: <TruncateWithCopy text={currentWallet.address} maxChars={16} />
+      Stake: <TruncateWithCopy text={currentWallet.stakeAddress} maxChars={16} />
       {renderContent()}
     </div>
   );
