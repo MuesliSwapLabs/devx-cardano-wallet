@@ -1,4 +1,5 @@
 import { Messaging } from '@extension/shared';
+import { cborConverter } from './cbor-converter';
 
 // CIP30 Injection
 const injectScript = () => {
@@ -16,6 +17,11 @@ console.log('Creating CIP30 listener');
 const app = Messaging.createBackgroundController();
 app.listen();
 
+// Initialize CBOR converter
+cborConverter.initialize().catch(error => {
+  console.error('Failed to initialize CBOR converter:', error);
+});
+
 // Listen for messages from inject script (page context)
 window.addEventListener('message', async event => {
   // Only accept messages from same window
@@ -29,6 +35,19 @@ window.addEventListener('message', async event => {
   try {
     // Forward message to background script
     const response = await chrome.runtime.sendMessage(message);
+
+    // Handle UTXO responses with CBOR encoding
+    if (message.type === 'CIP30_GET_UTXOS' && response.success && response.utxos && Array.isArray(response.utxos)) {
+      try {
+        console.log('Content Script: Converting UTXOs to CBOR');
+        const cborUtxos = cborConverter.convertUtxosToCbor(response.utxos);
+        response.utxos = cborUtxos;
+        console.log('Content Script: CBOR conversion successful, converted', cborUtxos.length, 'UTXOs');
+      } catch (cborError) {
+        console.error('Content Script: CBOR conversion failed:', cborError);
+        // Fall back to original response if CBOR conversion fails
+      }
+    }
 
     // Send response back to inject script
     window.postMessage(

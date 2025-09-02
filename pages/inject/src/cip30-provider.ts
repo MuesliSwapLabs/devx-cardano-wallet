@@ -12,7 +12,7 @@ interface CIP30API {
 
 interface WalletAPI {
   getNetworkId(): Promise<number>;
-  getUtxos(): Promise<string[]>;
+  getUtxos(amount?: string, paginate?: Paginate): Promise<string[] | null>;
   getBalance(): Promise<string>;
   getName(): Promise<string>;
   getUsedAddresses(paginate?: Paginate): Promise<string[]>;
@@ -133,25 +133,66 @@ class DevXWalletAPI implements WalletAPI {
     }
   }
 
-  async getUtxos(): Promise<string[]> {
+  async getUtxos(amount?: string, paginate?: Paginate): Promise<string[] | null> {
     try {
+      // Decode CBOR amount if provided
+      let decodedAmount: string | undefined;
+      if (amount) {
+        // Simple CBOR decoding for integer values (reverse of our encoding in getBalance)
+        // This is a simplified decoder - in a real implementation you'd use a proper CBOR library
+        decodedAmount = this.decodeCborAmount(amount);
+      }
+
       const response = await this.sendMessage({
         type: 'CIP30_GET_UTXOS',
+        payload: {
+          amount: decodedAmount,
+          paginate,
+        },
       });
 
       if (response.success) {
-        // UTXOs should be returned as CBOR hex strings
+        // Handle null response when coin selection fails
+        if (response.utxos === null) {
+          return null;
+        }
+
+        // UTXOs are already converted to CBOR by the content script
         return response.utxos || [];
       } else {
         throw new APIError(response.error.code, response.error.info);
       }
     } catch (error) {
       console.error('DevX CIP-30: getUtxos failed:', error);
+      console.error('DevX CIP-30: getUtxos error details:', error.message || error);
       throw {
         code: -3,
         info: 'Failed to get UTXOs',
       } as APIError;
     }
+  }
+
+  // Simple CBOR amount decoder (reverse of encoding in getBalance)
+  private decodeCborAmount(cborHex: string): string {
+    // This is a simplified decoder for demonstration
+    // In practice, you'd use a proper CBOR library
+    if (cborHex === '00') return '0';
+
+    const firstByte = parseInt(cborHex.slice(0, 2), 16);
+
+    if (firstByte <= 23) {
+      return firstByte.toString();
+    } else if (firstByte === 0x18) {
+      return parseInt(cborHex.slice(2, 4), 16).toString();
+    } else if (firstByte === 0x19) {
+      return parseInt(cborHex.slice(2, 6), 16).toString();
+    } else if (firstByte === 0x1a) {
+      return parseInt(cborHex.slice(2, 10), 16).toString();
+    } else if (firstByte === 0x1b) {
+      return BigInt('0x' + cborHex.slice(2, 18)).toString();
+    }
+
+    throw new Error('Unsupported CBOR encoding');
   }
 
   async getBalance(): Promise<string> {

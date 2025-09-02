@@ -1,4 +1,4 @@
-import { walletsStorage } from '@extension/storage';
+import { walletsStorage, transactionsStorage } from '@extension/storage';
 
 // CIP-30 Permission Storage (in-memory for now)
 const dappPermissions = new Map<string, { origin: string; approved: boolean; timestamp: number }>();
@@ -122,11 +122,88 @@ export const handleCip30Messages = async (
 
         console.log('CIP30_GET_UTXOS: Using wallet:', currentWallet.name);
 
-        // For now, return empty UTXOs (would need proper UTXO management)
-        sendResponse({
-          success: true,
-          utxos: [], // TODO: Implement actual UTXO retrieval
-        });
+        try {
+          console.log('CIP30_GET_UTXOS: Getting UTXOs for wallet:', currentWallet.id);
+          const unspentUTXOs = await transactionsStorage.getWalletUnspentUTXOs(currentWallet.id);
+          console.log('CIP30_GET_UTXOS: UTXOs retrieved successfully');
+
+          console.log('CIP30_GET_UTXOS: Found UTXOs:', unspentUTXOs.length);
+          console.log('CIP30_GET_UTXOS: First UTXO sample:', unspentUTXOs[0]);
+
+          const { amount, paginate } = message.payload || {};
+          console.log('CIP30_GET_UTXOS: Request params:', { amount, paginate });
+
+          // If amount is specified, implement coin selection
+          if (amount) {
+            const targetAmount = BigInt(amount); // CBOR-decoded amount in lovelace
+
+            // Filter out UTXOs containing NFTs (assets with quantity < 10)
+            const candidateUTXOs = unspentUTXOs.filter(utxo => {
+              // Check if any non-ADA assets have quantity < 10 (likely NFTs)
+              const hasNFTs = utxo.amount.some(asset => {
+                if (asset.unit === 'lovelace') return false; // Skip ADA
+                return BigInt(asset.quantity) < BigInt(10); // < 10 = likely NFT
+              });
+
+              return !hasNFTs; // Only include UTXOs without NFTs
+            });
+
+            console.log('CIP30_GET_UTXOS: After NFT filtering:', candidateUTXOs.length);
+
+            // Sort by ADA value descending (largest first)
+            candidateUTXOs.sort((a, b) => {
+              const aAmount = BigInt(a.amount.find(amt => amt.unit === 'lovelace')?.quantity || '0');
+              const bAmount = BigInt(b.amount.find(amt => amt.unit === 'lovelace')?.quantity || '0');
+              return aAmount > bAmount ? -1 : aAmount < bAmount ? 1 : 0;
+            });
+
+            // Simple greedy coin selection algorithm
+            const selectedUTXOs = [];
+            let totalSelected = BigInt(0);
+
+            for (const utxo of candidateUTXOs) {
+              const adaAmount = BigInt(utxo.amount.find(amt => amt.unit === 'lovelace')?.quantity || '0');
+              selectedUTXOs.push(utxo);
+              totalSelected += adaAmount;
+
+              if (totalSelected >= targetAmount) {
+                break;
+              }
+            }
+
+            console.log('CIP30_GET_UTXOS: Selected UTXOs:', selectedUTXOs.length, 'Total:', totalSelected.toString());
+
+            // If we couldn't reach the target amount, return null
+            if (totalSelected < targetAmount) {
+              sendResponse({
+                success: true,
+                utxos: null,
+              });
+              return true;
+            }
+
+            // Return selected UTXOs (need to convert to CBOR format)
+            sendResponse({
+              success: true,
+              utxos: selectedUTXOs,
+            });
+          } else {
+            // Return all unspent UTXOs (need to convert to CBOR format)
+            console.log('CIP30_GET_UTXOS: Returning all UTXOs:', unspentUTXOs.length);
+            sendResponse({
+              success: true,
+              utxos: unspentUTXOs,
+            });
+          }
+        } catch (error) {
+          console.error('CIP30_GET_UTXOS: Error retrieving UTXOs:', error);
+          console.error('CIP30_GET_UTXOS: Error stack:', error.stack);
+          console.error('CIP30_GET_UTXOS: Error message:', error.message);
+          sendResponse({
+            success: false,
+            error: { code: -2, info: `Failed to retrieve UTXOs: ${error.message}` },
+          });
+        }
         return true;
       }
 

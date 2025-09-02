@@ -50,7 +50,7 @@ const manifest = deepmerge(
     content_scripts: [
       {
         matches: ['http://*/*', 'https://*/*', '<all_urls>'],
-        js: ['content/index.iife.js'],
+        js: ['content/index.mjs'],
         run_at: 'document_start',
       },
       {
