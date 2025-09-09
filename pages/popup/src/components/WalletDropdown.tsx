@@ -98,9 +98,7 @@ function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps
           {/* Mainnet Section */}
           <div className="flex items-center py-1">
             <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
-            <span
-              className="px-2 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400"
-              style={{ fontSize: '10px' }}>
+            <span className="px-2 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
               mainnet
             </span>
             <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
@@ -122,7 +120,7 @@ function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps
                   {/* Settings button */}
                   <button
                     onClick={e => handleSettingsClick(e, wallet.id)}
-                    className="p-1 text-gray-500 hover:text-gray-700">
+                    className="p-1 text-gray-500 hover:text-white">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       className="size-4"
@@ -133,7 +131,13 @@ function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M12 5v.01M12 12v.01M12 19v.01"
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
                       />
                     </svg>
                   </button>
@@ -141,15 +145,15 @@ function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps
               </div>
             ))
           ) : (
-            <div className="px-3 py-2 text-sm italic text-gray-500 dark:text-gray-400">No wallets in this network</div>
+            <div className="px-3 py-2 text-xs italic text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+              No wallets in this network
+            </div>
           )}
 
           {/* Preprod Section */}
           <div className="flex items-center py-1">
             <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
-            <span
-              className="px-2 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400"
-              style={{ fontSize: '10px' }}>
+            <span className="px-2 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
               preprod
             </span>
             <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
@@ -171,7 +175,7 @@ function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps
                   {/* Settings button */}
                   <button
                     onClick={e => handleSettingsClick(e, wallet.id)}
-                    className="p-1 text-gray-200 hover:text-gray-700">
+                    className="p-1 text-gray-500 hover:text-white">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       className="size-4"
@@ -182,7 +186,13 @@ function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M12 5v.01M12 12v.01M12 19v.01"
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
                       />
                     </svg>
                   </button>
@@ -190,7 +200,9 @@ function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps
               </div>
             ))
           ) : (
-            <div className="px-3 py-2 text-sm italic text-gray-500 dark:text-gray-400">No wallets in this network</div>
+            <div className="px-3 py-2 text-xs italic text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+              No wallets in this network
+            </div>
           )}
 
           <div className="border-t border-gray-200 dark:border-gray-600"></div>

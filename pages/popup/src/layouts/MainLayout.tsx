@@ -155,8 +155,12 @@ function MainLayout() {
                 </div>
               ) : (
                 <div className="flex justify-center space-x-4">
-                  <PrimaryButton className="flex-1">Send</PrimaryButton>
-                  <SecondaryButton className="flex-1">Receive</SecondaryButton>
+                  <SecondaryButton className="flex-1" onClick={() => alert('Send not implemented yet')}>
+                    Send
+                  </SecondaryButton>
+                  <SecondaryButton className="flex-1" onClick={() => alert('Receive not implemented yet')}>
+                    Receive
+                  </SecondaryButton>
                 </div>
               )}
             </div>
