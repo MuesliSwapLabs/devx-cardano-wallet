@@ -5,9 +5,9 @@ A **developer-focused** Cardano wallet browser extension designed for dApp devel
 ⚠️ **This wallet is for development purposes only. Do not use with real funds or for production transactions.**
 
 <p align="center">
-  <img src="screenshots/Tokens.png" width="300" alt="Tokens View" />
-  <img src="screenshots/Transactions_Overview.png" width="300" alt="Transactions Overview" />
-  <img src="screenshots/UTXOs_Overview.png" width="300" alt="UTXOs Overview" />
+  <img src="screenshots/Tokens.png" style="width: 30%; min-width: 250px; max-width: 300px;" alt="Tokens View" />
+  <img src="screenshots/Transactions_Overview.png" style="width: 30%; min-width: 250px; max-width: 300px;" alt="Transactions Overview" />
+  <img src="screenshots/UTXOs_Overview.png" style="width: 30%; min-width: 250px; max-width: 300px;" alt="UTXOs Overview" />
 </p>
 
 ## Features
