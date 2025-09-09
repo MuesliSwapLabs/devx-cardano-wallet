@@ -260,12 +260,17 @@ export const handleWalletMessages = async (
           // Get fresh wallet state from blockchain
           const state = await getWalletState(wallet);
 
-          if (state.status !== 'found') {
-            sendResponse({ success: false, error: 'Failed to fetch wallet state from blockchain' });
+          // Handle different wallet states:
+          // - 'found': wallet exists on blockchain with transactions
+          // - 'not_found': new wallet that hasn't received any transactions yet (normal for new wallets)
+          // - 'invalid_address': address format is invalid
+          if (state.status === 'invalid_address') {
+            sendResponse({ success: false, error: 'Invalid wallet address format' });
             return true;
           }
 
-          // Update wallet with fresh balance and assets
+          // For both 'found' and 'not_found' wallets, we can update with the state
+          // 'not_found' wallets will have balance: '0' and assets: [] which is correct for new wallets
           await walletsStorage.updateWallet(walletId, {
             balance: state.balance,
             assets: state.assets,
@@ -277,6 +282,7 @@ export const handleWalletMessages = async (
             balance: state.balance,
             assets: state.assets,
             lastSynced: Date.now(),
+            walletFound: state.status === 'found', // Additional info for UI to know if wallet exists on chain
           });
         } catch (error) {
           console.error('Failed to refresh wallet balance:', error);

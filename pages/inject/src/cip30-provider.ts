@@ -16,7 +16,9 @@ interface WalletAPI {
   getBalance(): Promise<string>;
   getName(): Promise<string>;
   getUsedAddresses(paginate?: Paginate): Promise<string[]>;
+  getUnusedAddresses(paginate?: Paginate): Promise<string[]>;
   getRewardAddresses(): Promise<string[]>;
+  getChangeAddress(): Promise<string>;
 }
 
 interface APIError {
@@ -284,6 +286,33 @@ class DevXWalletAPI implements WalletAPI {
     }
   }
 
+  // api.getUnusedAddresses(paginate: Paginate = undefined): Promise<Address[]>
+  // ignore Paginate
+  async getUnusedAddresses(paginate: Paginate = undefined): Promise<string[]> {
+    // handle Paginate not undefined
+    if (paginate) {
+      console.warn('DevX CIP-30: getUnusedAddresses called with pagination, returning all addresses');
+    }
+
+    try {
+      const response = await this.sendMessage({
+        type: 'CIP30_GET_UNUSED_ADDRESSES',
+      });
+
+      if (response.success) {
+        return response.addresses || [];
+      } else {
+        throw new APIError(response.error.code, response.error.info);
+      }
+    } catch (error) {
+      console.error('DevX CIP-30: getUnusedAddresses failed:', error);
+      throw {
+        code: -7,
+        info: 'Failed to get unused addresses',
+      } as APIError;
+    }
+  }
+
   async getRewardAddresses(): Promise<string[]> {
     try {
       const response = await this.sendMessage({
@@ -300,6 +329,26 @@ class DevXWalletAPI implements WalletAPI {
       throw {
         code: -6,
         info: 'Failed to get reward addresses',
+      } as APIError;
+    }
+  }
+
+  async getChangeAddress(): Promise<string> {
+    try {
+      const response = await this.sendMessage({
+        type: 'CIP30_GET_CHANGE_ADDRESS',
+      });
+
+      if (response.success) {
+        return response.address;
+      } else {
+        throw new APIError(response.error.code, response.error.info);
+      }
+    } catch (error) {
+      console.error('DevX CIP-30: getChangeAddress failed:', error);
+      throw {
+        code: -8,
+        info: 'Failed to get change address',
       } as APIError;
     }
   }

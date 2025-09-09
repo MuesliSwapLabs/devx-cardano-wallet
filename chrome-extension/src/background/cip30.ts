@@ -328,6 +328,62 @@ export const handleCip30Messages = async (
         return true;
       }
 
+      case 'CIP30_GET_UNUSED_ADDRESSES': {
+        // Get active wallet's unused addresses
+        const currentWallet = await walletsStorage.getActiveWallet();
+
+        if (!currentWallet) {
+          sendResponse({
+            success: false,
+            error: { code: -7, info: 'No wallet available' },
+          });
+          return true;
+        }
+
+        console.log('CIP30_GET_UNUSED_ADDRESSES: Using wallet:', currentWallet.name);
+
+        // Simple implementation based on wallet type:
+        // - If spoofed wallet: return empty list
+        // - If imported/created wallet: return wallet address
+        let unusedAddresses: string[] = [];
+
+        if (currentWallet.type === 'SPOOFED') {
+          // Spoofed wallets return empty list
+          unusedAddresses = [];
+        } else {
+          // For imported/created wallets, return the wallet's address
+          unusedAddresses = [currentWallet.address];
+        }
+
+        sendResponse({
+          success: true,
+          addresses: unusedAddresses,
+        });
+        return true;
+      }
+
+      case 'CIP30_GET_CHANGE_ADDRESS': {
+        // Get active wallet's change address (just return the wallet address)
+        const currentWallet = await walletsStorage.getActiveWallet();
+
+        if (!currentWallet) {
+          sendResponse({
+            success: false,
+            error: { code: -8, info: 'No wallet available' },
+          });
+          return true;
+        }
+
+        console.log('CIP30_GET_CHANGE_ADDRESS: Using wallet:', currentWallet.name);
+
+        // Simple implementation: return wallet's address as change address
+        sendResponse({
+          success: true,
+          address: currentWallet.address,
+        });
+        return true;
+      }
+
       default:
         // Not a CIP-30 message, let other handlers deal with it
         return false;
