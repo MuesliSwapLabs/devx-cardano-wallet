@@ -197,14 +197,6 @@ const UTXODetail: React.FC = () => {
                 because it was either an input to a transaction that involved your wallet, or an output that went to an
                 external address.
               </div>
-              {utxo.ownerAddress && (
-                <div>
-                  <strong className="text-orange-700 dark:text-orange-300">Owner Address:</strong>
-                  <div className="mt-1 break-all rounded border border-orange-200 bg-white p-2 font-mono text-xs dark:border-orange-600 dark:bg-gray-900">
-                    {utxo.ownerAddress}
-                  </div>
-                </div>
-              )}
               <div className="text-xs italic text-orange-700 dark:text-orange-400">
                 External UTXOs are tracked for transaction completeness but do not belong to your wallet.
               </div>

@@ -1,6 +1,5 @@
 import { resolve } from 'node:path';
-import { makeEntryPointPlugin } from '@extension/hmr';
-import { isDev, withPageConfig } from '@extension/vite-config';
+import { withPageConfig } from '@extension/vite-config';
 import wasm from 'vite-plugin-wasm';
 
 const rootDir = resolve(__dirname);
@@ -14,7 +13,7 @@ export default withPageConfig({
     },
   },
   publicDir: resolve(rootDir, 'public'),
-  plugins: [wasm(), isDev && makeEntryPointPlugin()].filter(Boolean),
+  plugins: [wasm()],
   build: {
     target: 'es2022',
     lib: {

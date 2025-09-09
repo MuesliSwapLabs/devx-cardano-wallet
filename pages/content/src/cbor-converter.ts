@@ -1,6 +1,21 @@
 // CBOR converter for UTXOs using Cardano WASM
 import { CardanoLoader } from '../../popup/src/utils/cardano_loader';
 
+// Helper functions for hex conversion (browser-compatible)
+const hexToBytes = (hex: string): Uint8Array => {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+  }
+  return bytes;
+};
+
+const bytesToHex = (bytes: Uint8Array): string => {
+  return Array.from(bytes)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+};
+
 export class CBORConverter {
   private initialized = false;
 
@@ -74,7 +89,7 @@ export class CBORConverter {
             const assetsMap = wasm.Assets.new();
 
             assets.forEach(asset => {
-              const assetName = wasm.AssetName.new(Buffer.from(asset.name, 'hex'));
+              const assetName = wasm.AssetName.new(hexToBytes(asset.name));
               const assetValue = wasm.BigNum.from_str(asset.quantity);
               assetsMap.insert(assetName, assetValue);
             });
@@ -108,7 +123,7 @@ export class CBORConverter {
         const unspentOutput = wasm.TransactionUnspentOutput.new(input, output);
 
         // Convert to CBOR hex
-        const cborHex = Buffer.from(unspentOutput.to_bytes()).toString('hex');
+        const cborHex = bytesToHex(unspentOutput.to_bytes());
 
         console.log('CBOR Converter: Converted UTXO to CBOR:', {
           utxoId: `${utxo.tx_hash}:${utxo.output_index}`,

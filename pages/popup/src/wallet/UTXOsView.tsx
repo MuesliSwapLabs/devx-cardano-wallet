@@ -24,14 +24,14 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos }) => {
   };
 
   const filteredUtxos = utxos.filter(utxo => {
-    // First apply the spent/unspent filter
+    // First apply the spent/unspent/external filter
     let passesSpentFilter = true;
     switch (filter) {
       case 'unspent':
-        passesSpentFilter = !utxo.isSpent;
+        passesSpentFilter = !utxo.isSpent && !utxo.isExternal;
         break;
       case 'spent':
-        passesSpentFilter = utxo.isSpent;
+        passesSpentFilter = utxo.isSpent && !utxo.isExternal;
         break;
       case 'external':
         passesSpentFilter = utxo.isExternal === true;
@@ -94,15 +94,16 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos }) => {
       scrollableParent.addEventListener('scroll', handleScroll);
       return () => scrollableParent.removeEventListener('scroll', handleScroll);
     }
+    return undefined;
   }, [itemsToShow, filteredUtxos.length]);
 
   const stats = {
     total: utxos.length,
-    unspent: utxos.filter(u => !u.isSpent).length,
-    spent: utxos.filter(u => u.isSpent).length,
+    unspent: utxos.filter(u => !u.isSpent && !u.isExternal).length,
+    spent: utxos.filter(u => u.isSpent && !u.isExternal).length,
     external: utxos.filter(u => u.isExternal === true).length,
     totalValue: utxos
-      .filter(u => !u.isSpent)
+      .filter(u => !u.isSpent && !u.isExternal)
       .reduce((sum, utxo) => {
         const adaAmount = utxo.amount.find(a => a.unit === 'lovelace');
         return sum + (adaAmount ? parseInt(adaAmount.quantity) : 0);
@@ -125,7 +126,7 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos }) => {
       </div>
 
       {/* Filter Tabs */}
-      <div className="mb-4 grid grid-cols-2 gap-1 rounded bg-gray-100 p-1 dark:bg-gray-800">
+      <div className="mb-4 grid grid-cols-4 gap-1 rounded bg-gray-100 p-1 dark:bg-gray-800">
         <button
           onClick={() => setFilter('unspent')}
           className={`rounded px-2 py-1 text-xs transition ${
@@ -288,11 +289,6 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos }) => {
                           <div className="mt-1 text-xs text-orange-700 dark:text-orange-300">
                             This UTXO belongs to an external address, not your wallet.
                           </div>
-                          {utxo.ownerAddress && (
-                            <div className="mt-1 text-xs text-orange-700 dark:text-orange-300">
-                              <strong>Owner:</strong> <span className="break-all font-mono">{utxo.ownerAddress}</span>
-                            </div>
-                          )}
                         </div>
                       )}
 

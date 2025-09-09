@@ -30,7 +30,7 @@ export const TruncateWithCopy: React.FC<TruncateWithCopyProps> = ({ text, maxCha
       <span className="font-mono text-xs">{truncatedText}</span>
       <button
         onClick={copyToClipboard}
-        className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+        className="text-xs text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
         title="Copy full text"
         aria-label="Copy to clipboard">
         <svg
@@ -47,7 +47,7 @@ export const TruncateWithCopy: React.FC<TruncateWithCopyProps> = ({ text, maxCha
         </svg>
       </button>
       {showCopied && (
-        <div className="absolute top-full left-0 mt-1 px-2 py-1 text-xs text-green-600 dark:text-green-400 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded shadow-sm animate-pulse z-10">
+        <div className="absolute left-0 top-full z-10 mt-1 animate-pulse rounded border border-gray-200 bg-white px-2 py-1 text-xs text-green-600 shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:text-green-400">
           Copied!
         </div>
       )}

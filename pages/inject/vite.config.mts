@@ -12,7 +12,7 @@ export default withPageConfig({
     },
   },
   publicDir: resolve(rootDir, 'public'),
-  plugins: [isDev && makeEntryPointPlugin()],
+  plugins: [],
   build: {
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),

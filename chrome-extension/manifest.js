@@ -63,6 +63,7 @@ const manifest = deepmerge(
       {
         resources: [
           '*.js',
+          '*.mjs',
           '*.css',
           '*.svg',
           '*.wasm',

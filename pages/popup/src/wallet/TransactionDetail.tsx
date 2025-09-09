@@ -56,13 +56,13 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
           <div className="flex justify-between">
             <div className="flex items-center gap-1">
               <strong>Index:</strong>
-              <div className="relative group">
-                <span className="inline-block w-3 h-3 text-xs leading-3 text-center text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-700 rounded-full cursor-help select-none">
+              <div className="group relative">
+                <span className="inline-block size-3 cursor-help select-none rounded-full bg-gray-200 text-center text-xs leading-3 text-gray-500 dark:bg-gray-700 dark:text-gray-400">
                   ?
                 </span>
-                <div className="absolute top-full left-0 mt-1 px-2 py-1 text-xs text-white bg-gray-800 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                <div className="pointer-events-none absolute left-0 top-full z-10 mt-1 whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity duration-200 group-hover:opacity-100">
                   Position of this transaction within its block (0-based)
-                  <div className="absolute bottom-full left-2 w-0 h-0 border-l-2 border-r-2 border-b-2 border-transparent border-b-gray-800"></div>
+                  <div className="absolute bottom-full left-2 size-0 border-x-2 border-b-2 border-transparent border-b-gray-800"></div>
                 </div>
               </div>
             </div>

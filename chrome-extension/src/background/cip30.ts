@@ -150,11 +150,11 @@ export const handleCip30Messages = async (
 
             console.log('CIP30_GET_UTXOS: After NFT filtering:', candidateUTXOs.length);
 
-            // Sort by ADA value descending (largest first)
+            // Sort by ADA value ascending (smallest first)
             candidateUTXOs.sort((a, b) => {
               const aAmount = BigInt(a.amount.find(amt => amt.unit === 'lovelace')?.quantity || '0');
               const bAmount = BigInt(b.amount.find(amt => amt.unit === 'lovelace')?.quantity || '0');
-              return aAmount > bAmount ? -1 : aAmount < bAmount ? 1 : 0;
+              return aAmount < bAmount ? -1 : aAmount > bAmount ? 1 : 0;
             });
 
             // Simple greedy coin selection algorithm
@@ -197,11 +197,12 @@ export const handleCip30Messages = async (
           }
         } catch (error) {
           console.error('CIP30_GET_UTXOS: Error retrieving UTXOs:', error);
-          console.error('CIP30_GET_UTXOS: Error stack:', error.stack);
-          console.error('CIP30_GET_UTXOS: Error message:', error.message);
+          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+          console.error('CIP30_GET_UTXOS: Error stack:', error instanceof Error ? error.stack : 'No stack');
+          console.error('CIP30_GET_UTXOS: Error message:', errorMsg);
           sendResponse({
             success: false,
-            error: { code: -2, info: `Failed to retrieve UTXOs: ${error.message}` },
+            error: { code: -2, info: `Failed to retrieve UTXOs: ${errorMsg}` },
           });
         }
         return true;

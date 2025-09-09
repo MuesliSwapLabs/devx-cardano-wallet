@@ -189,6 +189,7 @@ const WalletView = () => {
   const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0, message: '' });
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [utxos, setUTXOs] = useState<UTXORecord[]>([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const walletsData = useStorage(walletsStorage);
   const wallets = walletsData?.wallets || [];
   const wallet = wallets.find((w: Wallet) => w.id === walletId);
@@ -203,7 +204,7 @@ const WalletView = () => {
       // Then sync in the background
       syncTransactions();
     }
-  }, [wallet?.id, view]);
+  }, [wallet?.id, view, refreshTrigger]);
 
   // Listen for sync progress updates
   useEffect(() => {
@@ -236,6 +237,8 @@ const WalletView = () => {
   const syncTransactions = async () => {
     if (!wallet || syncPromise) return;
 
+    console.log(`Starting sync for wallet ${wallet.id}`);
+
     // Reset sync progress when starting new sync
     setSyncProgress({ current: 0, total: 0, message: '' });
 
@@ -249,17 +252,24 @@ const WalletView = () => {
         await new Promise((resolveMessage, rejectMessage) =>
           chrome.runtime.sendMessage({ type: 'GET_TRANSACTIONS', payload: { walletId: wallet.id } }, response => {
             clearTimeout(timeout);
+            console.log('GET_TRANSACTIONS response:', response);
             if (response?.success) {
+              console.log(
+                `Sync successful: ${response.transactions?.length || 0} transactions, ${response.utxos?.length || 0} UTXOs`,
+              );
               setTransactions(response.transactions || []);
               setUTXOs(response.utxos || []);
               resolveMessage(response);
             } else {
-              rejectMessage(new Error(response?.error || 'Failed to fetch transactions'));
+              const errorMsg = response?.error || 'Failed to fetch transactions';
+              console.error('Sync failed with error:', errorMsg);
+              rejectMessage(new Error(errorMsg));
             }
           }),
         );
         resolve(undefined);
       } catch (error) {
+        console.error('Sync promise error:', error);
         reject(error);
       }
     });
@@ -282,6 +292,11 @@ const WalletView = () => {
     } finally {
       setSyncPromise(null);
     }
+  };
+
+  const forceRefresh = () => {
+    console.log('Force refresh triggered');
+    setRefreshTrigger(prev => prev + 1);
   };
 
   if (!wallet) {
@@ -363,6 +378,9 @@ const WalletView = () => {
           {transactions.length === 0 && !syncPromise ? (
             <div className="flex flex-col items-center justify-center py-8">
               <div className="text-sm text-gray-600 dark:text-gray-400">No transactions yet</div>
+              <button onClick={forceRefresh} className="mt-2 text-xs text-blue-500 hover:text-blue-600 underline">
+                Force Refresh
+              </button>
             </div>
           ) : (
             <div>

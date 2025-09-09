@@ -62,6 +62,7 @@ export interface UTXO {
   reference_script_hash?: string | null;
   isSpent: boolean;
   spentInTx?: string | null;
+  isExternal?: boolean;
 }
 
 // The final state of the entire wallet

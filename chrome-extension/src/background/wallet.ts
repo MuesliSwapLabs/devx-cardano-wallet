@@ -337,12 +337,14 @@ async function performTransactionSync(
 ) {
   const settings = await settingsStorage.get();
   const lastBlock = settings.lastSyncBlock?.[wallet.id] || 0;
+  console.log(`Sync starting for wallet ${wallet.id}, lastBlock: ${lastBlock}`);
 
   // Get API config
   const { apiUrl, apiKey } = await getApiConfig(wallet);
 
   // Get payment addresses
   const paymentAddresses = await getPaymentAddresses(apiUrl, apiKey, wallet.stakeAddress);
+  console.log(`Found ${paymentAddresses.length} payment addresses:`, paymentAddresses);
 
   if (paymentAddresses.length === 0) {
     // No addresses yet - return empty result
@@ -362,6 +364,7 @@ async function performTransactionSync(
     if (lastBlock > 0) {
       url += `&from=${lastBlock + 1}`;
     }
+    console.log(`Fetching transactions for address ${address} with URL: ${url}`);
 
     // Paginate through all transactions
     let page = 1;
@@ -370,11 +373,16 @@ async function performTransactionSync(
       const response = await fetch(pageUrl, { headers: { project_id: apiKey } });
 
       if (!response.ok) {
-        if (response.status === 404) break; // No more transactions
+        if (response.status === 404) {
+          console.log(`No transactions found for address ${address} (404)`);
+          break; // No more transactions
+        }
+        console.error(`Failed to fetch transactions for ${address}: ${response.statusText}`);
         throw new Error(`Failed to fetch transactions: ${response.statusText}`);
       }
 
       const txs: Array<{ tx_hash: string; block_height: number }> = await response.json();
+      console.log(`Page ${page} for address ${address}: ${txs.length} transactions`);
       if (txs.length === 0) break;
 
       txs.forEach(tx => allTransactionHashes.add(tx.tx_hash));
@@ -384,6 +392,8 @@ async function performTransactionSync(
       page++;
     }
   }
+
+  console.log(`Total transaction hashes collected: ${allTransactionHashes.size}`);
 
   // Fetch transaction details
   const transactions: Transaction[] = [];
@@ -494,6 +504,7 @@ async function performTransactionSync(
           reference_script_hash: null, // Will be fetched on-demand
           isSpent: true, // It's an input, so it's spent
           spentInTx: spentInTx,
+          isExternal: !paymentAddresses.includes(inputData.address),
         });
       }
     }
@@ -503,58 +514,84 @@ async function performTransactionSync(
   const completeUTXOs: UTXO[] = [];
   const utxoMap = new Map<string, UTXO>(); // key: "tx_hash:output_index"
 
-  // First, add all external UTXOs we found (already marked as spent)
+  // First, load ALL existing UTXOs to preserve their lifecycle state
+  for (const existingUtxo of existingUTXOs) {
+    const key = `${existingUtxo.tx_hash}:${existingUtxo.output_index}`;
+    utxoMap.set(key, existingUtxo);
+  }
+
+  // Then, add external UTXOs we found (only if they don't already exist)
   for (const utxo of externalUTXOs) {
     const key = `${utxo.tx_hash}:${utxo.output_index}`;
-    utxoMap.set(key, utxo);
+    if (!utxoMap.has(key)) {
+      utxoMap.set(key, utxo);
+    }
   }
+
+  console.log(`Processing ${transactions.length} transactions for UTXO lifecycle`);
 
   // Process all wallet transactions to build UTXO lifecycle
   for (const tx of transactions) {
+    console.log(
+      `Processing transaction ${tx.hash.slice(0, 8)}... (${tx.outputs?.length} outputs, ${tx.inputs?.length} inputs)`,
+    );
+
     // Create UTXOs from ALL outputs (not just ones to our addresses)
     for (let outputIndex = 0; outputIndex < (tx.outputs?.length || 0); outputIndex++) {
       const output = tx.outputs![outputIndex];
       const key = `${tx.hash}:${outputIndex}`;
-      const utxo: UTXO = {
-        tx_hash: tx.hash,
-        output_index: outputIndex,
-        address: output.address,
-        amount: output.amount,
-        block: tx.block,
-        data_hash: output.data_hash || null,
-        inline_datum: output.inline_datum || null,
-        reference_script_hash: output.reference_script_hash || null,
-        isSpent: false, // Initially mark as unspent
-        spentInTx: null,
-      };
-      utxoMap.set(key, utxo);
+
+      // Only create new UTXO if it doesn't already exist
+      if (!utxoMap.has(key)) {
+        const utxo: UTXO = {
+          tx_hash: tx.hash,
+          output_index: outputIndex,
+          address: output.address,
+          amount: output.amount,
+          block: tx.block,
+          data_hash: output.data_hash || null,
+          inline_datum: output.inline_datum || null,
+          reference_script_hash: output.reference_script_hash || null,
+          isSpent: false, // Initially mark as unspent
+          spentInTx: null,
+          isExternal: !paymentAddresses.includes(output.address),
+        };
+        utxoMap.set(key, utxo);
+        console.log(
+          `Created UTXO ${key} (${utxo.isExternal ? 'external' : 'internal'}) with amount:`,
+          utxo.amount.find(a => a.unit === 'lovelace')?.quantity,
+        );
+      }
     }
 
     // Mark UTXOs as spent based on inputs
     for (const input of tx.inputs || []) {
-      if (paymentAddresses.includes(input.address)) {
-        const key = `${input.tx_hash}:${input.output_index}`;
-        const existingUtxo = utxoMap.get(key);
-        if (existingUtxo) {
-          // Mark this UTXO as spent
-          existingUtxo.isSpent = true;
-          existingUtxo.spentInTx = tx.hash;
-        } else {
-          // This UTXO was created before our sync window but we still track it as spent
-          const historicalUtxo: UTXO = {
-            tx_hash: input.tx_hash,
-            output_index: input.output_index,
-            address: input.address,
-            amount: input.amount,
-            block: '', // We don't know the block
-            data_hash: null,
-            inline_datum: null,
-            reference_script_hash: null,
-            isSpent: true,
-            spentInTx: tx.hash,
-          };
-          utxoMap.set(key, historicalUtxo);
-        }
+      const key = `${input.tx_hash}:${input.output_index}`;
+      const existingUtxo = utxoMap.get(key);
+      if (existingUtxo) {
+        // Mark this UTXO as spent
+        console.log(`Marking UTXO ${key} as SPENT by transaction ${tx.hash.slice(0, 8)}...`);
+        existingUtxo.isSpent = true;
+        existingUtxo.spentInTx = tx.hash;
+      } else if (paymentAddresses.includes(input.address)) {
+        // Only create historical records for wallet-owned UTXOs that we don't have
+        console.log(`Creating historical UTXO ${key} (already spent by ${tx.hash.slice(0, 8)}...)`);
+        const historicalUtxo: UTXO = {
+          tx_hash: input.tx_hash,
+          output_index: input.output_index,
+          address: input.address,
+          amount: input.amount,
+          block: '', // We don't know the block
+          data_hash: null,
+          inline_datum: null,
+          reference_script_hash: null,
+          isSpent: true,
+          spentInTx: tx.hash,
+          isExternal: !paymentAddresses.includes(input.address),
+        };
+        utxoMap.set(key, historicalUtxo);
+      } else {
+        console.log(`Input ${key} not found and not wallet-owned (address: ${input.address})`);
       }
     }
   }
@@ -562,12 +599,26 @@ async function performTransactionSync(
   // Convert map to array
   completeUTXOs.push(...Array.from(utxoMap.values()));
 
+  // Log final UTXO summary
+  const unspent = completeUTXOs.filter(u => !u.isSpent);
+  const spent = completeUTXOs.filter(u => u.isSpent);
+  const external = completeUTXOs.filter(u => u.isExternal);
+  const internal = completeUTXOs.filter(u => !u.isExternal);
+
+  console.log(`UTXO Summary:`);
+  console.log(`- Total: ${completeUTXOs.length}`);
+  console.log(
+    `- Unspent: ${unspent.length} (${unspent.filter(u => !u.isExternal).length} internal, ${unspent.filter(u => u.isExternal).length} external)`,
+  );
+  console.log(
+    `- Spent: ${spent.length} (${spent.filter(u => !u.isExternal).length} internal, ${spent.filter(u => u.isExternal).length} external)`,
+  );
+  console.log(`- Internal: ${internal.length}, External: ${external.length}`);
+
   // Store all UTXOs with lifecycle data
   if (completeUTXOs.length > 0) {
     await transactionsStorage.storeUTXOs(wallet.id, completeUTXOs);
-    console.log(
-      `Stored ${completeUTXOs.length} UTXOs for wallet ${wallet.id} (${completeUTXOs.filter(u => !u.isSpent).length} unspent, ${completeUTXOs.filter(u => u.isSpent).length} spent)`,
-    );
+    console.log(`Stored all UTXOs to database`);
   }
 
   // Update last sync block

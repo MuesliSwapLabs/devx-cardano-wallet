@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useStorage, walletsStorage } from '@extension/storage';
+import { useStorage, walletsStorage, transactionsStorage } from '@extension/storage';
 import { Formik, Form, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import FloatingLabelInput from '../components/FloatingLabelInput';
@@ -28,6 +28,25 @@ const WalletSettings = () => {
   }
 
   // --- Handlers for Form Submissions ---
+
+  const handleClearCache = async () => {
+    if (!walletId) return;
+
+    const confirmClear = confirm(
+      'This will clear all cached transaction and UTXO data for this wallet and force a fresh sync. Continue?',
+    );
+    if (confirmClear) {
+      try {
+        await transactionsStorage.clearWalletData(walletId);
+        alert('Cache cleared successfully! Navigate back to transactions tab to re-sync.');
+        // Navigate back to wallet view to trigger re-sync
+        navigate(`/wallet/${walletId}/transactions`);
+      } catch (error) {
+        console.error('Failed to clear cache:', error);
+        alert('Failed to clear cache. Check console for details.');
+      }
+    }
+  };
 
   const handleRenameSubmit = (values: { walletName: string }, { setSubmitting }) => {
     const payload = { id: walletId, name: values.walletName };
@@ -305,6 +324,11 @@ const WalletSettings = () => {
                 Export Seed Phrase
               </SecondaryButton>
             )}
+            <SecondaryButton
+              className="w-full border-red-300 text-red-600 hover:bg-red-50 dark:border-red-600 dark:text-red-400 dark:hover:bg-red-900/20"
+              onClick={handleClearCache}>
+              Clear Cache & Re-sync
+            </SecondaryButton>
           </div>
         );
     }

@@ -164,7 +164,7 @@ class DevXWalletAPI implements WalletAPI {
       }
     } catch (error) {
       console.error('DevX CIP-30: getUtxos failed:', error);
-      console.error('DevX CIP-30: getUtxos error details:', error.message || error);
+      console.error('DevX CIP-30: getUtxos error details:', error instanceof Error ? error.message : error);
       throw {
         code: -3,
         info: 'Failed to get UTXOs',
