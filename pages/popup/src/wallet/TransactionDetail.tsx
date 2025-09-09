@@ -17,6 +17,11 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
   const [showReferences, setShowReferences] = useState(false);
   const [showCollaterals, setShowCollaterals] = useState(false);
 
+  // Helper function to determine if an address is external
+  const isExternalAddress = (address: string): boolean => {
+    return address !== wallet.address;
+  };
+
   return (
     <div className="border-t border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
       {/* General Info Section */}
@@ -151,6 +156,11 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
                       </Link>
                     </div>
                     <div className="flex items-center gap-1">
+                      {isExternalAddress(input.address) && (
+                        <span className="rounded bg-yellow-100 px-1 py-0.5 text-xs text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                          External
+                        </span>
+                      )}
                       {showCollaterals && (input as any).collateral && (
                         <span className="rounded bg-orange-100 px-1 py-0.5 text-xs text-orange-800 dark:bg-orange-900 dark:text-orange-200">
                           Collateral
@@ -188,6 +198,11 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
                     <div className="mb-2 flex items-center justify-between">
                       <TruncateWithCopy text={input.address} maxChars={16} />
                       <div className="flex items-center gap-1">
+                        {isExternalAddress(input.address) && (
+                          <span className="rounded bg-yellow-100 px-2 py-1 text-xs text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                            External
+                          </span>
+                        )}
                         {showCollaterals && (input as any).collateral && (
                           <span className="rounded bg-orange-100 px-2 py-1 text-xs text-orange-800 dark:bg-orange-900 dark:text-orange-200">
                             Collateral
@@ -270,6 +285,11 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
                       </Link>
                     </div>
                     <div className="flex items-center gap-1">
+                      {isExternalAddress(output.address) && (
+                        <span className="rounded bg-yellow-100 px-1 py-0.5 text-xs text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                          External
+                        </span>
+                      )}
                       {showCollaterals && (output as any).collateral && (
                         <span className="rounded bg-orange-100 px-1 py-0.5 text-xs text-orange-800 dark:bg-orange-900 dark:text-orange-200">
                           Collateral
@@ -307,6 +327,11 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
                     <div className="mb-2 flex items-center justify-between">
                       <TruncateWithCopy text={output.address} maxChars={16} />
                       <div className="flex items-center gap-1">
+                        {isExternalAddress(output.address) && (
+                          <span className="rounded bg-yellow-100 px-2 py-1 text-xs text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                            External
+                          </span>
+                        )}
                         {showCollaterals && (output as any).collateral && (
                           <span className="rounded bg-orange-100 px-2 py-1 text-xs text-orange-800 dark:bg-orange-900 dark:text-orange-200">
                             Collateral
@@ -416,10 +441,6 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
             </div>
           </div>
         )}
-
-        <div className="mt-2 border-t border-gray-300 pt-2 text-xs text-gray-500 dark:border-gray-600 dark:text-gray-400">
-          <em>Data from IndexedDB cache (synced with Blockfrost API)</em>
-        </div>
       </div>
     </div>
   );

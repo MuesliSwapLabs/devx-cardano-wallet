@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useStorage, walletsStorage, transactionsStorage } from '@extension/storage';
+import { useStorage, walletsStorage, transactionsStorage, settingsStorage } from '@extension/storage';
 import { Formik, Form, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import FloatingLabelInput from '../components/FloatingLabelInput';
-import { PrimaryButton, SecondaryButton } from '@src/components/buttons';
+import { PrimaryButton, SecondaryButton, CancelButton } from '@src/components/buttons';
 import type { Wallet } from '@extension/shared';
 import { TruncateWithCopy } from '@extension/shared';
+import { ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 
 // Define the possible views for this component
-type View = 'menu' | 'rename' | 'change-password' | 'add-password' | 'reveal-seed';
+type View = 'menu' | 'rename' | 'change-password' | 'add-password' | 'reveal-seed' | 'wallet-deleted';
 
 const WalletSettings = () => {
   const { walletId } = useParams<{ walletId: string }>();
@@ -18,32 +19,53 @@ const WalletSettings = () => {
 
   const [currentView, setCurrentView] = useState<View>('menu');
   const [revealedSeed, setRevealedSeed] = useState<string | null>(null);
+  const [isDangerZoneOpen, setIsDangerZoneOpen] = useState(false);
+  const [deletedWalletName, setDeletedWalletName] = useState<string>('');
 
   const wallets = walletsData?.wallets || [];
   const currentWallet = wallets.find((w: Wallet) => w.id === walletId);
 
-  // Guard clause in case the wallet isn't found
-  if (!currentWallet) {
+  // Guard clause in case the wallet isn't found - but allow wallet-deleted view to show
+  if (!currentWallet && currentView !== 'wallet-deleted') {
     return <div className="p-4 text-center">Wallet not found.</div>;
   }
 
   // --- Handlers for Form Submissions ---
 
-  const handleClearCache = async () => {
+  const handleDeleteWallet = async () => {
     if (!walletId) return;
 
-    const confirmClear = confirm(
-      'This will clear all cached transaction and UTXO data for this wallet and force a fresh sync. Continue?',
+    const confirmDelete = confirm(
+      `Are you sure you want to delete "${currentWallet.name}"? This will permanently remove the wallet and all its transaction data. This action cannot be undone.`,
     );
-    if (confirmClear) {
+    if (confirmDelete) {
       try {
+        // 1. Clear all transaction and UTXO data for this wallet
         await transactionsStorage.clearWalletData(walletId);
-        alert('Cache cleared successfully! Navigate back to transactions tab to re-sync.');
-        // Navigate back to wallet view to trigger re-sync
-        navigate(`/wallet/${walletId}/transactions`);
+
+        // 2. Remove the wallet from the wallets list
+        const walletsData = await walletsStorage.get();
+        const updatedWallets = walletsData.wallets.filter((w: Wallet) => w.id !== walletId);
+        await walletsStorage.set({ wallets: updatedWallets });
+
+        // 3. If this was the active wallet, set a new active wallet or clear it
+        const settings = await settingsStorage.get();
+        if (settings?.activeWalletId === walletId) {
+          const newActiveWalletId = updatedWallets.length > 0 ? updatedWallets[0].id : null;
+          await settingsStorage.setActiveWalletId(newActiveWalletId);
+
+          // If no wallets left, mark as not onboarded
+          if (updatedWallets.length === 0) {
+            await settingsStorage.set({ ...settings, onboarded: false });
+          }
+        }
+
+        // Store the deleted wallet name and show success page
+        setDeletedWalletName(currentWallet.name);
+        setCurrentView('wallet-deleted');
       } catch (error) {
-        console.error('Failed to clear cache:', error);
-        alert('Failed to clear cache. Check console for details.');
+        console.error('Failed to delete wallet:', error);
+        alert('Failed to delete wallet. Check console for details.');
       }
     }
   };
@@ -299,36 +321,103 @@ const WalletSettings = () => {
           </Formik>
         );
 
+      case 'wallet-deleted':
+        const remainingWallets = walletsData?.wallets || [];
+        const hasWallets = remainingWallets.length > 0;
+
+        return (
+          <div className="flex h-full flex-col items-center justify-center text-center">
+            <div className="mb-6">
+              <div className="mb-4 flex justify-center">
+                <div className="flex size-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
+                  <svg
+                    className="size-8 text-green-600 dark:text-green-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              </div>
+              <h2 className="mb-2 text-xl font-bold">Wallet Deleted Successfully</h2>
+              <p className="mb-2 text-gray-600 dark:text-gray-300">
+                "{deletedWalletName}" has been permanently removed.
+              </p>
+              {!hasWallets && (
+                <p className="text-orange-600 dark:text-orange-400">
+                  You now have 0 wallets anymore, please add a wallet.
+                </p>
+              )}
+            </div>
+            <div className="flex flex-col space-y-3">
+              {hasWallets ? (
+                <PrimaryButton
+                  onClick={() => {
+                    navigate(`/wallet/${remainingWallets[0].id}/assets`);
+                  }}>
+                  Go Back
+                </PrimaryButton>
+              ) : (
+                <PrimaryButton
+                  onClick={() => {
+                    navigate('/add-wallet');
+                  }}>
+                  Add New Wallet
+                </PrimaryButton>
+              )}
+            </div>
+          </div>
+        );
+
       case 'menu':
       default:
         return (
-          <div className="flex flex-col space-y-2">
-            <SecondaryButton className="w-full" onClick={() => setCurrentView('rename')}>
-              Rename Wallet
-            </SecondaryButton>
-            {currentWallet.hasPassword ? (
-              <SecondaryButton className="w-full" onClick={() => setCurrentView('change-password')}>
-                Change Password
+          <div className="flex flex-col space-y-4">
+            <div className="flex flex-col space-y-2">
+              <SecondaryButton className="w-full" onClick={() => setCurrentView('rename')}>
+                Rename Wallet
               </SecondaryButton>
-            ) : (
-              <SecondaryButton className="w-full" onClick={() => setCurrentView('add-password')}>
-                Add Password
-              </SecondaryButton>
-            )}
-            {currentWallet.type === 'SPOOFED' ? (
-              <div className="w-full rounded bg-gray-100 p-2 text-center text-xs text-gray-500 dark:bg-gray-700">
-                Spoofed wallets do not have a seed phrase.
+              {currentWallet.hasPassword ? (
+                <SecondaryButton className="w-full" onClick={() => setCurrentView('change-password')}>
+                  Change Password
+                </SecondaryButton>
+              ) : (
+                <SecondaryButton className="w-full" onClick={() => setCurrentView('add-password')}>
+                  Add Password
+                </SecondaryButton>
+              )}
+              {currentWallet.type === 'SPOOFED' ? (
+                <div className="w-full rounded bg-gray-100 p-2 text-center text-xs text-gray-500 dark:bg-gray-700">
+                  Spoofed wallets do not have a seed phrase.
+                </div>
+              ) : (
+                <SecondaryButton className="w-full" onClick={() => setCurrentView('reveal-seed')}>
+                  Export Seed Phrase
+                </SecondaryButton>
+              )}
+            </div>
+
+            {/* Danger Zone */}
+            <div>
+              <div className="rounded-lg bg-white shadow dark:bg-gray-700">
+                <button
+                  onClick={() => setIsDangerZoneOpen(!isDangerZoneOpen)}
+                  className="flex w-full items-center justify-between p-4 font-medium text-red-500">
+                  <span>Danger Zone</span>
+                  {isDangerZoneOpen ? <ChevronUpIcon className="size-5" /> : <ChevronDownIcon className="size-5" />}
+                </button>
+                {isDangerZoneOpen && (
+                  <div className="px-4 pb-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                      Deleting will permanently remove this wallet and all its transaction data.
+                    </p>
+                    <div className="pt-4">
+                      <CancelButton onClick={handleDeleteWallet}>Delete Wallet</CancelButton>
+                    </div>
+                  </div>
+                )}
               </div>
-            ) : (
-              <SecondaryButton className="w-full" onClick={() => setCurrentView('reveal-seed')}>
-                Export Seed Phrase
-              </SecondaryButton>
-            )}
-            <SecondaryButton
-              className="w-full border-red-300 text-red-600 hover:bg-red-50 dark:border-red-600 dark:text-red-400 dark:hover:bg-red-900/20"
-              onClick={handleClearCache}>
-              Clear Cache & Re-sync
-            </SecondaryButton>
+            </div>
           </div>
         );
     }
@@ -336,8 +425,18 @@ const WalletSettings = () => {
 
   return (
     <div className="flex h-full flex-col">
-      Address: <TruncateWithCopy text={currentWallet.address} maxChars={16} />
-      Stake: <TruncateWithCopy text={currentWallet.stakeAddress} maxChars={16} />
+      {currentWallet && (
+        <>
+          <div className="mb-2 flex items-center gap-2">
+            <span>Address:</span>
+            <TruncateWithCopy text={currentWallet.address} maxChars={16} />
+          </div>
+          <div className="mb-4 flex items-center gap-2">
+            <span>Stake:</span>
+            <TruncateWithCopy text={currentWallet.stakeAddress} maxChars={16} />
+          </div>
+        </>
+      )}
       {renderContent()}
     </div>
   );

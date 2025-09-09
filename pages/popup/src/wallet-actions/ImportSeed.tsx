@@ -137,7 +137,7 @@ const ImportNewWallet = () => {
       network: onboardingState?.importFormData.network || 'Preprod',
       walletPassword: onboardingState?.importFormData.password || '',
       confirmPassword: '',
-      skipPassword: !onboardingState?.importFormData.password,
+      skipPassword: false,
     };
   };
 

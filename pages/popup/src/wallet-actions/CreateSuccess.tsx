@@ -1,10 +1,16 @@
 // popup/src/pages/wallet-actions/CreateSuccess.tsx
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { settingsStorage, onboardingStorage } from '@extension/storage';
 import { PrimaryButton, SecondaryButton } from '@src/components/buttons';
 
 function CreateSuccess() {
   const navigate = useNavigate();
+
+  // Set onboarding progress to 100% when component mounts
+  useEffect(() => {
+    onboardingStorage.updateProgress(100);
+  }, []);
 
   const handleFinishOnboardingClick = async () => {
     // Use the new settings storage to mark onboarding as complete

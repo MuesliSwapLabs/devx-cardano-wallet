@@ -38,7 +38,7 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
     network: onboardingState?.createFormData.network || ('Preprod' as 'Mainnet' | 'Preprod'),
     walletPassword: onboardingState?.createFormData.password || '',
     confirmPassword: '',
-    skipPassword: !onboardingState?.createFormData.password,
+    skipPassword: false,
   };
 
   // Initialize onboarding state on component mount

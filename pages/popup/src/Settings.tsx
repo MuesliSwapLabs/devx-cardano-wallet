@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Formik, Form, Field } from 'formik';
 import ThemeToggle from './components/themeToggle';
-import { settingsStorage, useStorage, walletsStorage } from '@extension/storage';
+import { settingsStorage, useStorage, walletsStorage, onboardingStorage } from '@extension/storage';
 import { CancelButton } from '@src/components/buttons';
 import FloatingLabelInput from './components/FloatingLabelInput';
 import { ChevronUpIcon, ChevronDownIcon, TrashIcon } from '@heroicons/react/24/outline';
@@ -47,10 +47,13 @@ function Settings() {
   const handleResetOnboarding = async () => {
     if (confirm('Are you sure you want to reset all data? This will delete all your wallets and cannot be undone.')) {
       try {
-        // 1. Clear IndexedDB (wallets)
+        // 1. Reset onboarding storage
+        await onboardingStorage.resetOnboarding();
+
+        // 2. Clear IndexedDB (wallets)
         await walletsStorage.set({ wallets: [] });
 
-        // 2. Reset all settings to defaults (this clears activeWalletId, API keys, etc.)
+        // 3. Reset all settings to defaults (this clears activeWalletId, API keys, etc.)
         await settingsStorage.set({
           theme: 'dark',
           onboarded: false,
@@ -60,7 +63,7 @@ function Settings() {
           activeWalletId: null,
         });
 
-        // 3. Completely clear all localStorage items related to this extension
+        // 4. Completely clear all localStorage items related to this extension
         if (typeof localStorage !== 'undefined') {
           const keysToRemove: string[] = [];
 
@@ -76,7 +79,8 @@ function Settings() {
                 key === 'app-settings' ||
                 key.includes('wallet') ||
                 key.includes('blockfrost') ||
-                key.includes('theme'))
+                key.includes('theme') ||
+                key.includes('onboarding'))
             ) {
               keysToRemove.push(key);
             }
@@ -89,42 +93,61 @@ function Settings() {
           });
         }
 
-        // 4. Completely nuke IndexedDB - delete all related databases
+        // 5. Completely nuke all IndexedDB databases - delete all related databases
         if (typeof indexedDB !== 'undefined') {
-          try {
-            // Delete the main wallet database completely
-            await new Promise<void>((resolve, reject) => {
-              const deleteReq = indexedDB.deleteDatabase('cardano-wallet-db');
-              deleteReq.onsuccess = () => {
-                console.log('IndexedDB cardano-wallet-db nuked successfully');
-                resolve();
-              };
-              deleteReq.onerror = () => {
-                console.warn('Failed to delete IndexedDB cardano-wallet-db');
-                reject(new Error('Failed to delete IndexedDB'));
-              };
-              deleteReq.onblocked = () => {
-                console.warn('IndexedDB deletion blocked - may need to close other tabs');
-                // Force close any open connections
-                setTimeout(() => resolve(), 1000);
-              };
-            });
-          } catch (error) {
-            console.warn('Error nuking IndexedDB:', error);
+          const databasesToDelete = ['cardano-wallet-db', 'cardano-wallet', 'cardano-wallet-dev'];
+
+          for (const dbName of databasesToDelete) {
+            try {
+              await new Promise<void>((resolve, reject) => {
+                const deleteReq = indexedDB.deleteDatabase(dbName);
+                deleteReq.onsuccess = () => {
+                  console.log(`IndexedDB ${dbName} deleted successfully`);
+                  resolve();
+                };
+                deleteReq.onerror = () => {
+                  console.warn(`Failed to delete IndexedDB ${dbName}`);
+                  resolve(); // Continue with other databases
+                };
+                deleteReq.onblocked = () => {
+                  console.warn(`IndexedDB ${dbName} deletion blocked - may need to close other tabs`);
+                  // Force close any open connections
+                  setTimeout(() => resolve(), 1000);
+                };
+              });
+            } catch (error) {
+              console.warn(`Error deleting IndexedDB ${dbName}:`, error);
+            }
           }
         }
 
-        // 5. Clear Chrome extension storage (if available)
+        // 6. Clear Chrome extension storage (if available)
         if (typeof chrome !== 'undefined' && chrome.storage) {
           try {
             await chrome.storage.local.clear();
+            await chrome.storage.sync.clear();
             console.log('Chrome storage cleared successfully');
           } catch (error) {
             console.warn('Error clearing Chrome storage:', error);
           }
         }
 
-        alert('All data has been reset successfully. Please reload the extension.');
+        // 7. Reload the extension to show onboarding screen immediately
+        if (typeof chrome !== 'undefined' && chrome.runtime) {
+          try {
+            // Close the popup window
+            window.close();
+            // Reload the extension
+            chrome.runtime.reload();
+          } catch (error) {
+            console.warn('Could not reload extension:', error);
+            // Fallback: reload the current window
+            window.location.reload();
+          }
+        } else {
+          // Fallback for development or when chrome APIs are not available
+          window.location.reload();
+        }
       } catch (error) {
         console.error('Error during reset:', error);
         alert('Error occurred during reset. Please try again.');

@@ -19,6 +19,10 @@ function SubPageLayout() {
   // The theme is now a property of the settings object
   const isDark = settings?.theme === 'dark';
 
+  // Check if we should disable the back button (wallet deleted scenario)
+  const shouldDisableBackButton =
+    walletId && !wallets.find((w: Wallet) => w.id === walletId) && location.pathname.includes('wallet-settings');
+
   // A helper to generate the title dynamically.
   const getTitle = () => {
     // If we are on a wallet-settings page and have the wallet data, use the wallet's name.
@@ -26,6 +30,10 @@ function SubPageLayout() {
       const currentWallet = wallets.find((w: Wallet) => w.id === walletId);
       if (currentWallet) {
         return currentWallet.name;
+      }
+      // If we have a walletId but can't find the wallet, it's probably deleted
+      if (location.pathname.includes('wallet-settings')) {
+        return 'Wallet Settings';
       }
     }
 
@@ -49,8 +57,11 @@ function SubPageLayout() {
     <>
       <header className="relative flex items-center justify-between border-b border-gray-300 px-4 py-3 dark:border-gray-600">
         <button
-          onClick={() => navigate(-1)}
-          className="flex size-8 items-center justify-center rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+          onClick={() => !shouldDisableBackButton && navigate(-1)}
+          disabled={shouldDisableBackButton}
+          className={`flex size-8 items-center justify-center rounded-full ${
+            shouldDisableBackButton ? 'cursor-not-allowed opacity-30' : 'hover:bg-gray-200 dark:hover:bg-gray-700'
+          }`}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             className="size-5"

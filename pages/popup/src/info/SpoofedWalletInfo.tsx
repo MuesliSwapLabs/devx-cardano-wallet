@@ -7,22 +7,6 @@ const SpoofedWalletInfo = () => {
 
   return (
     <div className="min-h-full p-6">
-      <div className="mb-6">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="mr-2 size-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back
-        </button>
-      </div>
-
       <div className="mb-8">
         <h1 className="mb-4 text-2xl font-bold">About Spoofed Wallets</h1>
 

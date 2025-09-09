@@ -208,7 +208,6 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos }) => {
                       </div>
                       <div className="mt-2 flex items-center justify-between text-sm font-medium text-gray-900 dark:text-gray-100">
                         <span>+{adaFormatted}</span>
-                        {otherAssets.length > 0 && <span>+{otherAssets.length} assets</span>}
                       </div>
                     </div>
                   </div>

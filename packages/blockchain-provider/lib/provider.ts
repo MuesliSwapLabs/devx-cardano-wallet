@@ -427,6 +427,16 @@ async function getAddressUTXOs(apiUrl: string, apiKey: string, address: string):
 
     const data: BlockfrostUTXO[] = await response.json();
 
+    // Log the amount data from Blockfrost
+    console.log(
+      'BLOCKFROST UTXO AMOUNT DATA:',
+      data.map(utxo => ({
+        tx_hash: utxo.tx_hash,
+        output_index: utxo.output_index,
+        amount: utxo.amount,
+      })),
+    );
+
     if (data.length === 0) break;
 
     allUtxos.push(...data);

@@ -17,6 +17,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `pnpm lint` - Run ESLint with auto-fix across all packages
 - `pnpm lint:fix` - Run ESLint with fix mode
 - `pnpm prettier` - Format code with Prettier
+- `pnpm update-version` - Update extension version using bash script
 
 **Testing:**
 - `pnpm e2e` - Run end-to-end tests (requires built extension)
@@ -104,7 +105,7 @@ The extension uses Chrome's message passing system:
 
 ### Storage System
 
-The extension uses a **dual storage approach**:
+The extension uses a **dual storage approach** with Chrome's storage APIs providing consistent data sharing across all extension contexts:
 
 **IndexedDB (ConsolidatedStorage)** (`packages/storage/lib/impl/consolidatedStorage.ts`):
 - Primary storage for wallet data, transactions, and UTXOs
@@ -112,13 +113,14 @@ The extension uses a **dual storage approach**:
   - `settings`: App configuration, API keys, theme, onboarding state
   - `wallets`: Wallet metadata and configuration
   - `transactions`: Transaction history with enhanced data
-  - `utxos`: UTXO tracking with spent/unspent status
+  - `utxos`: UTXO tracking with spent/unspent status including external UTXO detection
 - Provides fast querying with indexed access by wallet ID
 
 **Chrome Storage** (Legacy/Fallback):
 - Onboarding flow state management (`packages/storage/lib/impl/onboardingStorage.ts`)
 - Temporary form data during wallet creation/import flows
 - **React Hooks**: `useStorage` for reactive storage access in components
+- **Shared State**: Storage state is shared between popup, background, and content scripts automatically
 
 ### UI Architecture
 
@@ -137,10 +139,12 @@ The popup uses React Router with multiple layouts:
 
 ### Development Workflow
 
-1. **Package Manager**: Uses pnpm with workspaces
+1. **Package Manager**: Uses pnpm with workspaces (requires pnpm@9.9.0)
 2. **Hot Module Replacement**: Custom HMR system in `packages/hmr/`
 3. **Cross-browser**: Supports both Chrome and Firefox builds
 4. **Environment Variables**: Vite-based env system with type safety
+5. **Development Mode**: Run `pnpm dev` for Chrome or `pnpm dev:firefox` for Firefox with hot reload
+6. **Extension Loading**: Load `dist` folder as unpacked extension in browser
 
 ### Testing Infrastructure
 
@@ -154,12 +158,25 @@ The popup uses React Router with multiple layouts:
 - **Environment Variables**: Copy `.example.env` to `.env` for configuration
 - **API Keys**: Configure Blockfrost API keys for mainnet (`mainnetApiKey`) and preprod (`preprodApiKey`) networks
 - **Vite Environment**: Access via `import.meta.env.{KEY}` with type definitions in `vite-env.d.ts`
+- **Node Version**: Requires Node.js >= 18.19.1
+- **Windows Setup**: Run `git config --global core.eol lf` and `git config --global core.autocrlf input` for cross-platform compatibility
 
-### Data Migration
+### Data Migration & Recent Improvements
 
 Recent architectural changes moved storage from Chrome storage to IndexedDB:
 - Transaction data is now stored in IndexedDB for better performance
-- UTXO tracking includes spent/unspent status for accurate balance calculation  
+- UTXO tracking includes spent/unspent status for accurate balance calculation including external UTXO detection
 - Wallet metadata includes sync timestamps for incremental updates
+- Improved UTXO details UI with better visual organization and expanded view functionality
+- Enhanced wallet state handling for new wallets that don't exist on-chain yet
+- Added CIP-30 methods for retrieving unused and change addresses
+
+### Development Best Practices
 
 Always run `pnpm type-check` and `pnpm lint` before committing to ensure code quality. The project uses strict TypeScript configuration and comprehensive ESLint rules including accessibility and Tailwind CSS checks.
+
+**Message Passing Architecture:**
+- All communication between popup, background, and content scripts uses Chrome's `chrome.runtime` messaging system
+- Popup sends requests via `chrome.runtime.sendMessage()`
+- Background script handles requests via `chrome.runtime.onMessage.addListener()`
+- Both contexts import shared code from packages for consistent data handling

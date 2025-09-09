@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import type { Wallet } from '@extension/shared';
+import type { UTXORecord } from '@extension/storage';
 import type { TransactionRecord } from '@extension/storage';
+import { TruncateWithCopy } from '@extension/shared';
 import TransactionDetail from './TransactionDetail';
 
 interface TransactionsProps {
@@ -20,6 +22,105 @@ const Transactions: React.FC<TransactionsProps> = ({ wallet, transactions }) => 
 
   const formatAda = (lovelace: string) => {
     return (parseInt(lovelace) / 1000000).toFixed(6) + ' ADA';
+  };
+
+  const decodeAssetName = (unit: string): string => {
+    if (unit.length <= 56) return '';
+    const nameHex = unit.slice(56);
+    try {
+      const bytes = new Uint8Array(nameHex.length / 2);
+      for (let i = 0; i < nameHex.length; i += 2) {
+        bytes[i / 2] = parseInt(nameHex.substr(i, 2), 16);
+      }
+      let name = '';
+      for (let byte of bytes) {
+        if (byte === 0) break;
+        name += String.fromCharCode(byte);
+      }
+      return name;
+    } catch (e) {
+      return '';
+    }
+  };
+
+  const getAssetDisplay = (unit: string, qty: bigint, formatAda: (l: string) => string): string => {
+    const absQty = qty < 0n ? -qty : qty;
+    const sign = qty < 0n ? '-' : '+';
+    let amountStr: string;
+    let name: string;
+    if (unit === 'lovelace') {
+      amountStr = formatAda(absQty.toString());
+      return `${sign}${amountStr}`;
+    } else {
+      const assetName = decodeAssetName(unit);
+      amountStr = absQty.toString();
+      name = assetName || unit.slice(56, 64) || (absQty === 1n ? 'Asset' : 'Assets');
+      if (absQty === 1n && assetName) {
+        name = assetName;
+      }
+      return `${sign}${amountStr} ${name}`;
+    }
+  };
+
+  const computeNetAssets = (tx: TransactionRecord): Record<string, bigint> => {
+    const inputTotals: Record<string, bigint> = {};
+    const outputTotals: Record<string, bigint> = {};
+
+    // Sum up inputs from non-external addresses (our wallet)
+    (tx.inputs || []).forEach(input => {
+      if (input.address === wallet.address) {
+        // Only our wallet's inputs
+        input.amount.forEach(asset => {
+          if (!inputTotals[asset.unit]) inputTotals[asset.unit] = 0n;
+          inputTotals[asset.unit] += BigInt(asset.quantity);
+        });
+      }
+    });
+
+    // Sum up outputs to non-external addresses (our wallet)
+    (tx.outputs || []).forEach(output => {
+      if (output.address === wallet.address) {
+        // Only our wallet's outputs
+        output.amount.forEach(asset => {
+          if (!outputTotals[asset.unit]) outputTotals[asset.unit] = 0n;
+          outputTotals[asset.unit] += BigInt(asset.quantity);
+        });
+      }
+    });
+
+    // Calculate net change (output - input) for each asset
+    const net: Record<string, bigint> = {};
+    const allUnits = new Set([...Object.keys(inputTotals), ...Object.keys(outputTotals)]);
+
+    allUnits.forEach(unit => {
+      const inQty = inputTotals[unit] || 0n;
+      const outQty = outputTotals[unit] || 0n;
+      const netChange = outQty - inQty;
+
+      if (netChange !== 0n) {
+        net[unit] = netChange;
+      }
+    });
+
+    // Subtract fees from the net ADA change
+    const feesLovelace = BigInt(tx.fees || '0');
+    if (feesLovelace > 0n) {
+      if (net['lovelace'] !== undefined) {
+        net['lovelace'] -= feesLovelace;
+      } else {
+        // If no lovelace change but we paid fees, show negative fee amount
+        net['lovelace'] = -feesLovelace;
+      }
+    }
+
+    // Remove zero amounts
+    Object.keys(net).forEach(unit => {
+      if (net[unit] === 0n) {
+        delete net[unit];
+      }
+    });
+
+    return net;
   };
 
   const toggleExpanded = (txHash: string) => {
@@ -99,32 +200,44 @@ const Transactions: React.FC<TransactionsProps> = ({ wallet, transactions }) => 
             </button>
           </div>
         ) : (
-          visibleTransactions.map((tx, index) => (
-            <div key={tx.hash || index} className="rounded-lg border border-gray-200 dark:border-gray-700">
-              <div
-                className="cursor-pointer p-3 hover:bg-gray-50 dark:hover:bg-gray-800"
-                onClick={() => toggleExpanded(tx.hash)}>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">Transaction</div>
-                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">{formatDate(tx.block_time)}</div>
-                    <div className="mt-1 break-all font-mono text-xs text-gray-400 dark:text-gray-500">
-                      {tx.hash.slice(0, 20)}...{tx.hash.slice(-8)}
+          visibleTransactions.map((tx, index) => {
+            const netAssets = computeNetAssets(tx);
+            const sortedUnits = Object.keys(netAssets).sort((a, b) =>
+              a === 'lovelace' ? -1 : b === 'lovelace' ? 1 : 0,
+            );
+            return (
+              <div key={tx.hash || index} className="rounded-lg border border-gray-200 dark:border-gray-700">
+                <div
+                  className="cursor-pointer p-3 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  onClick={() => toggleExpanded(tx.hash)}>
+                  <div className="flex items-start justify-between">
+                    <div className="flex flex-col">
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{formatDate(tx.block_time)}</div>
+                      <div className="text-xs text-gray-400 dark:text-gray-500">Block #{tx.block_height}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-mono text-xs text-gray-400 dark:text-gray-500">
+                        <TruncateWithCopy text={tx.hash} maxChars={10} />
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm font-medium">Fee: {formatAda(tx.fees)}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">Block #{tx.block_height}</div>
-                    <div className="text-xs text-blue-600 dark:text-blue-400">{tx.utxo_count || 0} UTXOs</div>
-                  </div>
+                  {Object.keys(netAssets).length > 0 && (
+                    <div className="mt-1 space-y-1">
+                      {sortedUnits.map(unit => (
+                        <div key={unit} className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {getAssetDisplay(unit, netAssets[unit], formatAda)}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
 
-              {expandedTx === tx.hash && (
-                <TransactionDetail tx={tx} wallet={wallet} formatAda={formatAda} formatDate={formatDate} />
-              )}
-            </div>
-          ))
+                {expandedTx === tx.hash && (
+                  <TransactionDetail tx={tx} wallet={wallet} formatAda={formatAda} formatDate={formatDate} />
+                )}
+              </div>
+            );
+          })
         )}
       </div>
 

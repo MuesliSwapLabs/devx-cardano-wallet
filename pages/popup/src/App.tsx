@@ -15,6 +15,7 @@ import UTXODetail from './wallet/UTXODetail';
 import Settings from './Settings';
 import SpoofedWalletInfo from './info/SpoofedWalletInfo';
 import DAppPermission from './cip30/DAppPermission';
+import NoWallets from './components/NoWallets';
 
 // Onboarding Pages
 import Welcome from './onboarding/Welcome';
@@ -154,6 +155,7 @@ function App() {
               <Route path="/settings" element={<Settings />} />
               <Route path="/wallet-settings/:walletId" element={<WalletSettings />} />
               <Route path="/spoofed-info" element={<SpoofedWalletInfo />} />
+              <Route path="/no-wallets" element={<NoWallets />} />
             </Route>
 
             {/* CIP-30 Permission Popup (no layout) */}
@@ -174,7 +176,13 @@ function App() {
               path="*"
               element={
                 <Navigate
-                  to={isOnboarded ? `/wallet/${defaultWalletId}/assets` : getOnboardingRedirectPath()}
+                  to={
+                    isOnboarded
+                      ? hasWallets
+                        ? `/wallet/${defaultWalletId}/assets`
+                        : '/no-wallets'
+                      : getOnboardingRedirectPath()
+                  }
                   replace
                 />
               }
