@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useStorage, walletsStorage } from '@extension/storage';
 import type { Wallet } from '@extension/shared';
 import type { UTXORecord, TransactionRecord } from '@extension/storage';
+import { TruncateWithCopy } from '@extension/shared';
 
 const UTXODetail: React.FC = () => {
   const { walletId, txHash, outputIndex } = useParams<{ walletId: string; txHash: string; outputIndex: string }>();
@@ -16,6 +17,53 @@ const UTXODetail: React.FC = () => {
   const [utxo, setUtxo] = useState<UTXORecord | null>(null);
   const [creatingTransaction, setCreatingTransaction] = useState<TransactionRecord | null>(null);
   const [spendingTransaction, setSpendingTransaction] = useState<TransactionRecord | null>(null);
+  const [assetDetails, setAssetDetails] = useState<{ [unit: string]: any }>({});
+
+  const BLOCKFROST_PROJECT_ID = 'preprodUCRP6WTpWi0DXWZF4eduE2VZPod9CjAJ'; // Preprod Blockfrost project ID
+
+  const decodeAssetName = (hex: string): string => {
+    if (!hex) return null; // Return null if empty, so we skip display
+    try {
+      const bytes: number[] = [];
+      for (let i = 0; i < hex.length; i += 2) {
+        bytes.push(parseInt(hex.substr(i, 2), 16));
+      }
+      const decoder = new TextDecoder('utf-8', { fatal: true });
+      const decoded = decoder.decode(new Uint8Array(bytes));
+      const trimmed = decoded.trim();
+      return trimmed ? trimmed : null; // Skip if empty after trim
+    } catch (e) {
+      return null; // Fail silently for binary/non-text
+    }
+  };
+
+  const getUnitDetails = async (unit: string) => {
+    if (unit === 'lovelace' || !unit || assetDetails[unit]) {
+      return assetDetails[unit];
+    }
+
+    try {
+      const response = await fetch(`https://cardano-preprod.blockfrost.io/api/v0/assets/${unit}`, {
+        method: 'GET',
+        headers: {
+          project_id: BLOCKFROST_PROJECT_ID,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setAssetDetails(prev => ({ ...prev, [unit]: data }));
+      return data;
+    } catch (err) {
+      console.error('Failed to fetch asset details:', err);
+      setAssetDetails(prev => ({ ...prev, [unit]: { asset_name: '', metadata: { decimals: 0 } } }));
+      return { asset_name: '', metadata: { decimals: 0 } };
+    }
+  };
 
   useEffect(() => {
     if (!txHash || !outputIndex || !wallet) {
@@ -76,24 +124,26 @@ const UTXODetail: React.FC = () => {
     fetchUTXODetails();
   }, [txHash, outputIndex, wallet?.id]);
 
+  useEffect(() => {
+    const fetchAssetDetails = async () => {
+      if (!utxo) return;
+
+      const otherAssets = utxo.amount.filter(a => a.unit !== 'lovelace');
+
+      for (const asset of otherAssets) {
+        await getUnitDetails(asset.unit);
+      }
+    };
+
+    fetchAssetDetails();
+  }, [utxo]);
+
   const formatAda = (lovelace: string) => {
     return (parseInt(lovelace) / 1000000).toFixed(6) + ' ADA';
   };
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleString();
-  };
-
-  const formatTimeSince = (timestamp: number) => {
-    const diff = Date.now() - timestamp;
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (days > 0) return `${days}d ago`;
-    if (hours > 0) return `${hours}h ago`;
-    if (minutes > 0) return `${minutes}m ago`;
-    return 'Just now';
   };
 
   if (loading) {
@@ -160,27 +210,23 @@ const UTXODetail: React.FC = () => {
       <div className="space-y-6">
         {/* Basic Information */}
         <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
-          <h3 className="text-md mb-3 font-semibold text-gray-900 dark:text-gray-100">Basic Information</h3>
+          <h3 className="mb-3 text-base font-bold text-gray-900 dark:text-white">Basic Information</h3>
           <div className="grid grid-cols-1 gap-3 text-sm">
-            <div>
+            <div className="flex items-center justify-between">
               <strong className="text-gray-600 dark:text-gray-400">Transaction Hash:</strong>
-              <div className="mt-1 break-all rounded bg-white p-2 font-mono text-xs dark:bg-gray-900">
-                {utxo.tx_hash}
-              </div>
+              <TruncateWithCopy text={utxo.tx_hash} maxChars={10} />
             </div>
-            <div>
+            <div className="flex items-center justify-between">
               <strong className="text-gray-600 dark:text-gray-400">Output Index:</strong>
-              <div className="mt-1">{utxo.output_index}</div>
+              <div>{utxo.output_index}</div>
             </div>
-            <div>
+            <div className="flex items-center justify-between">
               <strong className="text-gray-600 dark:text-gray-400">Address:</strong>
-              <div className="mt-1 break-all rounded bg-white p-2 font-mono text-xs dark:bg-gray-900">
-                {utxo.address}
-              </div>
+              <TruncateWithCopy text={utxo.address} maxChars={10} />
             </div>
-            <div>
+            <div className="flex items-center justify-between">
               <strong className="text-gray-600 dark:text-gray-400">Block:</strong>
-              <div className="mt-1">{utxo.block}</div>
+              <TruncateWithCopy text={utxo.block} maxChars={10} />
             </div>
           </div>
         </div>
@@ -206,19 +252,18 @@ const UTXODetail: React.FC = () => {
 
         {/* Value Information */}
         <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
-          <h3 className="text-md mb-3 font-semibold text-gray-900 dark:text-gray-100">Value</h3>
+          <h3 className="mb-3 text-base font-bold text-gray-900 dark:text-white">Value</h3>
           <div className="space-y-3">
             {/* ADA Amount */}
             {adaAmount && (
               <div className="rounded bg-blue-50 p-3 dark:bg-blue-900/30">
-                <div className="flex items-center justify-between">
-                  <div className="font-medium text-blue-900 dark:text-blue-100">Cardano (ADA)</div>
+                <div className="flex flex-col items-center">
                   <div className="text-lg font-bold text-blue-900 dark:text-blue-100">
                     {formatAda(adaAmount.quantity)}
                   </div>
-                </div>
-                <div className="mt-1 text-xs text-blue-700 dark:text-blue-300">
-                  {parseInt(adaAmount.quantity).toLocaleString()} Lovelace
+                  <div className="mt-1 text-xs text-blue-700 dark:text-blue-300">
+                    {parseInt(adaAmount.quantity).toLocaleString()} Lovelace
+                  </div>
                 </div>
               </div>
             )}
@@ -226,27 +271,48 @@ const UTXODetail: React.FC = () => {
             {/* Other Assets */}
             {otherAssets.length > 0 && (
               <div>
-                <div className="mb-2 text-sm font-medium text-gray-600 dark:text-gray-400">
-                  Native Assets ({otherAssets.length})
-                </div>
+                <h4 className="mb-2 text-base font-bold text-gray-900 dark:text-white">
+                  Native Tokens ({otherAssets.length})
+                </h4>
                 <div className="space-y-2">
-                  {otherAssets.map((asset, idx) => (
-                    <div key={idx} className="rounded bg-purple-50 p-3 dark:bg-purple-900/30">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-purple-900 dark:text-purple-100">Native Asset</div>
-                          <div className="mt-1 break-all font-mono text-xs text-purple-700 dark:text-purple-300">
-                            {asset.unit}
+                  {otherAssets.map((asset, idx) => {
+                    const details = assetDetails[asset.unit] || {};
+                    const assetNameHex = details.asset_name || '';
+                    const decodedName = decodeAssetName(assetNameHex);
+                    const metadata = details.metadata || {};
+                    const decimals = metadata.decimals || 0;
+                    const rawQuantity = parseInt(asset.quantity);
+                    let formattedQuantity: string;
+                    if (decimals > 0) {
+                      formattedQuantity = (rawQuantity / Math.pow(10, decimals)).toFixed(decimals);
+                    } else {
+                      formattedQuantity = rawQuantity.toLocaleString();
+                    }
+                    const hexStringToShow = assetNameHex || asset.unit.slice(56); // Use asset_name if available, else full unit's name part
+
+                    return (
+                      <div key={idx} className="rounded bg-purple-50 p-3 dark:bg-purple-900/30">
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 dark:text-gray-400">Asset Name:</span>
+                            <TruncateWithCopy text={hexStringToShow} maxChars={10} />
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-bold text-purple-900 dark:text-purple-100">
-                            {parseInt(asset.quantity).toLocaleString()}
+                          {decodedName && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-600 dark:text-gray-400">Asset Name Decoded:</span>
+                              <span className="font-medium text-purple-900 dark:text-purple-100">{decodedName}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 dark:text-gray-400">Quantity:</span>
+                            <span className="font-medium text-purple-900 dark:text-purple-100">
+                              {formattedQuantity}
+                            </span>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -256,30 +322,24 @@ const UTXODetail: React.FC = () => {
         {/* Technical Details */}
         {(utxo.data_hash || utxo.inline_datum || utxo.reference_script_hash) && (
           <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
-            <h3 className="text-md mb-3 font-semibold text-gray-900 dark:text-gray-100">Technical Details</h3>
-            <div className="space-y-3 text-sm">
+            <h3 className="mb-3 text-base font-bold text-gray-900 dark:text-white">Technical Details</h3>
+            <div className="grid grid-cols-1 gap-3 text-sm">
               {utxo.data_hash && (
-                <div>
+                <div className="flex items-center justify-between">
                   <strong className="text-gray-600 dark:text-gray-400">Data Hash:</strong>
-                  <div className="mt-1 break-all rounded bg-white p-2 font-mono text-xs dark:bg-gray-900">
-                    {utxo.data_hash}
-                  </div>
+                  <TruncateWithCopy text={utxo.data_hash} maxChars={10} />
                 </div>
               )}
               {utxo.inline_datum && (
-                <div>
+                <div className="flex items-center justify-between">
                   <strong className="text-gray-600 dark:text-gray-400">Inline Datum:</strong>
-                  <div className="mt-1 max-h-32 overflow-y-auto break-all rounded bg-white p-2 font-mono text-xs dark:bg-gray-900">
-                    {utxo.inline_datum}
-                  </div>
+                  <TruncateWithCopy text={utxo.inline_datum} maxChars={10} />
                 </div>
               )}
               {utxo.reference_script_hash && (
-                <div>
+                <div className="flex items-center justify-between">
                   <strong className="text-gray-600 dark:text-gray-400">Reference Script Hash:</strong>
-                  <div className="mt-1 break-all rounded bg-white p-2 font-mono text-xs dark:bg-gray-900">
-                    {utxo.reference_script_hash}
-                  </div>
+                  <TruncateWithCopy text={utxo.reference_script_hash} maxChars={10} />
                 </div>
               )}
             </div>
@@ -288,91 +348,39 @@ const UTXODetail: React.FC = () => {
 
         {/* Transaction Information */}
         <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
-          <h3 className="text-md mb-3 font-semibold text-gray-900 dark:text-gray-100">Transaction History</h3>
-          <div className="space-y-4">
+          <h3 className="mb-3 text-base font-bold text-gray-900 dark:text-white">Transactions</h3>
+          <div className="grid grid-cols-1 gap-3 text-sm">
             {/* Creating Transaction */}
             <div className="border-l-4 border-green-500 pl-4">
-              <div className="mb-2 flex items-start justify-between">
+              <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-medium text-green-700 dark:text-green-300">Created by Transaction</h4>
+                  <strong className="text-green-700 dark:text-green-300">Created by Transaction:</strong>
                   {creatingTransaction && (
                     <div className="mt-1 text-xs text-gray-500">
                       {formatDate(creatingTransaction.block_time)} • Block #{creatingTransaction.block_height}
                     </div>
                   )}
                 </div>
-                <Link
-                  to={`/wallet/${wallet.id}/transactions`}
-                  className="text-xs text-blue-600 hover:underline dark:text-blue-400">
-                  View in Transactions
-                </Link>
+                <TruncateWithCopy text={utxo.tx_hash} maxChars={10} />
               </div>
-              <div className="break-all rounded bg-white p-2 font-mono text-xs dark:bg-gray-900">{utxo.tx_hash}</div>
             </div>
 
             {/* Spending Transaction */}
             {utxo.isSpent && utxo.spentInTx && (
               <div className="border-l-4 border-red-500 pl-4">
-                <div className="mb-2 flex items-start justify-between">
+                <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-medium text-red-700 dark:text-red-300">Spent by Transaction</h4>
+                    <strong className="text-red-700 dark:text-red-300">Spent by Transaction:</strong>
                     {spendingTransaction && (
                       <div className="mt-1 text-xs text-gray-500">
                         {formatDate(spendingTransaction.block_time)} • Block #{spendingTransaction.block_height}
                       </div>
                     )}
                   </div>
-                  <Link
-                    to={`/wallet/${wallet.id}/transactions`}
-                    className="text-xs text-blue-600 hover:underline dark:text-blue-400">
-                    View in Transactions
-                  </Link>
-                </div>
-                <div className="break-all rounded bg-white p-2 font-mono text-xs dark:bg-gray-900">
-                  {utxo.spentInTx}
+                  <TruncateWithCopy text={utxo.spentInTx} maxChars={10} />
                 </div>
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Cache Information */}
-        <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
-          <h3 className="text-md mb-3 font-semibold text-gray-900 dark:text-gray-100">Cache Information</h3>
-          <div className="space-y-2 text-sm">
-            <div>
-              <strong className="text-gray-600 dark:text-gray-400">Wallet ID:</strong>
-              <div className="mt-1 font-mono text-xs">{utxo.walletId}</div>
-            </div>
-            <div>
-              <strong className="text-gray-600 dark:text-gray-400">Last Synced:</strong>
-              <div className="mt-1">
-                {formatTimeSince(utxo.lastSynced)} • {new Date(utxo.lastSynced).toLocaleString()}
-              </div>
-            </div>
-            <div className="text-xs italic text-gray-500">Data from IndexedDB cache (synced with Blockfrost API)</div>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
-          <h3 className="text-md mb-3 font-semibold text-gray-900 dark:text-gray-100">Navigation</h3>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              to={`/wallet/${wallet.id}/utxos`}
-              className="rounded bg-blue-600 px-3 py-1 text-sm text-white transition hover:bg-blue-700">
-              Back to UTXOs
-            </Link>
-            <Link
-              to={`/wallet/${wallet.id}/transactions`}
-              className="rounded bg-purple-600 px-3 py-1 text-sm text-white transition hover:bg-purple-700">
-              View Transactions
-            </Link>
-            <Link
-              to={`/wallet/${wallet.id}/assets`}
-              className="rounded bg-gray-600 px-3 py-1 text-sm text-white transition hover:bg-gray-700">
-              Wallet Overview
-            </Link>
           </div>
         </div>
       </div>

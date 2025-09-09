@@ -158,7 +158,7 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos }) => {
       </div>
 
       {/* Statistics */}
-      <div className="mb-4 rounded bg-gray-50 p-3 text-xs dark:bg-gray-800">
+      {/* <div className="mb-4 rounded bg-gray-50 p-3 text-xs dark:bg-gray-800">
         <div className="grid grid-cols-2 gap-2">
           <div>
             <strong>Total UTXOs:</strong> {stats.total}
@@ -180,7 +180,7 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos }) => {
             <strong>Wallet-owned:</strong> {stats.total - stats.external}
           </div>
         </div>
-      </div>
+      </div> */}
 
       {filteredUtxos.length === 0 ? (
         <div>
