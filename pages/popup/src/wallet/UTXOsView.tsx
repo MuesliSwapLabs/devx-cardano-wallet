@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import type { Wallet } from '@extension/shared';
 import type { UTXORecord } from '@extension/storage';
+import { TruncateWithCopy } from '@extension/shared';
 
 interface UTXOsViewProps {
   wallet: Wallet;
@@ -157,34 +158,9 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos }) => {
         </button>
       </div>
 
-      {/* Statistics */}
-      {/* <div className="mb-4 rounded bg-gray-50 p-3 text-xs dark:bg-gray-800">
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <strong>Total UTXOs:</strong> {stats.total}
-            {filteredUtxos.length !== stats.total && ` (${filteredUtxos.length} shown)`}
-          </div>
-          <div>
-            <strong>Unspent Value:</strong> {formatAda(stats.totalValue.toString())}
-          </div>
-          <div className="text-green-600 dark:text-green-400">
-            <strong>Unspent:</strong> {stats.unspent}
-          </div>
-          <div className="text-red-600 dark:text-red-400">
-            <strong>Spent:</strong> {stats.spent}
-          </div>
-          <div className="text-orange-600 dark:text-orange-400">
-            <strong>External:</strong> {stats.external}
-          </div>
-          <div className="text-gray-600 dark:text-gray-400">
-            <strong>Wallet-owned:</strong> {stats.total - stats.external}
-          </div>
-        </div>
-      </div> */}
-
       {filteredUtxos.length === 0 ? (
         <div>
-          <p className="mt-4 text-sm text-gray-400">
+          <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
             {searchQuery.trim()
               ? `No UTXOs match your search for \"${searchQuery}\"`
               : `No ${filter === 'all' ? '' : filter + ' '}UTXOs found for this wallet.`}
@@ -201,6 +177,7 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos }) => {
             const utxoKey = `${utxo.tx_hash}:${utxo.output_index}`;
             const adaAmount = utxo.amount.find(a => a.unit === 'lovelace');
             const otherAssets = utxo.amount.filter(a => a.unit !== 'lovelace');
+            const adaFormatted = adaAmount ? formatAda(adaAmount.quantity) : '0 ADA';
 
             return (
               <div key={utxoKey} className="rounded-lg border border-gray-200 dark:border-gray-700">
@@ -210,7 +187,6 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos }) => {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">UTXO</div>
                         <div
                           className={`rounded px-2 py-0.5 text-xs ${
                             utxo.isSpent
@@ -230,35 +206,10 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos }) => {
                           </div>
                         )}
                       </div>
-                      <div className="mt-1 break-all font-mono text-xs text-gray-500 dark:text-gray-400">
-                        {utxo.tx_hash.slice(0, 16)}...:{utxo.output_index}
+                      <div className="mt-2 flex items-center justify-between text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <span>+{adaFormatted}</span>
+                        {otherAssets.length > 0 && <span>+{otherAssets.length} assets</span>}
                       </div>
-                      <div className="mt-1 text-xs text-gray-500">
-                        <span className="font-semibold">Address:</span>
-                        <div className="mt-0.5 break-all rounded bg-gray-100 p-1 font-mono text-xs dark:bg-gray-700">
-                          {utxo.address}
-                        </div>
-                      </div>
-                      {utxo.isSpent && utxo.spentInTx && (
-                        <div className="mt-1 text-xs text-red-600 dark:text-red-400">
-                          Spent in:
-                          <Link
-                            to={`/wallet/${wallet.id}/transactions`}
-                            className="ml-1 font-mono text-red-700 hover:underline dark:text-red-300">
-                            {utxo.spentInTx.slice(0, 16)}...
-                          </Link>
-                        </div>
-                      )}
-                    </div>
-                    <div className="ml-2 text-right">
-                      <div className="text-sm font-medium">{adaAmount ? formatAda(adaAmount.quantity) : '0 ADA'}</div>
-                      {utxo.block && (
-                        <div
-                          className="mt-1 max-w-[150px] truncate text-xs text-gray-500 dark:text-gray-400"
-                          title={`Block: ${utxo.block}`}>
-                          Block: {utxo.block.slice(0, 8)}...
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -266,20 +217,27 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos }) => {
                 {expandedUtxo === utxoKey && (
                   <div className="border-t border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800">
                     <div className="space-y-3 text-xs">
-                      <div>
+                      <div className="flex items-center justify-between">
                         <strong>Full Hash:</strong>
-                        <div className="mt-1 break-all font-mono text-xs">{utxo.tx_hash}</div>
+                        <span className="font-mono">
+                          <TruncateWithCopy text={utxo.tx_hash} maxChars={10} />
+                        </span>
                       </div>
-                      <div>
-                        <strong>Output Index:</strong> {utxo.output_index}
+                      <div className="flex items-center justify-between">
+                        <strong>Output Index:</strong>
+                        <span>{utxo.output_index}</span>
                       </div>
-                      <div>
+                      <div className="flex items-center justify-between">
                         <strong>Full Address:</strong>
-                        <div className="mt-1 break-all font-mono text-xs">{utxo.address}</div>
+                        <span className="font-mono">
+                          <TruncateWithCopy text={utxo.address} maxChars={10} />
+                        </span>
                       </div>
-                      <div>
+                      <div className="flex items-center justify-between">
                         <strong>Block:</strong>
-                        <div className="mt-1 break-all font-mono text-xs">{utxo.block}</div>
+                        <span className="font-mono">
+                          <TruncateWithCopy text={utxo.block || ''} maxChars={10} />
+                        </span>
                       </div>
                       {utxo.isExternal && (
                         <div className="rounded border border-orange-200 bg-orange-50 p-2 dark:border-orange-700 dark:bg-orange-900/30">
@@ -326,21 +284,25 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos }) => {
                                       {parseInt(asset.quantity).toLocaleString()}
                                     </span>
                                   </div>
-                                  <div className="text-xs text-purple-700 dark:text-purple-300">
+                                  <div className="flex items-center justify-between text-xs text-purple-700 dark:text-purple-300">
                                     <strong>Policy ID:</strong>
-                                    <div className="mt-1 break-all font-mono">{asset.unit.slice(0, 56)}</div>
+                                    <span className="font-mono">
+                                      <TruncateWithCopy text={asset.unit.slice(0, 56)} maxChars={10} />
+                                    </span>
                                   </div>
                                   {asset.unit.length > 56 && (
-                                    <div className="mt-1 text-xs text-purple-700 dark:text-purple-300">
+                                    <div className="flex items-center justify-between text-xs text-purple-700 dark:text-purple-300">
                                       <strong>Asset Name:</strong>
-                                      <div className="break-all font-mono">{asset.unit.slice(56)}</div>
+                                      <span className="font-mono">
+                                        <TruncateWithCopy text={asset.unit.slice(56)} maxChars={10} />
+                                      </span>
                                     </div>
                                   )}
-                                  <div className="mt-1 text-xs text-purple-600 dark:text-purple-400">
+                                  <div className="flex items-center justify-between text-xs text-purple-600 dark:text-purple-400">
                                     <strong>Full Unit:</strong>
-                                    <div className="mt-1 break-all rounded bg-white p-1 font-mono text-xs dark:bg-gray-800">
-                                      {asset.unit}
-                                    </div>
+                                    <span className="font-mono">
+                                      <TruncateWithCopy text={asset.unit} maxChars={10} />
+                                    </span>
                                   </div>
                                 </div>
                               )}
@@ -354,47 +316,42 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos }) => {
                         <div className="border-t border-gray-300 pt-2 dark:border-gray-500">
                           <strong>Technical Details:</strong>
                           {utxo.data_hash && (
-                            <div className="ml-2 mt-1">
-                              <strong>Data Hash:</strong> <span className="font-mono">{utxo.data_hash}</span>
+                            <div className="ml-2 mt-1 flex items-center justify-between">
+                              <strong>Data Hash:</strong>
+                              <span className="font-mono">
+                                <TruncateWithCopy text={utxo.data_hash} maxChars={10} />
+                              </span>
                             </div>
                           )}
                           {utxo.inline_datum && (
-                            <div className="ml-2 mt-1">
-                              <strong>Inline Datum:</strong>{' '}
-                              <span className="font-mono">{utxo.inline_datum.slice(0, 32)}...</span>
+                            <div className="ml-2 mt-1 flex items-center justify-between">
+                              <strong>Inline Datum:</strong>
+                              <span className="font-mono">
+                                <TruncateWithCopy text={utxo.inline_datum} maxChars={10} />
+                              </span>
                             </div>
                           )}
                           {utxo.reference_script_hash && (
-                            <div className="ml-2 mt-1">
-                              <strong>Reference Script:</strong>{' '}
-                              <span className="font-mono">{utxo.reference_script_hash}</span>
+                            <div className="ml-2 mt-1 flex items-center justify-between">
+                              <strong>Reference Script:</strong>
+                              <span className="font-mono">
+                                <TruncateWithCopy text={utxo.reference_script_hash} maxChars={10} />
+                              </span>
                             </div>
                           )}
                         </div>
                       )}
 
                       {/* Navigation Links */}
-                      <div className="flex flex-wrap gap-2 border-t border-gray-300 pt-2 dark:border-gray-500">
+                      <div className="flex flex-wrap justify-center gap-2 border-t border-gray-300 pt-2 dark:border-gray-500">
                         <Link
                           to={`/wallet/${wallet.id}/utxo/${utxo.tx_hash}/${utxo.output_index}`}
                           className="text-xs text-blue-600 hover:underline dark:text-blue-400">
-                          📄 View Details
-                        </Link>
-                        <Link
-                          to={`/wallet/${wallet.id}/transactions`}
-                          className="text-xs text-blue-600 hover:underline dark:text-blue-400">
-                          🔗 View in Transactions
+                          View Details
                         </Link>
                         {utxo.isSpent && utxo.spentInTx && (
                           <span className="text-xs text-gray-500">💸 Spent in TX</span>
                         )}
-                        {!utxo.isSpent && (
-                          <span className="text-xs text-green-600 dark:text-green-400">✅ Unspent</span>
-                        )}
-                      </div>
-
-                      <div className="border-t border-gray-300 pt-2 text-gray-500 dark:border-gray-500">
-                        <em>Data from IndexedDB cache (synced with Blockfrost API)</em>
                       </div>
                     </div>
                   </div>
