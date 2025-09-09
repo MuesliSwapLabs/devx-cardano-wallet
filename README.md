@@ -4,6 +4,12 @@ A **developer-focused** Cardano wallet browser extension designed for dApp devel
 
 ⚠️ **This wallet is for development purposes only. Do not use with real funds or for production transactions.**
 
+<p align="center">
+  <img src="screenshots/Tokens.png" width="300" alt="Tokens View" />
+  <img src="screenshots/Transactions_Overview.png" width="300" alt="Transactions Overview" />
+  <img src="screenshots/UTXOs_Overview.png" width="300" alt="UTXOs Overview" />
+</p>
+
 ## Features
 
 - **Wallet Spoofing**: Create read-only wallets from any Cardano address for testing dApp interactions
@@ -14,6 +20,23 @@ A **developer-focused** Cardano wallet browser extension designed for dApp devel
 - **Multiple Wallet Types**: Create new wallets, import from seed, or spoof existing addresses
 - **Modern UI**: Dark/light theme support with developer-friendly interface
 - **Chrome Extension**: Built and tested specifically for Chrome
+
+## Security
+
+⚠️ **IMPORTANT SECURITY NOTICE** ⚠️
+
+This wallet is designed with **reduced security measures** to prioritize developer experience over security:
+
+- **Optional Passwords**: While we ask for a password by default, users can actively opt-out to reduce friction during development
+- **Relaxed Security**: Loosened security constraints are intentional to improve development workflow
+- **No Production Use**: This wallet should NEVER be used with real funds or for production transactions
+- **Development Focus**: Security trade-offs are made specifically to enhance the developer experience
+
+**Password Protection**: When a password is set, wallet information is encrypted. Password is required for seed phrase export if set.
+
+**Data Management**: Users can delete individual wallets or completely wipe all extension data through settings.
+
+🚨 **DO NOT use this wallet on mainnet with real funds. This is a development tool only.**
 
 ## Installation & Development
 
