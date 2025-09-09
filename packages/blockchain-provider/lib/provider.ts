@@ -625,7 +625,19 @@ export const getWalletState = async (wallet: Wallet): Promise<WalletState> => {
       assets: enrichedAssets,
     };
   } catch (error) {
-    console.error('Failed to fetch full wallet state:', error);
+    // Check if this is a 404 error (wallet not found) - this is expected for new wallets
+    const is404Error =
+      error instanceof Error &&
+      (error.message.includes('404') ||
+        error.message.includes('not found') ||
+        error.message.includes('Failed to fetch account'));
+
+    if (is404Error) {
+      console.log('Wallet not found on blockchain (expected for new wallets):', address);
+    } else {
+      console.error('Failed to fetch full wallet state:', error);
+    }
+
     // Return a default error state
     return {
       status: 'not_found',

@@ -89,8 +89,38 @@ export async function spoofWallet(name: string, inputAddress: string, network: '
   if (state.status === 'invalid_address') {
     throw new Error('The provided address format is invalid.');
   }
+
+  // For spoofed wallets, 'not_found' is acceptable - it just means the wallet doesn't exist on-chain yet
+  // We'll create the wallet with default values and the stake address we can determine
   if (state.status === 'not_found') {
-    throw new Error('This address is valid but has no on-chain history.');
+    console.log('Creating spoof wallet for address that does not exist on blockchain yet:', inputAddress);
+
+    // For new wallets, we still need a stake address to make it functional
+    // If we couldn't get one from getWalletState, we can't create a functional spoof wallet
+    if (!state.stakeAddress && !isStakeAddress) {
+      throw new Error(
+        'Cannot create spoof wallet: unable to determine stake address for this payment address. ' +
+          'The address may be invalid or the wallet may not exist on the blockchain yet. ' +
+          'Try again after the wallet receives its first transaction.',
+      );
+    }
+
+    // Create wallet with default values for new wallets
+    const wallet: Wallet = {
+      id: uuidv4(),
+      name,
+      address: inputAddress,
+      stakeAddress: isStakeAddress ? inputAddress : state.stakeAddress || '',
+      network,
+      balance: '0', // New wallets start with 0 balance
+      assets: [], // New wallets start with no assets
+      type: 'SPOOFED',
+      hasPassword: false,
+      seedPhrase: null,
+      rootKey: null,
+    };
+
+    return wallet;
   }
 
   // Check if the address has a stake address - required for spoof wallets
