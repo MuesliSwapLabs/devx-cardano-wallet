@@ -37,7 +37,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture Overview
 
-This is a **Cardano wallet Chrome extension** built with React, TypeScript, and Vite in a monorepo structure using pnpm workspaces and Turborepo. The project is based on a Chrome extension boilerplate but has been customized for Cardano wallet functionality.
+This is **DevX - A developer-focused Cardano wallet Chrome extension** built with React, TypeScript, and Vite in a monorepo structure using pnpm workspaces and Turborepo. The project is based on a Chrome extension boilerplate but has been customized for Cardano wallet functionality. **This wallet is designed for development purposes only and should NOT be used with real funds or for production transactions.**
 
 ### Key Technologies
 - **Cardano Integration**: Uses `@emurgo/cardano-serialization-lib-browser` for Cardano blockchain operations
@@ -90,8 +90,10 @@ The extension uses Chrome's message passing system:
 
 **Wallet Management** (`packages/wallet-manager/`):
 - Handles wallet creation, import from seed phrases, and "spoof" wallets for testing
+- **Wallet Spoofing**: Create read-only wallets from any Cardano address for testing dApp interactions
 - Uses BIP39 for mnemonic generation and Cardano derivation paths
 - Integrates with Chrome storage for persistence
+- **Reduced Security**: Optional passwords and relaxed security constraints for development workflow
 
 **Blockchain Provider** (`packages/blockchain-provider/`):
 - Abstracts blockchain operations
