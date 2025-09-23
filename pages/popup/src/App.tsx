@@ -10,7 +10,9 @@ import SubPageLayout from './layouts/SubPageLayout';
 import WalletActionLayout from './layouts/WalletActionLayout';
 
 // Views
-import WalletView from './wallet/WalletView';
+import AssetsView from './wallet/AssetsView';
+import TransactionsView from './wallet/TransactionsView';
+import UTXOsViewWrapper from './wallet/UTXOsViewWrapper';
 import UTXODetail from './wallet/UTXODetail';
 import Settings from './Settings';
 import SpoofedWalletInfo from './info/SpoofedWalletInfo';
@@ -196,8 +198,11 @@ function App() {
             </Route>
 
             {/* Main Application */}
-            <Route path="/wallet/:walletId/:view" element={<MainLayout />}>
-              <Route index element={<WalletView />} />
+            <Route path="/wallet/:walletId" element={<MainLayout />}>
+              <Route path="assets" element={<AssetsView />} />
+              <Route path="transactions" element={<TransactionsView />} />
+              <Route path="utxos" element={<UTXOsViewWrapper />} />
+              <Route index element={<Navigate to="assets" replace />} />
             </Route>
 
             {/* Fallback Redirect */}
