@@ -23,7 +23,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `pnpm e2e` - Run end-to-end tests (requires built extension)
 - `pnpm e2e:firefox` - Run e2e tests for Firefox
 - `./test.sh` - Test Blockfrost API connectivity (preprod network)
-- `./get_transactions.sh <address> [api_key]` - Fetch transaction data for testing with Blockfrost API
+- `./get_transactions.sh <address> [api_key]` - Comprehensive transaction fetcher for Cardano addresses with detailed output
 
 **Cleaning:**
 - `pnpm clean:bundle` - Clean dist folders
@@ -151,16 +151,19 @@ The popup uses React Router with multiple layouts:
 ### Testing Infrastructure
 
 - **E2E Testing**: WebdriverIO-based tests in `tests/e2e/`
-- **Test Files**: Located in `tests/e2e/specs/` directory
+- **Test Files**: Located in `tests/e2e/specs/` directory with comprehensive page coverage
+- **Test Configuration**: Separate configs for Chrome and Firefox in `tests/e2e/config/`
 - **Blockchain Testing**: `test.sh` script for testing Cardano network connectivity via Blockfrost API
+- **Transaction Analysis**: `get_transactions.sh` script for comprehensive transaction data fetching and analysis
 - **API Keys Required**: Both mainnet and preprod Blockfrost API keys needed for full functionality
 
 ### Environment Configuration
 
 - **Environment Variables**: Copy `.example.env` to `.env` for configuration
-- **API Keys**: Configure Blockfrost API keys for mainnet (`mainnetApiKey`) and preprod (`preprodApiKey`) networks
+- **API Keys**: Configure Blockfrost API keys for mainnet and preprod networks
 - **Vite Environment**: Access via `import.meta.env.{KEY}` with type definitions in `vite-env.d.ts`
 - **Node Version**: Requires Node.js >= 18.19.1
+- **Package Manager**: Requires pnpm >= 9.9.0 (`npm install -g pnpm`)
 - **Windows Setup**: Run `git config --global core.eol lf` and `git config --global core.autocrlf input` for cross-platform compatibility
 
 ### Data Migration & Recent Improvements

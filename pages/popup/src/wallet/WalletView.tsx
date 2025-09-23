@@ -190,7 +190,14 @@ const WalletView = () => {
   // Get tab from URL params, default to 'tokens'
   const activeTab = (searchParams.get('tab') as 'tokens' | 'nfts') || 'tokens';
   const [syncPromise, setSyncPromise] = useState<Promise<any> | null>(null);
-  const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0, message: '' });
+  const [syncProgress, setSyncProgress] = useState({
+    current: 0,
+    total: 0,
+    message: '',
+    phase: 'checking',
+    newItemsCount: 0,
+  });
+  const [showCompletedIndicator, setShowCompletedIndicator] = useState(false);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [utxos, setUTXOs] = useState<UTXORecord[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -215,6 +222,18 @@ const WalletView = () => {
     const handleMessage = (message: any) => {
       if (message.type === 'SYNC_PROGRESS' && message.payload.walletId === wallet?.id) {
         setSyncProgress(message.payload);
+
+        // Handle completion phase
+        if (message.payload.phase === 'complete') {
+          setShowCompletedIndicator(true);
+          // Clear sync promise immediately when complete
+          setSyncPromise(null);
+          // Hide completed indicator after 1 second
+          setTimeout(() => {
+            setShowCompletedIndicator(false);
+            setSyncProgress({ current: 0, total: 0, message: '', phase: 'checking', newItemsCount: 0 });
+          }, 1000);
+        }
       }
     };
 
@@ -374,13 +393,30 @@ const WalletView = () => {
 
       {view === 'transactions' && (
         <div className="relative flex h-full flex-col">
-          {/* Background sync indicator */}
-          {syncPromise && (
-            <div className="fixed inset-x-0 bottom-16 z-10 rounded-t-lg bg-blue-50 px-3 py-2 dark:bg-blue-900">
+          {/* Sync indicator */}
+          {(syncPromise || showCompletedIndicator) && (
+            <div
+              className={`fixed inset-x-0 bottom-16 z-10 rounded-t-lg px-3 py-2 ${
+                showCompletedIndicator ? 'bg-green-50 dark:bg-green-900 animate-fadeOut' : 'bg-blue-50 dark:bg-blue-900'
+              }`}>
               <div className="flex items-center gap-2">
-                <div className="size-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
-                <div className="text-sm text-blue-700 dark:text-blue-300">
-                  {syncProgress.total > 0 ? `Updating... ${syncProgress.current}/${syncProgress.total}` : 'Updating...'}
+                {!showCompletedIndicator && (
+                  <div className="size-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
+                )}
+                {showCompletedIndicator && (
+                  <div className="size-4 flex items-center justify-center">
+                    <span className="text-green-600 dark:text-green-400">✓</span>
+                  </div>
+                )}
+                <div
+                  className={`text-sm ${
+                    showCompletedIndicator ? 'text-green-700 dark:text-green-300' : 'text-blue-700 dark:text-blue-300'
+                  }`}>
+                  {showCompletedIndicator
+                    ? 'Up to date'
+                    : syncProgress.phase === 'checking'
+                      ? 'Checking for updates...'
+                      : `Downloading ${syncProgress.current}/${syncProgress.total}`}
                 </div>
               </div>
             </div>
@@ -404,13 +440,30 @@ const WalletView = () => {
 
       {view === 'utxos' && (
         <div className="relative flex h-full flex-col">
-          {/* Background sync indicator */}
-          {syncPromise && (
-            <div className="fixed inset-x-0 bottom-16 z-10 rounded-t-lg bg-blue-50 px-3 py-2 dark:bg-blue-900">
+          {/* Sync indicator */}
+          {(syncPromise || showCompletedIndicator) && (
+            <div
+              className={`fixed inset-x-0 bottom-16 z-10 rounded-t-lg px-3 py-2 ${
+                showCompletedIndicator ? 'bg-green-50 dark:bg-green-900 animate-fadeOut' : 'bg-blue-50 dark:bg-blue-900'
+              }`}>
               <div className="flex items-center gap-2">
-                <div className="size-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
-                <div className="text-sm text-blue-700 dark:text-blue-300">
-                  {syncProgress.total > 0 ? `Updating... ${syncProgress.current}/${syncProgress.total}` : 'Updating...'}
+                {!showCompletedIndicator && (
+                  <div className="size-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
+                )}
+                {showCompletedIndicator && (
+                  <div className="size-4 flex items-center justify-center">
+                    <span className="text-green-600 dark:text-green-400">✓</span>
+                  </div>
+                )}
+                <div
+                  className={`text-sm ${
+                    showCompletedIndicator ? 'text-green-700 dark:text-green-300' : 'text-blue-700 dark:text-blue-300'
+                  }`}>
+                  {showCompletedIndicator
+                    ? 'Up to date'
+                    : syncProgress.phase === 'checking'
+                      ? 'Checking for updates...'
+                      : `Downloading ${syncProgress.current}/${syncProgress.total}`}
                 </div>
               </div>
             </div>
