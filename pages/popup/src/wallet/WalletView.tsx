@@ -423,7 +423,7 @@ const WalletView = () => {
             </div>
           ) : (
             <div>
-              <UTXOsView wallet={wallet} utxos={utxos} />
+              <UTXOsView wallet={wallet} utxos={utxos} transactions={transactions} />
             </div>
           )}
         </div>

@@ -191,7 +191,7 @@ const UTXODetail: React.FC = () => {
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Basic Information */}
         <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
           <h3 className="mb-3 text-base font-bold text-gray-900 dark:text-white">Basic Information</h3>
@@ -207,10 +207,6 @@ const UTXODetail: React.FC = () => {
             <div className="flex items-center justify-between">
               <strong className="text-gray-600 dark:text-gray-400">Address:</strong>
               <TruncateWithCopy text={utxo.address} maxChars={10} />
-            </div>
-            <div className="flex items-center justify-between">
-              <strong className="text-gray-600 dark:text-gray-400">Block:</strong>
-              <TruncateWithCopy text={utxo.block} maxChars={10} />
             </div>
           </div>
         </div>
@@ -336,33 +332,49 @@ const UTXODetail: React.FC = () => {
           <div className="grid grid-cols-1 gap-3 text-sm">
             {/* Creating Transaction */}
             <div className="border-l-4 border-green-500 pl-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <strong className="text-green-700 dark:text-green-300">Created by Transaction:</strong>
-                  {creatingTransaction && (
-                    <div className="mt-1 text-xs text-gray-500">
-                      {formatDate(creatingTransaction.block_time)} • Block #{creatingTransaction.block_height}
-                    </div>
-                  )}
-                </div>
-                <TruncateWithCopy text={utxo.tx_hash} maxChars={10} />
+              <div className="mb-2 text-left">
+                <strong className="text-green-700 dark:text-green-300">Created by Transaction:</strong>
               </div>
+              {creatingTransaction && (
+                <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                  <div className="flex justify-between">
+                    <span>Hash:</span>
+                    <TruncateWithCopy text={utxo.tx_hash} maxChars={10} />
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Timestamp:</span>
+                    <span>{formatDate(creatingTransaction.block_time)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Block:</span>
+                    <TruncateWithCopy text={`#${creatingTransaction.block_height}`} maxChars={15} />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Spending Transaction */}
             {utxo.isSpent && utxo.spentInTx && (
               <div className="border-l-4 border-red-500 pl-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <strong className="text-red-700 dark:text-red-300">Spent by Transaction:</strong>
-                    {spendingTransaction && (
-                      <div className="mt-1 text-xs text-gray-500">
-                        {formatDate(spendingTransaction.block_time)} • Block #{spendingTransaction.block_height}
-                      </div>
-                    )}
-                  </div>
-                  <TruncateWithCopy text={utxo.spentInTx} maxChars={10} />
+                <div className="mb-2 text-left">
+                  <strong className="text-red-700 dark:text-red-300">Spent by Transaction:</strong>
                 </div>
+                {spendingTransaction && (
+                  <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                    <div className="flex justify-between">
+                      <span>Hash:</span>
+                      <TruncateWithCopy text={utxo.spentInTx} maxChars={10} />
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Timestamp:</span>
+                      <span>{formatDate(spendingTransaction.block_time)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Block:</span>
+                      <TruncateWithCopy text={`#${spendingTransaction.block_height}`} maxChars={15} />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
