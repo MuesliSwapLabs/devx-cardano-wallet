@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { Wallet } from '@extension/shared';
-import type { UTXORecord } from '@extension/storage';
-import type { TransactionRecord } from '@extension/storage';
+import type { UTXORecord, TransactionRecord } from '@extension/storage';
 import { TruncateWithCopy } from '@extension/shared';
 import TransactionDetail from './TransactionDetail';
 
@@ -33,7 +32,7 @@ const Transactions: React.FC<TransactionsProps> = ({ wallet, transactions }) => 
         bytes[i / 2] = parseInt(nameHex.substr(i, 2), 16);
       }
       let name = '';
-      for (let byte of bytes) {
+      for (const byte of bytes) {
         if (byte === 0) break;
         name += String.fromCharCode(byte);
       }

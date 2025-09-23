@@ -18,7 +18,6 @@ function Legal() {
   useEffect(() => {
     const initOnboarding = async () => {
       await onboardingStorage.goToStep('legal');
-      await onboardingStorage.setCurrentRoute('/onboarding/legal');
     };
     initOnboarding();
 

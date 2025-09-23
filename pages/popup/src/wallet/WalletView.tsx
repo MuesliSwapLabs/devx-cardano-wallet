@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useStorage, walletsStorage } from '@extension/storage';
 import type { Wallet, Asset } from '@extension/shared';
 import type { TransactionRecord, UTXORecord } from '@extension/storage';
@@ -184,7 +184,11 @@ const NFTDisplay = ({ asset }: { asset: Asset }) => {
 
 const WalletView = () => {
   const { walletId, view = 'assets' } = useParams();
-  const [activeTab, setActiveTab] = useState<'tokens' | 'nfts'>('tokens');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  // Get tab from URL params, default to 'tokens'
+  const activeTab = (searchParams.get('tab') as 'tokens' | 'nfts') || 'tokens';
   const [syncPromise, setSyncPromise] = useState<Promise<any> | null>(null);
   const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0, message: '' });
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
@@ -316,7 +320,11 @@ const WalletView = () => {
           {/* Tab switcher */}
           <div className="mb-4 flex border-b border-gray-300 dark:border-gray-600">
             <button
-              onClick={() => setActiveTab('tokens')}
+              onClick={() => {
+                const newSearchParams = new URLSearchParams(searchParams);
+                newSearchParams.set('tab', 'tokens');
+                setSearchParams(newSearchParams);
+              }}
               className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
                 activeTab === 'tokens'
                   ? 'border-b-2 border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
@@ -325,7 +333,11 @@ const WalletView = () => {
               Tokens ({tokens.length})
             </button>
             <button
-              onClick={() => setActiveTab('nfts')}
+              onClick={() => {
+                const newSearchParams = new URLSearchParams(searchParams);
+                newSearchParams.set('tab', 'nfts');
+                setSearchParams(newSearchParams);
+              }}
               className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
                 activeTab === 'nfts'
                   ? 'border-b-2 border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
@@ -378,7 +390,7 @@ const WalletView = () => {
           {transactions.length === 0 && !syncPromise ? (
             <div className="flex flex-col items-center justify-center py-8">
               <div className="text-sm text-gray-600 dark:text-gray-400">No transactions yet</div>
-              <button onClick={forceRefresh} className="mt-2 text-xs text-blue-500 hover:text-blue-600 underline">
+              <button onClick={forceRefresh} className="mt-2 text-xs text-blue-500 underline hover:text-blue-600">
                 Force Refresh
               </button>
             </div>
