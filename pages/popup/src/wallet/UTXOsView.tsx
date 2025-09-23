@@ -113,10 +113,7 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos }) => {
 
   return (
     <div>
-      <div className="mb-2 border-b border-gray-300 pb-2 dark:border-gray-600">
-        <div className="mb-2">
-          <h3 className="text-md font-semibold">UTXOs</h3>
-        </div>
+      <div className="mb-2 mt-4 pb-2">
         <input
           type="text"
           placeholder="Search UTXOs (hash, address, asset, etc.)"
@@ -363,7 +360,7 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos }) => {
 
       {/* Show loading indicator or count */}
       {filteredUtxos.length > 0 && (
-        <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+        <div className="mt-4 pb-4 text-center text-sm text-gray-500 dark:text-gray-400">
           {itemsToShow < filteredUtxos.length ? (
             <div>
               Showing {itemsToShow} of {filteredUtxos.length} UTXOs

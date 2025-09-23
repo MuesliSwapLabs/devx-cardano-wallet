@@ -309,7 +309,7 @@ const Transactions: React.FC<TransactionsProps> = ({ wallet, transactions }) => 
 
       {/* Show loading indicator or count */}
       {filteredTransactions.length > 0 && (
-        <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+        <div className="mt-4 pb-4 text-center text-sm text-gray-500 dark:text-gray-400">
           {totalShown < filteredTransactions.length ? (
             <div>
               Showing {totalShown} of {filteredTransactions.length} transactions

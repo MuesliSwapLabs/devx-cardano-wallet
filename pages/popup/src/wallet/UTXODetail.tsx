@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useStorage, walletsStorage } from '@extension/storage';
 import type { Wallet } from '@extension/shared';
 import type { UTXORecord, TransactionRecord } from '@extension/storage';
@@ -7,7 +7,6 @@ import { TruncateWithCopy } from '@extension/shared';
 
 const UTXODetail: React.FC = () => {
   const { walletId, txHash, outputIndex } = useParams<{ walletId: string; txHash: string; outputIndex: string }>();
-  const navigate = useNavigate();
   const walletsData = useStorage(walletsStorage);
   const wallets = walletsData?.wallets || [];
   const wallet = wallets.find((w: Wallet) => w.id === walletId);
@@ -149,12 +148,6 @@ const UTXODetail: React.FC = () => {
   if (loading) {
     return (
       <div className="p-4">
-        <div className="mb-4 flex items-center gap-2">
-          <button onClick={() => navigate(-1)} className="text-sm text-blue-600 hover:underline dark:text-blue-400">
-            ← Back
-          </button>
-          <h2 className="text-lg font-semibold">UTXO Details</h2>
-        </div>
         <div className="flex items-center justify-center py-8">
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <div className="size-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
@@ -168,12 +161,6 @@ const UTXODetail: React.FC = () => {
   if (error || !utxo || !wallet) {
     return (
       <div className="p-4">
-        <div className="mb-4 flex items-center gap-2">
-          <button onClick={() => navigate(-1)} className="text-sm text-blue-600 hover:underline dark:text-blue-400">
-            ← Back
-          </button>
-          <h2 className="text-lg font-semibold">UTXO Details</h2>
-        </div>
         <div className="text-sm text-red-500">{error || (!wallet ? 'Wallet not found' : 'UTXO not found')}</div>
       </div>
     );
@@ -185,12 +172,9 @@ const UTXODetail: React.FC = () => {
   return (
     <div className="mx-auto max-w-2xl p-4">
       {/* Header */}
-      <div className="mb-6 flex items-center gap-2">
-        <button onClick={() => navigate(-1)} className="text-sm text-blue-600 hover:underline dark:text-blue-400">
-          ← Back
-        </button>
+      <div className="relative mb-6 flex items-center justify-center">
         <h2 className="text-lg font-semibold">UTXO Details</h2>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="absolute right-0 flex items-center gap-2">
           {utxo.isExternal && (
             <div className="rounded-full bg-orange-100 px-3 py-1 text-sm text-orange-800 dark:bg-orange-900 dark:text-orange-200">
               External
