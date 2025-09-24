@@ -181,6 +181,28 @@ const SpoofWalletForm = () => {
                   error={touched.walletAddress && errors.walletAddress}
                 />
                 <ErrorMessage name="walletAddress" component="p" className="mt-1 text-sm text-red-500" />
+
+                {/* Mangled Address Warning */}
+                <div className="mt-2 flex items-center text-xs text-amber-600 dark:text-amber-400">
+                  <img src={chrome.runtime.getURL('warning.svg')} alt="Warning" className="mr-1 h-3 w-3" />
+                  <span>Assuming standard wallet addresses only</span>
+                  <div className="group relative ml-1">
+                    <span className="cursor-help text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                      ❓
+                    </span>
+                    <div className="invisible absolute bottom-full left-1/2 z-10 mb-2 w-64 -translate-x-1/2 transform rounded-lg bg-gray-900 p-3 text-xs text-white shadow-lg group-hover:visible dark:bg-gray-700">
+                      <div className="mb-2 font-semibold">Mangled/Franken Addresses</div>
+                      <div className="mb-2">
+                        These are addresses where payment keys and stake keys belong to different wallets. They can
+                        cause confusion about address ownership.
+                      </div>
+                      <div className="text-green-200">
+                        ✓ Wallet extensions don't create these - both keys derive from the same seed phrase.
+                      </div>
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 transform border-4 border-transparent border-t-gray-900 dark:border-t-gray-700"></div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="mt-auto flex justify-center space-x-4">
