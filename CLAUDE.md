@@ -20,10 +20,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `pnpm update-version` - Update extension version using bash script
 
 **Testing:**
-- `pnpm e2e` - Run end-to-end tests (requires built extension)
-- `pnpm e2e:firefox` - Run e2e tests for Firefox
 - `./test.sh` - Test Blockfrost API connectivity (preprod network)
-- `./get_transactions.sh <address> [api_key]` - Comprehensive transaction fetcher for Cardano addresses with detailed output
+- `./get_transactions.sh <address> [api_key]` - Comprehensive transaction fetcher with detailed analysis, pagination support, and JSON output
+  - Fetches all transactions for a Cardano address with full transaction details
+  - Supports both payment addresses and stake addresses with automatic address type detection
+  - Includes account balance, transaction history, and UTXO analysis
+  - Outputs detailed JSON file with timestamped filename for analysis
+  - Handles pagination automatically for wallets with many transactions
+- `./update_version.sh` - Update extension version using bash script (also available as `pnpm update-version`)
 
 **Cleaning:**
 - `pnpm clean:bundle` - Clean dist folders
@@ -57,8 +61,8 @@ This is **DevX - A developer-focused Cardano wallet Chrome extension** built wit
 
 **Shared Packages:**
 - `packages/wallet-manager/` - Core wallet business logic (creation, import, management)
-- `packages/blockchain-provider/` - Cardano blockchain interaction layer
-- `packages/shared/` - Common types, messaging system, and shared utilities
+- `packages/blockchain-provider/` - Cardano blockchain interaction layer with type-safe Blockfrost client
+- `packages/shared/` - Common types (including branded address types), messaging system, and shared utilities
 - `packages/storage/` - Chrome storage API wrappers with React hooks
 - `packages/ui/` - Shared UI components and design system
 - `packages/hmr/` - Hot module replacement system for development
@@ -96,9 +100,10 @@ The extension uses Chrome's message passing system:
 - **Reduced Security**: Optional passwords and relaxed security constraints for development workflow
 
 **Blockchain Provider** (`packages/blockchain-provider/`):
-- Abstracts blockchain operations
-- Handles Cardano network interactions
+- Abstracts blockchain operations with type-safe Blockfrost client
+- Handles Cardano network interactions with structured error handling
 - Supports both mainnet and testnet
+- Features branded address types (StakeAddress, BaseAddress, EnterpriseAddress) for type safety
 
 **CIP-30 Implementation**:
 - Located in `chrome-extension/src/background/cip30.ts` and related handlers
@@ -150,9 +155,7 @@ The popup uses React Router with multiple layouts:
 
 ### Testing Infrastructure
 
-- **E2E Testing**: WebdriverIO-based tests in `tests/e2e/`
-- **Test Files**: Located in `tests/e2e/specs/` directory with comprehensive page coverage
-- **Test Configuration**: Separate configs for Chrome and Firefox in `tests/e2e/config/`
+- **Unit Tests**: No unit test framework currently configured (tests folder available for future implementation)
 - **Blockchain Testing**: `test.sh` script for testing Cardano network connectivity via Blockfrost API
 - **Transaction Analysis**: `get_transactions.sh` script for comprehensive transaction data fetching and analysis
 - **API Keys Required**: Both mainnet and preprod Blockfrost API keys needed for full functionality
@@ -168,13 +171,22 @@ The popup uses React Router with multiple layouts:
 
 ### Data Migration & Recent Improvements
 
-Recent architectural changes moved storage from Chrome storage to IndexedDB:
-- Transaction data is now stored in IndexedDB for better performance
+Recent architectural changes and improvements include:
+
+**Storage Migration:**
+- Transaction data moved from Chrome storage to IndexedDB for better performance
 - UTXO tracking includes spent/unspent status for accurate balance calculation including external UTXO detection
 - Wallet metadata includes sync timestamps for incremental updates
 - Improved UTXO details UI with better visual organization and expanded view functionality
 - Enhanced wallet state handling for new wallets that don't exist on-chain yet
 - Added CIP-30 methods for retrieving unused and change addresses
+
+**Blockfrost Client Refactoring (In Progress):**
+- Implemented type-safe Blockfrost client with branded address types
+- Created comprehensive error handling system with structured error types
+- Added support for all major Blockfrost endpoints with pagination
+- Established clear separation between HTTP client and business logic
+- Full TypeScript type safety with 1:1 API mapping
 
 ### Development Best Practices
 
