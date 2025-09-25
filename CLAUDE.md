@@ -28,6 +28,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - Outputs detailed JSON file with timestamped filename for analysis
   - Handles pagination automatically for wallets with many transactions
 - `./update_version.sh` - Update extension version using bash script (also available as `pnpm update-version`)
+- **Note**: E2E test infrastructure has been removed as it was not being used
 
 **Cleaning:**
 - `pnpm clean:bundle` - Clean dist folders
@@ -155,7 +156,7 @@ The popup uses React Router with multiple layouts:
 
 ### Testing Infrastructure
 
-- **Unit Tests**: No unit test framework currently configured (tests folder available for future implementation)
+- **Unit Tests**: No unit test framework currently configured (E2E test infrastructure has been removed)
 - **Blockchain Testing**: `test.sh` script for testing Cardano network connectivity via Blockfrost API
 - **Transaction Analysis**: `get_transactions.sh` script for comprehensive transaction data fetching and analysis
 - **API Keys Required**: Both mainnet and preprod Blockfrost API keys needed for full functionality
@@ -181,12 +182,13 @@ Recent architectural changes and improvements include:
 - Enhanced wallet state handling for new wallets that don't exist on-chain yet
 - Added CIP-30 methods for retrieving unused and change addresses
 
-**Blockfrost Client Refactoring (In Progress):**
+**Blockfrost Client Refactoring (Completed):**
 - Implemented type-safe Blockfrost client with branded address types
 - Created comprehensive error handling system with structured error types
 - Added support for all major Blockfrost endpoints with pagination
 - Established clear separation between HTTP client and business logic
 - Full TypeScript type safety with 1:1 API mapping
+- **Next Steps**: Integration of new client into existing provider layer
 
 ### Development Best Practices
 

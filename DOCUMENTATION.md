@@ -124,7 +124,70 @@ The Blockfrost API warning about addresses "not necessarily being owned by the s
 
 ## Cardano Address Generation
 
-### Cardano Address Generation Summary
+### Chrome Extension Architecture
+
+### Overview
+
+DevX Cardano Wallet is built as a Chrome extension using modern web technologies with a multi-context architecture. The extension operates across several isolated contexts within the browser, each serving specific purposes while maintaining security and performance.
+
+### Core Components
+
+**Popup (Frontend)**
+The main user interface accessed by clicking the extension icon. Built with React, TypeScript, and TailwindCSS. Handles all user interactions, form validation, and display logic. Cannot directly access blockchain APIs due to CORS restrictions, so communicates with the background service worker via Chrome's messaging system.
+
+**Background Service Worker**
+The central orchestrator of the extension. Runs persistently and handles all cross-context communication, API calls, and business logic coordination. Acts as a message router between the popup, content scripts, offscreen documents, and external services. Has access to Chrome storage APIs and can make network requests.
+
+**Offscreen Document**
+An invisible HTML document created via Chrome's offscreen API. Provides a DOM context needed for WebAssembly (WASM) operations. Contains the Cardano serialization library and handles all cryptographic operations like key generation, address derivation, and transaction signing. Communicates with the background service worker via message passing.
+
+**Content Script**
+Runs in the context of web pages and acts as a bridge between the injected script and the extension. Has access to both the page's DOM and Chrome extension APIs, making it the critical link for dApp connectivity.
+
+**Inject Script**
+Injected into web pages to provide the CIP-30 wallet interface (`window.cardano.devx`). This is what dApps interact with directly. Due to security isolation, it cannot access Chrome APIs and must communicate through the content script bridge.
+
+### Communication Flow
+
+**Internal Extension Operations:**
+1. User action in popup triggers message to background service worker
+2. Background service worker may request crypto operations from offscreen document
+3. Background service worker calls wallet service for business logic
+4. Wallet service interacts with Blockfrost API client and storage systems
+5. Results flow back up the chain to update the popup UI
+
+**dApp Integration (CIP-30):**
+1. dApp calls `window.cardano.devx.enable()` or similar CIP-30 method
+2. Inject script receives the call and posts message to page
+3. Content script listens for page messages and forwards to background service worker
+4. Background service worker processes the request (may involve crypto operations in offscreen)
+5. Response flows back through the same path: background → content → inject → dApp
+
+### Data Architecture
+
+**Storage**
+Uses a dual storage approach:
+- **IndexedDB**: Primary storage for wallet data, transactions, and UTXOs with fast querying
+- **Chrome Storage**: Settings, temporary data, and cross-context state management
+
+**API Layer**
+Blockfrost client provides 1:1 mapping to Blockfrost API endpoints with type safety and structured error handling. Business logic in wallet service orchestrates multiple API calls as needed.
+
+**Cryptographic Operations**
+All WASM operations (key generation, address derivation, transaction signing) are isolated in the offscreen document. This maintains clean separation between crypto operations and business logic while ensuring proper DOM context for WASM execution.
+
+### Security Boundaries
+
+**Extension Isolation**
+The extension runs in an isolated security context separate from web pages. Only the content script can communicate between these contexts, providing a controlled bridge for dApp interaction.
+
+**Context Separation**
+Each extension context (popup, background, offscreen, content) runs in isolation. Communication happens only through Chrome's message passing system, preventing direct access to sensitive data across contexts.
+
+**API Key Management**
+Blockfrost API keys are stored in Chrome storage and only accessible to the background service worker, ensuring secure API access management.
+
+## Cardano Address Generation Summary
 
 In Cardano, addresses are generated from a seed phrase (mnemonic words like "abandon ability able about above absent...") using hierarchical deterministic wallets (BIP-39/SLIP-0010/ED25519-BIP32 standards).
 
