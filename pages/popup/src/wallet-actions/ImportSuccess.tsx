@@ -1,7 +1,7 @@
 // popup/src/pages/wallet-actions/ImportSuccess.tsx
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { settingsStorage, onboardingStorage } from '@extension/storage';
+import { devxSettings } from '@extension/storage';
 import { PrimaryButton, SecondaryButton } from '@src/components/buttons';
 
 function ImportSuccess() {
@@ -9,12 +9,12 @@ function ImportSuccess() {
 
   // Set onboarding progress to 100% when component mounts
   useEffect(() => {
-    onboardingStorage.updateProgress(100);
+    devxSettings.updateProgress(100);
   }, []);
 
   const handleFinishOnboardingClick = async () => {
-    await settingsStorage.markOnboarded();
-    await onboardingStorage.completeOnboarding();
+    await devxSettings.markOnboarded();
+    await devxSettings.completeOnboarding();
     navigate('/', { replace: true });
   };
 

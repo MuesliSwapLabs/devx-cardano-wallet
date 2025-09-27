@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import { PrimaryButton, SecondaryButton, CancelButton } from '@src/components/buttons';
-import { onboardingStorage, useStorage } from '@extension/storage';
+import { devxSettings, useStorage } from '@extension/storage';
 
 // Simple fuzzy search function
 const fuzzySearch = (query, words) => {
@@ -41,7 +41,7 @@ const highlightMatch = (word, query) => {
 const ImportEnterPhrase = () => {
   const { words } = useParams();
   const navigate = useNavigate();
-  const onboardingState = useStorage(onboardingStorage);
+  const settings = useStorage(devxSettings);
 
   const wordCount = parseInt(words) || 15;
   const [suggestions, setSuggestions] = useState({});
@@ -82,7 +82,7 @@ const ImportEnterPhrase = () => {
     const seedWords = {};
 
     // Load individual words from onboarding state if available
-    const savedSeedWords = onboardingState?.importFormData.seedWords || {};
+    const savedSeedWords = settings?.importFormData.seedWords || {};
 
     for (let i = 0; i < count; i++) {
       seedWords[`word_${i}`] = savedSeedWords[`word_${i}`] || '';
@@ -135,7 +135,7 @@ const ImportEnterPhrase = () => {
     });
 
     // Save all words to onboarding storage
-    await onboardingStorage.updateImportFormData({
+    await devxSettings.updateImportFormData({
       seedWords: seedWordsObject,
     });
 
@@ -165,8 +165,8 @@ const ImportEnterPhrase = () => {
     setValidWords(prev => ({ ...prev, [index]: isValidWord }));
 
     // Save individual word to onboarding storage
-    const currentSeedWords = onboardingState?.importFormData.seedWords || {};
-    await onboardingStorage.updateImportFormData({
+    const currentSeedWords = settings?.importFormData.seedWords || {};
+    await devxSettings.updateImportFormData({
       seedWords: {
         ...currentSeedWords,
         [fieldName]: value,
@@ -317,7 +317,7 @@ const ImportEnterPhrase = () => {
 
   const handleCancel = async () => {
     // Rollback to select-method step
-    await onboardingStorage.goToStep('select-method');
+    await devxSettings.goToStep('select-method');
     navigate('/add-wallet');
   };
 
@@ -335,7 +335,7 @@ const ImportEnterPhrase = () => {
     setScrollStates({});
 
     // Clear from onboarding storage
-    await onboardingStorage.updateImportFormData({
+    await devxSettings.updateImportFormData({
       seedWords: {},
     });
   };

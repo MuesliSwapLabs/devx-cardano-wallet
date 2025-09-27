@@ -1,7 +1,8 @@
 // popup/src/App.tsx
 import { HashRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { useStorage, settingsStorage, walletsStorage, onboardingStorage } from '@extension/storage';
-import { useEffect } from 'react';
+import { useStorage, devxSettings, devxData } from '@extension/storage';
+import { useEffect, useState } from 'react';
+import type { Wallet } from '@extension/shared';
 
 // Layouts
 import MainLayout from './layouts/MainLayout';
@@ -60,39 +61,47 @@ function NavigationHandler() {
 }
 
 function App() {
-  const settings = useStorage(settingsStorage);
-  const walletsData = useStorage(walletsStorage);
-  const onboardingState = useStorage(onboardingStorage);
+  const settings = useStorage(devxSettings);
+  const [wallets, setWallets] = useState<Wallet[]>([]);
 
   const isDark = settings?.theme === 'dark';
-  const wallets = walletsData?.wallets || [];
   const hasWallets = wallets.length > 0;
+
+  // Fetch wallets from IndexedDB on mount and when settings change
+  useEffect(() => {
+    const fetchWallets = async () => {
+      try {
+        const walletsFromDB = await devxData.getWallets();
+        setWallets(walletsFromDB);
+      } catch (error) {
+        console.error('Failed to fetch wallets:', error);
+        setWallets([]);
+      }
+    };
+
+    fetchWallets();
+  }, [settings?.onboarded]); // Refetch when onboarding status changes
   const isOnboarded = settings?.onboarded && hasWallets;
 
   // Function to get the appropriate onboarding redirect path
   const getOnboardingRedirectPath = () => {
-    if (!onboardingState?.isActive) {
+    if (!settings?.isActive) {
       return '/onboarding';
     }
 
-    // Use the stored current route if available, otherwise fallback to step mapping
-    if (onboardingState.currentRoute) {
-      return onboardingState.currentRoute;
-    }
-
-    const currentStep = onboardingState.currentStep;
+    const currentStep = settings.currentStep;
 
     // Special handling for api-key-setup step - redirect to correct API key route
-    if (currentStep === 'api-key-setup' && onboardingState.apiKeySetupData?.requiredFor) {
+    if (currentStep === 'api-key-setup' && settings.apiKeySetupData?.requiredFor) {
       const apiKeyRoutes = {
         create: '/create-new-wallet/api-key',
         import: '/import-wallet/api-key',
         spoof: '/spoof-wallet/api-key',
       };
-      return apiKeyRoutes[onboardingState.apiKeySetupData.requiredFor] || '/spoof-wallet/api-key';
+      return apiKeyRoutes[settings.apiKeySetupData.requiredFor] || '/spoof-wallet/api-key';
     }
 
-    // Fallback mapping for older sessions that don't have currentRoute
+    // Step to route mapping
     const stepRouteMap = {
       welcome: '/onboarding',
       legal: '/onboarding/legal',
@@ -116,19 +125,18 @@ function App() {
       walletsCount: wallets.length,
       isOnboarded,
       activeWalletId: settings?.activeWalletId,
-      onboardingActive: onboardingState?.isActive,
-      currentStep: onboardingState?.currentStep,
-      currentRoute: onboardingState?.currentRoute,
-      lastVisitedRoute: onboardingState?.lastVisitedRoute,
-      progress: onboardingState?.progress,
+      onboardingActive: settings?.isActive,
+      currentStep: settings?.currentStep,
+      currentFlow: settings?.currentFlow,
+      progress: settings?.progress,
       redirectPath: getOnboardingRedirectPath(),
     });
-  }, [settings?.onboarded, hasWallets, wallets.length, isOnboarded, settings?.activeWalletId, onboardingState]);
+  }, [settings?.onboarded, hasWallets, wallets.length, isOnboarded, settings?.activeWalletId, settings]);
 
   // Auto-set activeWalletId if it's null but we have wallets
   useEffect(() => {
     if (hasWallets && !settings?.activeWalletId) {
-      settingsStorage.setActiveWalletId(wallets[0].id);
+      devxSettings.setActiveWalletId(wallets[0].id);
     }
   }, [hasWallets, settings?.activeWalletId, wallets]);
 

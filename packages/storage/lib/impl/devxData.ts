@@ -412,15 +412,8 @@ class DevxDataStorage {
     const walletRecord = await this.getWallet(walletId);
     if (!walletRecord) return null;
 
-    const assets = await this.getWalletAssets(walletId);
-
-    // Reconstruct full wallet object with assets
-    const wallet: Wallet = {
-      ...walletRecord,
-      assets: assets.map(({ walletId, lastSynced, ...asset }) => asset),
-    };
-
-    return wallet;
+    // Return wallet record as Wallet (no assets property anymore)
+    return walletRecord;
   }
 
   async getStats(): Promise<StorageStats> {

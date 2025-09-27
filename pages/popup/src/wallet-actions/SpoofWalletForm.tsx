@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { PrimaryButton, CancelButton } from '@src/components/buttons';
 import FloatingLabelInput from '@src/components/FloatingLabelInput';
 import NetworkToggle from '@src/components/NetworkToggle';
-import { settingsStorage, useStorage, onboardingStorage } from '@extension/storage';
+import { devxSettings, useStorage } from '@extension/storage';
 import { spoofWallet } from '../utils/walletOperations';
 
 interface IFormValues {
@@ -16,8 +16,7 @@ interface IFormValues {
 
 const SpoofWalletForm = () => {
   const navigate = useNavigate();
-  const settings = useStorage(settingsStorage);
-  const onboardingState = useStorage(onboardingStorage);
+  const settings = useStorage(devxSettings);
 
   const validationSchema = Yup.object({
     walletName: Yup.string().required('Wallet name is required.'),
@@ -43,26 +42,26 @@ const SpoofWalletForm = () => {
 
   // Load initial values from onboarding state or use defaults
   const initialValues: IFormValues = {
-    walletName: onboardingState?.spoofFormData.walletName || '',
-    walletAddress: onboardingState?.spoofFormData.walletAddress || '',
-    network: onboardingState?.spoofFormData.network || 'Preprod',
+    walletName: settings?.spoofFormData.walletName || '',
+    walletAddress: settings?.spoofFormData.walletAddress || '',
+    network: settings?.spoofFormData.network || 'Preprod',
   };
 
   // Initialize onboarding state and update progress on component mount
   useEffect(() => {
     const initOnboarding = async () => {
-      if (!onboardingState?.isActive) {
-        await onboardingStorage.startOnboarding('spoof');
+      if (!settings?.isOnboarding) {
+        await devxSettings.startOnboarding('spoof');
       }
-      await onboardingStorage.setCurrentFlow('spoof');
-      await onboardingStorage.goToStep('spoof-form');
+      await devxSettings.setCurrentFlow('spoof');
+      await devxSettings.goToStep('spoof-form');
     };
     initOnboarding();
   }, []);
 
   const handleCancel = async () => {
     // Rollback to select-method step
-    await onboardingStorage.goToStep('select-method');
+    await devxSettings.goToStep('select-method');
     navigate('/add-wallet');
   };
 
@@ -79,15 +78,15 @@ const SpoofWalletForm = () => {
     },
   ) => {
     // Save form data to onboarding state
-    await onboardingStorage.updateSpoofFormData(values);
+    await devxSettings.updateSpoofFormData(values);
 
     // Check if we have the required API key for the selected network
     if (!hasRequiredApiKey(values.network)) {
       actions.setSubmitting(false);
 
       // Update to API key setup step
-      await onboardingStorage.goToStep('api-key-setup');
-      await onboardingStorage.updateApiKeySetupData({
+      await devxSettings.goToStep('api-key-setup');
+      await devxSettings.updateApiKeySetupData({
         network: values.network,
         requiredFor: 'spoof',
       });
@@ -131,8 +130,8 @@ const SpoofWalletForm = () => {
         {({ values, errors, touched, isSubmitting, setFieldValue }) => {
           // Save form data whenever values change
           useEffect(() => {
-            if (onboardingState?.isActive) {
-              onboardingStorage.updateSpoofFormData(values);
+            if (settings?.isOnboarding) {
+              devxSettings.updateSpoofFormData(values);
             }
           }, [values]);
 

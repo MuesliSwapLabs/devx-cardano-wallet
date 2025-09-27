@@ -5,13 +5,12 @@ import * as Yup from 'yup';
 import { CancelButton, PrimaryButton } from '@src/components/buttons';
 import FloatingLabelInput from '@src/components/FloatingLabelInput';
 import NetworkToggle from '@src/components/NetworkToggle';
-import { onboardingStorage, settingsStorage, useStorage } from '@extension/storage';
+import { devxSettings, useStorage } from '@extension/storage';
 import { createWallet } from '../utils/walletOperations';
 
 const CreateWalletForm = () => {
   const navigate = useNavigate();
-  const settings = useStorage(settingsStorage);
-  const onboardingState = useStorage(onboardingStorage);
+  const settings = useStorage(devxSettings);
 
   // Helper function to check if we have the required API key for the network
   const hasRequiredApiKey = (network: 'Mainnet' | 'Preprod') => {
@@ -39,9 +38,9 @@ const CreateWalletForm = () => {
   });
 
   const initialValues = {
-    walletName: onboardingState?.createFormData.walletName || '',
-    network: onboardingState?.createFormData.network || ('Preprod' as 'Mainnet' | 'Preprod'),
-    walletPassword: onboardingState?.createFormData.password || '',
+    walletName: settings?.createFormData.walletName || '',
+    network: settings?.createFormData.network || ('Preprod' as 'Mainnet' | 'Preprod'),
+    walletPassword: settings?.createFormData.password || '',
     confirmPassword: '',
     skipPassword: false,
   };
@@ -49,11 +48,11 @@ const CreateWalletForm = () => {
   // Initialize onboarding state on component mount
   useEffect(() => {
     const initOnboarding = async () => {
-      if (!onboardingState?.isActive) {
-        await onboardingStorage.startOnboarding('create');
+      if (!settings?.isOnboarding) {
+        await devxSettings.startOnboarding('create');
       }
-      await onboardingStorage.setCurrentFlow('create');
-      await onboardingStorage.goToStep('create-form');
+      await devxSettings.setCurrentFlow('create');
+      await devxSettings.goToStep('create-form');
     };
     initOnboarding();
   }, []);
@@ -61,7 +60,7 @@ const CreateWalletForm = () => {
   const handleSubmit = async (values: any) => {
     try {
       // Save form data to onboarding state
-      await onboardingStorage.updateCreateFormData({
+      await devxSettings.updateCreateFormData({
         walletName: values.walletName,
         network: values.network,
         password: values.skipPassword ? undefined : values.walletPassword,
@@ -70,8 +69,8 @@ const CreateWalletForm = () => {
       // Check if we have the required API key for the selected network
       if (!hasRequiredApiKey(values.network)) {
         // Update to API key setup step
-        await onboardingStorage.goToStep('api-key-setup');
-        await onboardingStorage.updateApiKeySetupData({
+        await devxSettings.goToStep('api-key-setup');
+        await devxSettings.updateApiKeySetupData({
           network: values.network,
           requiredFor: 'create',
         });
@@ -97,7 +96,7 @@ const CreateWalletForm = () => {
 
   const handleCancel = async () => {
     // Rollback to select-method step
-    await onboardingStorage.goToStep('select-method');
+    await devxSettings.goToStep('select-method');
     navigate('/add-wallet');
   };
 
@@ -123,8 +122,8 @@ const CreateWalletForm = () => {
         {({ values, errors, touched, setFieldValue, setFieldError, setFieldTouched }) => {
           // Save form data whenever values change
           useEffect(() => {
-            if (onboardingState?.isActive) {
-              onboardingStorage.updateCreateFormData({
+            if (settings?.isOnboarding) {
+              devxSettings.updateCreateFormData({
                 walletName: values.walletName,
                 network: values.network,
                 password: values.skipPassword ? undefined : values.walletPassword,

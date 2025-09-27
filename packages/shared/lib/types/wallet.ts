@@ -5,7 +5,6 @@ export type Wallet = {
   stakeAddress: string; // Stake address (permanent account identifier)
   network: 'Mainnet' | 'Preprod';
   balance: string; // In Lovelaces
-  assets: Asset[];
   type: 'HD' | 'SPOOFED';
   hasPassword: boolean;
   // Encrypted seed phrase for HD, null for SPOOFED

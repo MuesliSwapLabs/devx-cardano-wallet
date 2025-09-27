@@ -4,13 +4,12 @@ import * as Yup from 'yup';
 import { CancelButton, PrimaryButton, SecondaryButton } from '@src/components/buttons';
 import FloatingLabelInput from '@src/components/FloatingLabelInput';
 import NetworkToggle from '@src/components/NetworkToggle';
-import { onboardingStorage, settingsStorage, useStorage } from '@extension/storage';
+import { devxSettings, useStorage } from '@extension/storage';
 import { importWallet } from '../utils/walletOperations';
 
 const ImportWalletDetails = () => {
   const navigate = useNavigate();
-  const settings = useStorage(settingsStorage);
-  const onboardingState = useStorage(onboardingStorage);
+  const settings = useStorage(devxSettings);
 
   // Helper function to check if we have the required API key for the network
   const hasRequiredApiKey = (network: 'Mainnet' | 'Preprod') => {
@@ -36,9 +35,9 @@ const ImportWalletDetails = () => {
   });
 
   const initialValues = {
-    walletName: onboardingState?.importFormData.walletName || '',
-    network: onboardingState?.importFormData.network || 'Preprod',
-    walletPassword: onboardingState?.importFormData.password || '',
+    walletName: settings?.importFormData.walletName || '',
+    network: settings?.importFormData.network || 'Preprod',
+    walletPassword: settings?.importFormData.password || '',
     confirmPassword: '',
     skipPassword: false,
   };
@@ -46,14 +45,14 @@ const ImportWalletDetails = () => {
   const handleImport = async (values: any, { setSubmitting }: any) => {
     try {
       // Get saved seed phrase from storage
-      const savedSeedWords = onboardingState?.importFormData.seedWords || {};
-      const wordCount = onboardingState?.importFormData.wordCount || 15;
+      const savedSeedWords = settings?.importFormData.seedWords || {};
+      const wordCount = settings?.importFormData.wordCount || 15;
 
       const seedPhraseWords = Array.from({ length: wordCount }, (_, i) => savedSeedWords[`word_${i}`] || '');
       const seedPhrase = seedPhraseWords.join(' ');
 
       // Save form data to onboarding state
-      await onboardingStorage.updateImportFormData({
+      await devxSettings.updateImportFormData({
         walletName: values.walletName,
         seedPhrase: seedPhrase,
         network: values.network,
@@ -65,8 +64,8 @@ const ImportWalletDetails = () => {
         setSubmitting(false);
 
         // Update to API key setup step
-        await onboardingStorage.goToStep('api-key-setup');
-        await onboardingStorage.updateApiKeySetupData({
+        await devxSettings.goToStep('api-key-setup');
+        await devxSettings.updateApiKeySetupData({
           network: values.network,
           requiredFor: 'import',
         });
@@ -94,13 +93,13 @@ const ImportWalletDetails = () => {
   };
 
   const handleBack = () => {
-    const wordCount = onboardingState?.importFormData.wordCount || 15;
+    const wordCount = settings?.importFormData.wordCount || 15;
     navigate(`/import-wallet/enter/${wordCount}`);
   };
 
   const handleCancel = async () => {
     // Rollback to select-method step
-    await onboardingStorage.goToStep('select-method');
+    await devxSettings.goToStep('select-method');
     navigate('/add-wallet');
   };
 

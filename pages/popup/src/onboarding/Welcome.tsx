@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { PrimaryButton } from '../components/buttons';
-import { onboardingStorage } from '@extension/storage';
+import { devxSettings } from '@extension/storage';
 
 /**
  * Welcome is the initial landing page for the onboarding flow.
@@ -15,8 +15,8 @@ const Welcome = () => {
   // Initialize onboarding on mount
   useEffect(() => {
     const initOnboarding = async () => {
-      await onboardingStorage.startOnboarding();
-      await onboardingStorage.goToStep('welcome');
+      await devxSettings.startOnboarding();
+      await devxSettings.goToStep('welcome');
     };
     initOnboarding();
   }, []);
@@ -73,7 +73,7 @@ const Welcome = () => {
       <div className="mt-auto w-full pt-6">
         <PrimaryButton
           onClick={async () => {
-            await onboardingStorage.goToStep('legal');
+            await devxSettings.goToStep('legal');
             navigate('/onboarding/legal');
           }}
           className="w-full">

@@ -1,17 +1,16 @@
 // popup/src/layouts/OnboardingLayout.tsx
 import { Outlet } from 'react-router-dom';
-import { useStorage, settingsStorage, onboardingStorage } from '@extension/storage';
+import { useStorage, devxSettings } from '@extension/storage';
 import ThemeToggle from '../components/themeToggle';
 
 function OnboardingLayout({ children }) {
-  // Use the new unified settings storage
-  const settings = useStorage(settingsStorage);
-  const onboardingState = useStorage(onboardingStorage);
+  // Use the unified settings storage
+  const settings = useStorage(devxSettings);
   const isDark = settings?.theme === 'dark';
   const iconUrl = isDark ? chrome.runtime.getURL('icon-dark.svg') : chrome.runtime.getURL('icon-light.svg');
 
-  // Get progress from onboarding state, default to 0 if not available
-  const progress = onboardingState?.progress || 0;
+  // Get progress from unified settings, default to 0 if not available
+  const progress = settings?.progress || 0;
 
   return (
     <>

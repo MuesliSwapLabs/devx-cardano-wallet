@@ -24,7 +24,6 @@ export async function createNewWallet(
     stakeAddress,
     network,
     balance: '0',
-    assets: [],
     type: 'HD',
     hasPassword: !!password,
     seedPhrase: password ? await encrypt(seedPhrase, password) : seedPhrase,
@@ -54,7 +53,6 @@ export async function importWallet(
     stakeAddress,
     network,
     balance: '0',
-    assets: [],
     type: 'HD',
     hasPassword: !!password,
     seedPhrase: password ? await encrypt(seedPhrase, password) : seedPhrase,
@@ -75,7 +73,6 @@ export async function spoofWallet(name: string, inputAddress: string, network: '
     stakeAddress: isStakeAddress ? inputAddress : '', // Will be populated by getWalletState
     network,
     balance: '0',
-    assets: [],
     type: 'SPOOFED',
     hasPassword: false,
     seedPhrase: null,
@@ -113,7 +110,6 @@ export async function spoofWallet(name: string, inputAddress: string, network: '
       stakeAddress: isStakeAddress ? inputAddress : state.stakeAddress || '',
       network,
       balance: '0', // New wallets start with 0 balance
-      assets: [], // New wallets start with no assets
       type: 'SPOOFED',
       hasPassword: false,
       seedPhrase: null,
@@ -139,7 +135,6 @@ export async function spoofWallet(name: string, inputAddress: string, network: '
     stakeAddress: state.stakeAddress,
     network,
     balance: state.balance,
-    assets: state.assets,
     type: 'SPOOFED',
     hasPassword: false,
     seedPhrase: null,

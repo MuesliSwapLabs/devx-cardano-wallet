@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// Import the unified settingsStorage
-import { settingsStorage, onboardingStorage } from '@extension/storage';
+import { devxSettings } from '@extension/storage';
 import { PrimaryButton } from '@src/components/buttons';
 
 /**
@@ -17,7 +16,7 @@ function Legal() {
   // Initialize onboarding state and start countdown on component mount
   useEffect(() => {
     const initOnboarding = async () => {
-      await onboardingStorage.goToStep('legal');
+      await devxSettings.goToStep('legal');
     };
     initOnboarding();
 
@@ -38,10 +37,10 @@ function Legal() {
 
   // Handle clicking "I Agree"
   const handleAgreeClick = async () => {
-    // Use the convenience method on our new settings storage
-    await settingsStorage.markLegalAccepted();
+    // Use the convenience method on devxSettings
+    await devxSettings.markLegalAccepted();
     // Update onboarding progress
-    await onboardingStorage.goToStep('select-method');
+    await devxSettings.goToStep('select-method');
     // Navigate to the next step in the onboarding flow
     navigate('/add-wallet');
   };

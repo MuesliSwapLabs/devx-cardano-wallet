@@ -1,27 +1,27 @@
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
-import { onboardingStorage, useStorage } from '@extension/storage';
+import { devxSettings, useStorage } from '@extension/storage';
 import { SecondaryButton } from '@src/components/buttons';
 
 const ImportSelectWords = () => {
   const navigate = useNavigate();
-  const onboardingState = useStorage(onboardingStorage);
+  const settings = useStorage(devxSettings);
 
   // Initialize onboarding state
   useEffect(() => {
     const initOnboarding = async () => {
-      if (!onboardingState?.isActive) {
-        await onboardingStorage.startOnboarding('import');
+      if (!settings?.isOnboarding) {
+        await devxSettings.startOnboarding('import');
       }
-      await onboardingStorage.setCurrentFlow('import');
-      await onboardingStorage.goToStep('import-form');
+      await devxSettings.setCurrentFlow('import');
+      await devxSettings.goToStep('import-form');
     };
     initOnboarding();
   }, []);
 
   const handleWordCountChange = async (count: number) => {
     // Save word count to onboarding storage
-    await onboardingStorage.updateImportFormData({
+    await devxSettings.updateImportFormData({
       wordCount: count,
       seedWords: {}, // Clear existing words when changing count
     });

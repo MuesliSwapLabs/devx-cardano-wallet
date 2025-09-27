@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Formik, Form, Field } from 'formik';
 import ThemeToggle from './components/themeToggle';
-import { settingsStorage, useStorage, walletsStorage, onboardingStorage } from '@extension/storage';
+import { devxSettings, useStorage, walletsStorage } from '@extension/storage';
 import { CancelButton } from '@src/components/buttons';
 import FloatingLabelInput from './components/FloatingLabelInput';
 import { ChevronUpIcon, ChevronDownIcon, TrashIcon } from '@heroicons/react/24/outline';
@@ -31,15 +31,15 @@ const isValidBlockfrostKey = (key: string, network: 'Mainnet' | 'Preprod'): bool
 
 // --- Main Settings Component ---
 function Settings() {
-  const settings = useStorage(settingsStorage);
+  const settings = useStorage(devxSettings);
   const [isDangerZoneOpen, setIsDangerZoneOpen] = useState(false);
 
   const handleDelete = (network: 'Mainnet' | 'Preprod') => {
     if (confirm(`Are you sure you want to delete the ${network} API key?`)) {
       if (network === 'Mainnet') {
-        settingsStorage.setMainnetApiKey('');
+        devxSettings.setMainnetApiKey('');
       } else {
-        settingsStorage.setPreprodApiKey('');
+        devxSettings.setPreprodApiKey('');
       }
     }
   };
@@ -48,13 +48,13 @@ function Settings() {
     if (confirm('Are you sure you want to reset all data? This will delete all your wallets and cannot be undone.')) {
       try {
         // 1. Reset onboarding storage
-        await onboardingStorage.resetOnboarding();
+        await devxSettings.resetOnboarding();
 
         // 2. Clear IndexedDB (wallets)
         await walletsStorage.set({ wallets: [] });
 
         // 3. Reset all settings to defaults (this clears activeWalletId, API keys, etc.)
-        await settingsStorage.set({
+        await devxSettings.set({
           theme: 'dark',
           onboarded: false,
           legalAccepted: false,
@@ -215,7 +215,7 @@ function Settings() {
                 onSubmit={values => {
                   // This is triggered by the "Enter" key
                   if (isValidBlockfrostKey(values.mainnetInput, 'Mainnet')) {
-                    settingsStorage.setMainnetApiKey(values.mainnetInput);
+                    devxSettings.setMainnetApiKey(values.mainnetInput);
                   }
                 }}>
                 {/* --- END OF CHANGE --- */}
@@ -229,7 +229,7 @@ function Settings() {
                           onBlur={e => {
                             handleBlur(e);
                             if (isValidBlockfrostKey(field.value, 'Mainnet')) {
-                              settingsStorage.setMainnetApiKey(field.value);
+                              devxSettings.setMainnetApiKey(field.value);
                             }
                           }}
                           label="Mainnet API Key"
@@ -282,7 +282,7 @@ function Settings() {
                 onSubmit={values => {
                   // This is triggered by the "Enter" key
                   if (isValidBlockfrostKey(values.preprodInput, 'Preprod')) {
-                    settingsStorage.setPreprodApiKey(values.preprodInput);
+                    devxSettings.setPreprodApiKey(values.preprodInput);
                   }
                 }}>
                 {/* --- END OF CHANGE --- */}
@@ -296,7 +296,7 @@ function Settings() {
                           onBlur={e => {
                             handleBlur(e);
                             if (isValidBlockfrostKey(field.value, 'Preprod')) {
-                              settingsStorage.setPreprodApiKey(field.value);
+                              devxSettings.setPreprodApiKey(field.value);
                             }
                           }}
                           label="Preprod API Key"

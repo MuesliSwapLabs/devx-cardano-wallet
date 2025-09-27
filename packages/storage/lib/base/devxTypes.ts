@@ -13,8 +13,8 @@ export const DEVX_DB = {
   },
 } as const;
 
-// Wallet record (without embedded assets)
-export interface WalletRecord extends Omit<Wallet, 'assets'> {
+// Wallet record with sync tracking
+export interface WalletRecord extends Wallet {
   lastSynced?: number;
 }
 
@@ -85,18 +85,16 @@ export interface ApiKeySetupData {
 
 // Chrome Storage settings (combines app settings + UI state)
 export interface DevxUISettings {
-  // App settings
+  // App settings (from original settingsStorage)
   theme: 'light' | 'dark';
   mainnetApiKey?: string;
   preprodApiKey?: string;
   onboarded: boolean;
   legalAccepted?: boolean;
+  activeWalletId?: string | null;
+  lastSyncBlock?: Record<string, number>;
 
   // UI state
-  activeWalletId: string | null;
-  onboardingStep?: string;
-  onboardingFlow?: string | null;
-  temporaryFormData?: Record<string, any>;
   sidebarCollapsed?: boolean;
   lastViewedTab?: string;
 }
@@ -118,11 +116,13 @@ export interface StorageStats {
   >;
 }
 
-// Extended UI settings with onboarding data
+// Extended UI settings with onboarding data (using original property names)
 export interface DevxFullUISettings extends DevxUISettings {
-  // Onboarding state
-  isOnboarding?: boolean;
-  onboardingProgress?: number;
+  // Onboarding state (from original onboardingStorage)
+  isActive?: boolean;
+  currentFlow?: OnboardingFlow | null;
+  currentStep?: OnboardingStep;
+  progress?: number;
 
   // Form data for each flow
   createFormData?: CreateWalletFormData;
@@ -149,26 +149,27 @@ export const STEP_PROGRESS: Record<OnboardingStep, number> = {
 
 // Default values
 export const DEFAULT_DEVX_UI_SETTINGS: DevxUISettings = {
-  // App settings
+  // App settings (from original settingsStorage defaults)
   theme: 'dark',
   onboarded: false,
   legalAccepted: false,
   mainnetApiKey: '',
   preprodApiKey: '',
+  activeWalletId: null,
+  lastSyncBlock: {},
 
   // UI state
-  activeWalletId: null,
-  onboardingStep: 'welcome',
-  onboardingFlow: null,
-  temporaryFormData: {},
   sidebarCollapsed: false,
   lastViewedTab: 'assets',
 };
 
 export const DEFAULT_DEVX_FULL_UI_SETTINGS: DevxFullUISettings = {
   ...DEFAULT_DEVX_UI_SETTINGS,
-  isOnboarding: false,
-  onboardingProgress: 0,
+  // Onboarding state (from original onboardingStorage defaults)
+  isActive: false,
+  currentFlow: null,
+  currentStep: 'welcome',
+  progress: 0,
   createFormData: {},
   importFormData: {},
   spoofFormData: {},

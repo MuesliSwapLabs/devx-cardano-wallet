@@ -22,6 +22,8 @@ export interface DevxSettingsStorage extends BaseStorage<DevxFullUISettings> {
   setPreprodApiKey: (apiKey: string) => Promise<void>;
   setOnboarded: (onboarded: boolean) => Promise<void>;
   setLegalAccepted: (accepted: boolean) => Promise<void>;
+  markOnboarded: () => Promise<void>; // Convenience method
+  markLegalAccepted: () => Promise<void>; // Convenience method
 
   // Active wallet management
   setActiveWalletId: (walletId: string | null) => Promise<void>;
@@ -38,6 +40,9 @@ export interface DevxSettingsStorage extends BaseStorage<DevxFullUISettings> {
   setOnboardingStep: (step: OnboardingStep) => Promise<void>;
   setOnboardingFlow: (flow: OnboardingFlow | null) => Promise<void>;
   updateOnboardingProgress: (progress: number) => Promise<void>;
+  updateProgress: (progress: number) => Promise<void>; // Alias for updateOnboardingProgress
+  goToStep: (step: OnboardingStep, updateProgress?: boolean) => Promise<void>;
+  setCurrentFlow: (flow: OnboardingFlow) => Promise<void>; // Alias for setOnboardingFlow
 
   // Form data management
   updateCreateFormData: (data: Partial<CreateWalletFormData>) => Promise<void>;
@@ -110,6 +115,20 @@ export const devxSettings: DevxSettingsStorage = {
     }));
   },
 
+  markOnboarded: async () => {
+    await storage.set(settings => ({
+      ...settings,
+      onboarded: true,
+    }));
+  },
+
+  markLegalAccepted: async () => {
+    await storage.set(settings => ({
+      ...settings,
+      legalAccepted: true,
+    }));
+  },
+
   // ========== Active Wallet Management ===========
 
   setActiveWalletId: async (walletId: string | null) => {
@@ -145,10 +164,10 @@ export const devxSettings: DevxSettingsStorage = {
   startOnboarding: async (flow?: OnboardingFlow) => {
     await storage.set(settings => ({
       ...settings,
-      isOnboarding: true,
-      onboardingFlow: flow || null,
-      onboardingStep: flow ? 'select-method' : 'welcome',
-      onboardingProgress: flow ? STEP_PROGRESS['select-method'] : STEP_PROGRESS['welcome'],
+      isActive: true,
+      currentFlow: flow || null,
+      currentStep: flow ? 'select-method' : 'welcome',
+      progress: flow ? STEP_PROGRESS['select-method'] : STEP_PROGRESS['welcome'],
       stepHistory: [],
     }));
   },
@@ -156,9 +175,9 @@ export const devxSettings: DevxSettingsStorage = {
   completeOnboarding: async () => {
     await storage.set(settings => ({
       ...settings,
-      isOnboarding: false,
-      onboardingStep: 'completed',
-      onboardingProgress: 100,
+      isActive: false,
+      currentStep: 'completed',
+      progress: 100,
       // Clear form data on completion
       createFormData: {},
       importFormData: {},
@@ -170,10 +189,10 @@ export const devxSettings: DevxSettingsStorage = {
   resetOnboarding: async () => {
     await storage.set(settings => ({
       ...settings,
-      isOnboarding: false,
-      onboardingFlow: null,
-      onboardingStep: 'welcome',
-      onboardingProgress: 0,
+      isActive: false,
+      currentFlow: null,
+      currentStep: 'welcome',
+      progress: 0,
       createFormData: {},
       importFormData: {},
       spoofFormData: {},
@@ -185,8 +204,8 @@ export const devxSettings: DevxSettingsStorage = {
   setOnboardingStep: async (step: OnboardingStep) => {
     await storage.set(settings => ({
       ...settings,
-      onboardingStep: step,
-      onboardingProgress: STEP_PROGRESS[step],
+      currentStep: step,
+      progress: STEP_PROGRESS[step],
       stepHistory: [...(settings.stepHistory || []), step],
     }));
   },
@@ -194,14 +213,39 @@ export const devxSettings: DevxSettingsStorage = {
   setOnboardingFlow: async (flow: OnboardingFlow | null) => {
     await storage.set(settings => ({
       ...settings,
-      onboardingFlow: flow,
+      currentFlow: flow,
     }));
   },
 
   updateOnboardingProgress: async (progress: number) => {
     await storage.set(settings => ({
       ...settings,
-      onboardingProgress: Math.min(100, Math.max(0, progress)),
+      progress: Math.min(100, Math.max(0, progress)),
+    }));
+  },
+
+  updateProgress: async (progress: number) => {
+    // Alias for updateOnboardingProgress
+    await storage.set(settings => ({
+      ...settings,
+      progress: Math.min(100, Math.max(0, progress)),
+    }));
+  },
+
+  goToStep: async (step: OnboardingStep, updateProgress = true) => {
+    await storage.set(settings => ({
+      ...settings,
+      currentStep: step,
+      progress: updateProgress ? STEP_PROGRESS[step] : settings.progress,
+      stepHistory: [...(settings.stepHistory || []), step],
+    }));
+  },
+
+  setCurrentFlow: async (flow: OnboardingFlow) => {
+    // Alias for setOnboardingFlow
+    await storage.set(settings => ({
+      ...settings,
+      currentFlow: flow,
     }));
   },
 
@@ -272,10 +316,10 @@ export const devxSettings: DevxSettingsStorage = {
   getOnboardingState: async () => {
     const settings = await storage.get();
     return {
-      isActive: settings.isOnboarding || false,
-      currentFlow: (settings.onboardingFlow as OnboardingFlow) || null,
-      currentStep: (settings.onboardingStep as OnboardingStep) || 'welcome',
-      progress: settings.onboardingProgress || 0,
+      isActive: settings.isActive || false,
+      currentFlow: (settings.currentFlow as OnboardingFlow) || null,
+      currentStep: (settings.currentStep as OnboardingStep) || 'welcome',
+      progress: settings.progress || 0,
     };
   },
 };

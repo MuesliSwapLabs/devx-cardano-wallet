@@ -1,18 +1,18 @@
 import { useNavigate } from 'react-router-dom';
-import { onboardingStorage, useStorage } from '@extension/storage';
+import { devxSettings, useStorage } from '@extension/storage';
 import ApiKeySetup from '@src/components/ApiKeySetup';
 import { importWallet } from '../utils/walletOperations';
 
 const ImportWalletApiKey = () => {
   const navigate = useNavigate();
-  const onboardingState = useStorage(onboardingStorage);
+  const settings = useStorage(devxSettings);
 
-  // Get network from onboarding storage or default to Preprod
-  const network = onboardingState?.importFormData.network || 'Preprod';
+  // Get network from settings or default to Preprod
+  const network = settings?.importFormData.network || 'Preprod';
 
   const handleComplete = async () => {
     // Get form data from onboarding storage and import wallet directly
-    const formData = onboardingState?.importFormData;
+    const formData = settings?.importFormData;
     if (formData) {
       await importWallet(
         {

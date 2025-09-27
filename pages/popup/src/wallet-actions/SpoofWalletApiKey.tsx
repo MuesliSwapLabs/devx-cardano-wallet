@@ -1,18 +1,18 @@
 import { useNavigate } from 'react-router-dom';
-import { onboardingStorage, useStorage } from '@extension/storage';
+import { devxSettings, useStorage } from '@extension/storage';
 import ApiKeySetup from '@src/components/ApiKeySetup';
 import { spoofWallet } from '../utils/walletOperations';
 
 const SpoofWalletApiKey = () => {
   const navigate = useNavigate();
-  const onboardingState = useStorage(onboardingStorage);
+  const settings = useStorage(devxSettings);
 
-  // Get network from onboarding storage or default to Preprod
-  const network = onboardingState?.spoofFormData.network || 'Preprod';
+  // Get network from settings or default to Preprod
+  const network = settings?.spoofFormData.network || 'Preprod';
 
   const handleComplete = async () => {
     // Get form data from onboarding storage and spoof wallet directly
-    const formData = onboardingState?.spoofFormData;
+    const formData = settings?.spoofFormData;
     if (formData) {
       await spoofWallet(
         {

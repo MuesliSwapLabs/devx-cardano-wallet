@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PrimaryButton, SecondaryButton } from '@src/components/buttons';
-import { onboardingStorage } from '@extension/storage';
+import { devxSettings } from '@extension/storage';
 
 const AddWallet = () => {
   const navigate = useNavigate();
@@ -10,7 +10,7 @@ const AddWallet = () => {
   // Set onboarding state when this screen loads
   useEffect(() => {
     const updateOnboardingState = async () => {
-      await onboardingStorage.goToStep('select-method');
+      await devxSettings.goToStep('select-method');
     };
     updateOnboardingState();
   }, []);

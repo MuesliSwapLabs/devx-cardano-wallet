@@ -1,4 +1,4 @@
-import { onboardingStorage } from '@extension/storage';
+import { devxSettings } from '@extension/storage';
 import { generateMnemonic, deriveAddressFromMnemonic, generateRootKeyFromMnemonic } from './crypto';
 
 export interface CreateWalletData {
@@ -34,9 +34,9 @@ export const createWallet = async (formData: CreateWalletData, navigate: (path: 
     console.log('UI: Generated seedPhrase, address, stakeAddress, and rootKey successfully');
 
     // Update onboarding state with generated data
-    await onboardingStorage.updateCreateFormData({
+    await devxSettings.updateCreateFormData({
       ...formData,
-      seedPhrase: seedPhrase,
+      seedPhrase: seedPhrase.split(' '),
     });
 
     // Prepare the data payload with crypto operations completed
@@ -71,8 +71,8 @@ export const createWallet = async (formData: CreateWalletData, navigate: (path: 
         if (response?.success) {
           console.log('UI: Wallet created successfully!', response.wallet);
           // Mark onboarding as complete and clear form data
-          onboardingStorage.goToStep('success');
-          onboardingStorage.clearFormData('create');
+          devxSettings.goToStep('success');
+          devxSettings.clearFormData('create');
           navigate('/create-new-wallet/success');
         } else {
           console.error('UI: Failed to create wallet:', response?.error);
@@ -110,8 +110,8 @@ export const importWallet = async (formData: ImportWalletData, navigate: (path: 
         console.error('Message sending failed:', chrome.runtime.lastError.message);
       } else if (response?.success) {
         // Mark onboarding as complete and clear form data
-        onboardingStorage.goToStep('success');
-        onboardingStorage.clearFormData('import');
+        devxSettings.goToStep('success');
+        devxSettings.clearFormData('import');
         navigate('/import-wallet/success');
       } else {
         console.error('UI: Failed to import wallet:', response?.error);
@@ -144,8 +144,8 @@ export const spoofWallet = async (formData: SpoofWalletData, navigate: (path: st
 
       if (response?.success) {
         // Mark onboarding as complete and clear form data
-        onboardingStorage.goToStep('success');
-        onboardingStorage.clearFormData('spoof');
+        devxSettings.goToStep('success');
+        devxSettings.clearFormData('spoof');
         navigate('/spoof-wallet/success');
       } else {
         console.log('Spoof wallet response error:', response?.error);

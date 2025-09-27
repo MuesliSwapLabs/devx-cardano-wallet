@@ -272,10 +272,9 @@ export const handleWalletMessages = async (
           }
 
           // For both 'found' and 'not_found' wallets, we can update with the state
-          // 'not_found' wallets will have balance: '0' and assets: [] which is correct for new wallets
+          // 'not_found' wallets will have balance: '0' which is correct for new wallets
           await walletsStorage.updateWallet(walletId, {
             balance: state.balance,
-            assets: state.assets,
           });
 
           // Send back the updated data with timestamp
