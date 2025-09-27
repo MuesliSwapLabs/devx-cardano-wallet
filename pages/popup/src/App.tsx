@@ -1,7 +1,15 @@
 // popup/src/App.tsx
-import { HashRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import {
+  createHashRouter,
+  RouterProvider,
+  Navigate,
+  useNavigate,
+  useLocation,
+  useLoaderData,
+  Outlet,
+} from 'react-router-dom';
 import { useStorage, devxSettings, devxData } from '@extension/storage';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import type { Wallet } from '@extension/shared';
 
 // Layouts
@@ -60,180 +68,170 @@ function NavigationHandler() {
   return null;
 }
 
-function App() {
+// Component to handle URL tracking for onboarding resumption
+function OnboardingTracker({ hasWallets }: { hasWallets: boolean }) {
+  const location = useLocation();
+
+  useEffect(() => {
+    // Save URL during onboarding flows (when no wallets exist)
+    if (!hasWallets) {
+      const isOnboardingRoute =
+        location.pathname.includes('onboarding') ||
+        location.pathname.includes('add-wallet') ||
+        location.pathname.includes('create-') ||
+        location.pathname.includes('import-') ||
+        location.pathname.includes('spoof-');
+
+      if (isOnboardingRoute) {
+        devxSettings.setLastOnboardingUrl(location.pathname + location.search);
+      }
+    }
+  }, [location, hasWallets]);
+
+  return null;
+}
+
+// Loader function to fetch wallets
+async function walletsLoader() {
+  try {
+    const wallets = await devxData.getWallets();
+    const settings = await devxSettings.get();
+
+    // Auto-set activeWalletId if it's null but we have wallets
+    if (wallets.length > 0 && !settings?.activeWalletId) {
+      await devxSettings.setActiveWalletId(wallets[0].id);
+    }
+
+    return { wallets, settings };
+  } catch (error) {
+    console.error('Failed to fetch wallets:', error);
+    return { wallets: [], settings: null };
+  }
+}
+
+// Layout component that wraps everything
+function AppLayout() {
   const settings = useStorage(devxSettings);
+  const isDark = settings?.theme === 'dark';
   const [wallets, setWallets] = useState<Wallet[]>([]);
 
-  const isDark = settings?.theme === 'dark';
-  const hasWallets = wallets.length > 0;
-
-  // Fetch wallets from IndexedDB on mount and when settings change
+  // Fetch wallets for OnboardingTracker
   useEffect(() => {
     const fetchWallets = async () => {
       try {
         const walletsFromDB = await devxData.getWallets();
         setWallets(walletsFromDB);
       } catch (error) {
-        console.error('Failed to fetch wallets:', error);
+        console.error('Failed to fetch wallets for layout:', error);
         setWallets([]);
       }
     };
-
     fetchWallets();
-  }, [settings?.onboarded]); // Refetch when onboarding status changes
-  const isOnboarded = settings?.onboarded && hasWallets;
+  }, []);
 
-  // Function to get the appropriate onboarding redirect path
-  const getOnboardingRedirectPath = () => {
-    if (!settings?.isActive) {
-      return '/onboarding';
-    }
+  const hasWallets = wallets.length > 0;
 
-    const currentStep = settings.currentStep;
+  return (
+    <>
+      <NavigationHandler />
+      <OnboardingTracker hasWallets={hasWallets} />
+      <div className={`${isDark ? 'dark' : ''} h-full`}>
+        <div className="App flex h-full flex-col bg-slate-50 text-black dark:bg-gray-800 dark:text-white">
+          <Suspense fallback={<div className="flex h-full items-center justify-center">Loading...</div>}>
+            <Outlet />
+          </Suspense>
+        </div>
+      </div>
+    </>
+  );
+}
 
-    // Special handling for api-key-setup step - redirect to correct API key route
-    if (currentStep === 'api-key-setup' && settings.apiKeySetupData?.requiredFor) {
-      const apiKeyRoutes = {
-        create: '/create-new-wallet/api-key',
-        import: '/import-wallet/api-key',
-        spoof: '/spoof-wallet/api-key',
-      };
-      return apiKeyRoutes[settings.apiKeySetupData.requiredFor] || '/spoof-wallet/api-key';
-    }
+// Component that handles the fallback redirect logic
+function FallbackRedirect() {
+  const { wallets, settings } = useLoaderData() as { wallets: Wallet[]; settings: any };
+  const hasWallets = wallets.length > 0;
 
-    // Step to route mapping
-    const stepRouteMap = {
-      welcome: '/onboarding',
-      legal: '/onboarding/legal',
-      'select-method': '/add-wallet',
-      'create-form': '/create-new-wallet',
-      'import-form': '/import-wallet',
-      'spoof-form': '/spoof-wallet',
-      'api-key-setup': '/spoof-wallet/api-key', // Final fallback if requiredFor is missing
-      success: '/onboarding',
-      completed: '/onboarding',
-    };
-
-    return stepRouteMap[currentStep] || '/onboarding';
-  };
-
-  // Debug logging to help track onboarding issues
-  useEffect(() => {
-    console.log('App.tsx state:', {
-      onboarded: settings?.onboarded,
-      hasWallets,
-      walletsCount: wallets.length,
-      isOnboarded,
-      activeWalletId: settings?.activeWalletId,
-      onboardingActive: settings?.isActive,
-      currentStep: settings?.currentStep,
-      currentFlow: settings?.currentFlow,
-      progress: settings?.progress,
-      redirectPath: getOnboardingRedirectPath(),
-    });
-  }, [settings?.onboarded, hasWallets, wallets.length, isOnboarded, settings?.activeWalletId, settings]);
-
-  // Auto-set activeWalletId if it's null but we have wallets
-  useEffect(() => {
-    if (hasWallets && !settings?.activeWalletId) {
-      devxSettings.setActiveWalletId(wallets[0].id);
-    }
-  }, [hasWallets, settings?.activeWalletId, wallets]);
-
-  // Use the active wallet from settings, or fall back to the first wallet
-  const activeWalletId = settings?.activeWalletId;
+  // Get active wallet ID
   const defaultWalletId = (() => {
-    // If we have an activeWalletId and it exists in wallets, use it
+    const activeWalletId = settings?.activeWalletId;
     if (activeWalletId && wallets.find(w => w.id === activeWalletId)) {
       return activeWalletId;
     }
-    // Otherwise, use the first available wallet
     if (wallets.length > 0) {
       return wallets[0].id;
     }
-    // No wallets available
     return 'no-wallets';
   })();
 
   return (
-    <Router>
-      <NavigationHandler />
-      <div className={`${isDark ? 'dark' : ''} h-full`}>
-        <div className="App flex h-full flex-col bg-slate-50 text-black dark:bg-gray-800 dark:text-white">
-          <Routes>
-            {/* Initial Onboarding Flow */}
-            <Route path="/onboarding" element={<OnboardingLayout />}>
-              <Route index element={<Welcome />} />
-              <Route path="legal" element={<Legal />} />
-            </Route>
-
-            {/* Wallet Action Flows */}
-            <Route element={<WalletActionLayout />}>
-              <Route path="/add-wallet" element={<AddWallet />} />
-
-              {/* Create Wallet Flow */}
-              <Route path="/create-new-wallet" element={<CreateWalletForm />} />
-              <Route path="/create-new-wallet/api-key" element={<CreateWalletApiKey />} />
-              <Route path="/create-new-wallet/success" element={<CreateSuccess />} />
-
-              {/* Import Wallet Flow */}
-              <Route path="/import-wallet" element={<ImportSelectWords />} />
-              <Route path="/import-wallet/enter/:wordCount" element={<ImportEnterPhrase />} />
-              <Route path="/import-wallet/details" element={<ImportWalletDetails />} />
-              <Route path="/import-wallet/api-key" element={<ImportWalletApiKey />} />
-              <Route path="/import-wallet/success" element={<ImportSuccess />} />
-
-              {/* Spoof Wallet Flow */}
-              <Route path="/spoof-wallet" element={<SpoofWalletForm />} />
-              <Route path="/spoof-wallet/api-key" element={<SpoofWalletApiKey />} />
-              <Route path="/spoof-wallet/success" element={<SpoofSuccess />} />
-            </Route>
-
-            {/* Sub-Pages (Settings) */}
-            <Route element={<SubPageLayout />}>
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/wallet-settings/:walletId" element={<WalletSettings />} />
-              <Route path="/spoofed-info" element={<SpoofedWalletInfo />} />
-              <Route path="/no-wallets" element={<NoWallets />} />
-            </Route>
-
-            {/* CIP-30 Permission Popup (no layout) */}
-            <Route path="/dapp-permission" element={<DAppPermission />} />
-
-            {/* UTXO Detail Page (without MainLayout) */}
-            <Route element={<SubPageLayout />}>
-              <Route path="/wallet/:walletId/utxo/:txHash/:outputIndex" element={<UTXODetail />} />
-            </Route>
-
-            {/* Main Application */}
-            <Route path="/wallet/:walletId" element={<MainLayout />}>
-              <Route path="assets" element={<AssetsView />} />
-              <Route path="transactions" element={<TransactionsView />} />
-              <Route path="utxos" element={<UTXOsViewWrapper />} />
-              <Route index element={<Navigate to="assets" replace />} />
-            </Route>
-
-            {/* Fallback Redirect */}
-            <Route
-              path="*"
-              element={
-                <Navigate
-                  to={
-                    isOnboarded
-                      ? hasWallets
-                        ? `/wallet/${defaultWalletId}/assets`
-                        : '/no-wallets'
-                      : getOnboardingRedirectPath()
-                  }
-                  replace
-                />
-              }
-            />
-          </Routes>
-        </div>
-      </div>
-    </Router>
+    <Navigate
+      to={hasWallets ? `/wallet/${defaultWalletId}/assets` : settings?.lastOnboardingUrl || '/onboarding'}
+      replace
+    />
   );
+}
+
+const router = createHashRouter([
+  {
+    path: '/',
+    element: <AppLayout />,
+    HydrateFallback: () => <div className="flex h-full items-center justify-center">Loading...</div>, // Satisfies v7's initial "hydration" phase
+    children: [
+      { index: true, loader: walletsLoader, element: <FallbackRedirect /> },
+      {
+        path: 'onboarding',
+        element: <OnboardingLayout />,
+        children: [
+          { index: true, element: <Welcome /> },
+          { path: 'legal', element: <Legal /> },
+        ],
+      },
+      {
+        path: '',
+        element: <WalletActionLayout />,
+        children: [
+          { path: 'add-wallet', element: <AddWallet /> },
+          { path: 'create-new-wallet', element: <CreateWalletForm /> },
+          { path: 'create-new-wallet/api-key', element: <CreateWalletApiKey /> },
+          { path: 'create-new-wallet/success', element: <CreateSuccess /> },
+          { path: 'import-wallet', element: <ImportSelectWords /> },
+          { path: 'import-wallet/enter/:wordCount', element: <ImportEnterPhrase /> },
+          { path: 'import-wallet/details', element: <ImportWalletDetails /> },
+          { path: 'import-wallet/api-key', element: <ImportWalletApiKey /> },
+          { path: 'import-wallet/success', element: <ImportSuccess /> },
+          { path: 'spoof-wallet', element: <SpoofWalletForm /> },
+          { path: 'spoof-wallet/api-key', element: <SpoofWalletApiKey /> },
+          { path: 'spoof-wallet/success', element: <SpoofSuccess /> },
+        ],
+      },
+      {
+        path: '',
+        element: <SubPageLayout />,
+        children: [
+          { path: 'settings', element: <Settings /> },
+          { path: 'wallet-settings/:walletId', element: <WalletSettings /> },
+          { path: 'spoofed-info', element: <SpoofedWalletInfo /> },
+          { path: 'no-wallets', element: <NoWallets /> },
+          { path: 'wallet/:walletId/utxo/:txHash/:outputIndex', element: <UTXODetail /> },
+        ],
+      },
+      { path: 'dapp-permission', element: <DAppPermission /> },
+      {
+        path: 'wallet/:walletId',
+        element: <MainLayout />,
+        children: [
+          { path: 'assets', element: <AssetsView /> },
+          { path: 'transactions', element: <TransactionsView /> },
+          { path: 'utxos', element: <UTXOsViewWrapper /> },
+          { index: true, element: <Navigate to="assets" replace /> },
+        ],
+      },
+    ],
+  },
+]);
+
+function App() {
+  return <RouterProvider router={router} />;
 }
 
 export default App;

@@ -8,6 +8,102 @@ import NetworkToggle from '@src/components/NetworkToggle';
 import { devxSettings, useStorage } from '@extension/storage';
 import { spoofWallet } from '../utils/walletOperations';
 
+// Separate component for form content to properly use hooks
+function SpoofWalletFormContent({
+  values,
+  errors,
+  touched,
+  isSubmitting,
+  setFieldValue,
+  handleCancel,
+  hasRequiredApiKey,
+}: any) {
+  // Save form data whenever values change
+  useEffect(() => {
+    devxSettings.updateSpoofFormData(values);
+  }, [values]);
+
+  return (
+    <Form className="mt-4 flex size-full max-w-sm flex-col">
+      <div className="mb-4">
+        <Field
+          name="walletName"
+          as={FloatingLabelInput}
+          label="Wallet Name"
+          type="text"
+          required
+          error={touched.walletName && errors.walletName}
+        />
+        <ErrorMessage name="walletName" component="p" className="mt-1 text-sm text-red-500" />
+      </div>
+
+      {/* Network Selection Field */}
+      <div className="mb-4">
+        <label className="mb-3 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Network <span className="text-red-500">*</span>
+        </label>
+        <NetworkToggle value={values.network} onChange={network => setFieldValue('network', network)} />
+
+        {/* API Key Status Indicator */}
+        <div className="mt-2 text-xs">
+          {hasRequiredApiKey(values.network) ? (
+            <span className="text-green-600 dark:text-green-400">✓ {values.network} API key configured</span>
+          ) : (
+            <span className="text-amber-600 dark:text-amber-400">
+              ⚠ {values.network} API key required (will be requested)
+            </span>
+          )}
+        </div>
+
+        <ErrorMessage name="network" component="p" className="mt-1 text-xs text-red-500" />
+      </div>
+
+      <div className="mb-4">
+        <Field
+          name="walletAddress"
+          as={FloatingLabelInput}
+          label="Wallet Address"
+          type="text"
+          required
+          error={touched.walletAddress && errors.walletAddress}
+        />
+        <ErrorMessage name="walletAddress" component="p" className="mt-1 text-sm text-red-500" />
+
+        {/* Mangled Address Warning */}
+        <div className="mt-2 flex items-center text-xs text-amber-600 dark:text-amber-400">
+          <img src={chrome.runtime.getURL('warning.svg')} alt="Warning" className="mr-1 h-3 w-3" />
+          <span>Assuming standard wallet addresses only</span>
+          <div className="group relative ml-1">
+            <span className="cursor-help text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+              ❓
+            </span>
+            <div className="invisible absolute bottom-full left-1/2 z-10 mb-2 w-64 -translate-x-1/2 transform rounded-lg bg-gray-900 p-3 text-xs text-white shadow-lg group-hover:visible dark:bg-gray-700">
+              <div className="mb-2 font-semibold">Mangled/Franken Addresses</div>
+              <div className="mb-2">
+                These are addresses where payment keys and stake keys belong to different wallets. They can cause
+                confusion about address ownership.
+              </div>
+              <div className="text-green-200">
+                ✓ Wallet extensions don't create these - both keys derive from the same seed phrase.
+              </div>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 transform border-4 border-transparent border-t-gray-900 dark:border-t-gray-700"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-auto flex justify-center space-x-4">
+        <CancelButton type="button" onClick={handleCancel}>
+          Cancel
+        </CancelButton>
+        <PrimaryButton type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Spoofing...' : 'Spoof Wallet'}
+        </PrimaryButton>
+      </div>
+    </Form>
+  );
+}
+
 interface IFormValues {
   walletName: string;
   walletAddress: string;
@@ -42,26 +138,13 @@ const SpoofWalletForm = () => {
 
   // Load initial values from onboarding state or use defaults
   const initialValues: IFormValues = {
-    walletName: settings?.spoofFormData.walletName || '',
-    walletAddress: settings?.spoofFormData.walletAddress || '',
-    network: settings?.spoofFormData.network || 'Preprod',
+    walletName: settings?.spoofFormData?.walletName || '',
+    walletAddress: settings?.spoofFormData?.walletAddress || '',
+    network: settings?.spoofFormData?.network || 'Preprod',
   };
 
-  // Initialize onboarding state and update progress on component mount
-  useEffect(() => {
-    const initOnboarding = async () => {
-      if (!settings?.isOnboarding) {
-        await devxSettings.startOnboarding('spoof');
-      }
-      await devxSettings.setCurrentFlow('spoof');
-      await devxSettings.goToStep('spoof-form');
-    };
-    initOnboarding();
-  }, []);
-
   const handleCancel = async () => {
-    // Rollback to select-method step
-    await devxSettings.goToStep('select-method');
+    // Go back to add wallet selection
     navigate('/add-wallet');
   };
 
@@ -84,12 +167,7 @@ const SpoofWalletForm = () => {
     if (!hasRequiredApiKey(values.network)) {
       actions.setSubmitting(false);
 
-      // Update to API key setup step
-      await devxSettings.goToStep('api-key-setup');
-      await devxSettings.updateApiKeySetupData({
-        network: values.network,
-        requiredFor: 'spoof',
-      });
+      // Navigate to API key setup
 
       // Navigate to API key setup step
       navigate('/spoof-wallet/api-key');
@@ -125,96 +203,10 @@ const SpoofWalletForm = () => {
       <Formik<IFormValues>
         initialValues={initialValues}
         validationSchema={validationSchema}
-        enableReinitialize
         onSubmit={handleFormSubmit}>
-        {({ values, errors, touched, isSubmitting, setFieldValue }) => {
-          // Save form data whenever values change
-          useEffect(() => {
-            if (settings?.isOnboarding) {
-              devxSettings.updateSpoofFormData(values);
-            }
-          }, [values]);
-
-          return (
-            <Form className="mt-4 flex size-full max-w-sm flex-col">
-              <div className="mb-4">
-                <Field
-                  name="walletName"
-                  as={FloatingLabelInput}
-                  label="Wallet Name"
-                  type="text"
-                  required
-                  error={touched.walletName && errors.walletName}
-                />
-                <ErrorMessage name="walletName" component="p" className="mt-1 text-sm text-red-500" />
-              </div>
-
-              {/* Network Selection Field */}
-              <div className="mb-4">
-                <label className="mb-3 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Network <span className="text-red-500">*</span>
-                </label>
-                <NetworkToggle value={values.network} onChange={network => setFieldValue('network', network)} />
-
-                {/* API Key Status Indicator */}
-                <div className="mt-2 text-xs">
-                  {hasRequiredApiKey(values.network) ? (
-                    <span className="text-green-600 dark:text-green-400">✓ {values.network} API key configured</span>
-                  ) : (
-                    <span className="text-amber-600 dark:text-amber-400">
-                      ⚠ {values.network} API key required (will be requested)
-                    </span>
-                  )}
-                </div>
-
-                <ErrorMessage name="network" component="p" className="mt-1 text-xs text-red-500" />
-              </div>
-
-              <div className="mb-4">
-                <Field
-                  name="walletAddress"
-                  as={FloatingLabelInput}
-                  label="Wallet Address"
-                  type="text"
-                  required
-                  error={touched.walletAddress && errors.walletAddress}
-                />
-                <ErrorMessage name="walletAddress" component="p" className="mt-1 text-sm text-red-500" />
-
-                {/* Mangled Address Warning */}
-                <div className="mt-2 flex items-center text-xs text-amber-600 dark:text-amber-400">
-                  <img src={chrome.runtime.getURL('warning.svg')} alt="Warning" className="mr-1 h-3 w-3" />
-                  <span>Assuming standard wallet addresses only</span>
-                  <div className="group relative ml-1">
-                    <span className="cursor-help text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                      ❓
-                    </span>
-                    <div className="invisible absolute bottom-full left-1/2 z-10 mb-2 w-64 -translate-x-1/2 transform rounded-lg bg-gray-900 p-3 text-xs text-white shadow-lg group-hover:visible dark:bg-gray-700">
-                      <div className="mb-2 font-semibold">Mangled/Franken Addresses</div>
-                      <div className="mb-2">
-                        These are addresses where payment keys and stake keys belong to different wallets. They can
-                        cause confusion about address ownership.
-                      </div>
-                      <div className="text-green-200">
-                        ✓ Wallet extensions don't create these - both keys derive from the same seed phrase.
-                      </div>
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 transform border-4 border-transparent border-t-gray-900 dark:border-t-gray-700"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-auto flex justify-center space-x-4">
-                <CancelButton type="button" onClick={handleCancel}>
-                  Cancel
-                </CancelButton>
-                <PrimaryButton type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'Spoofing...' : 'Spoof Wallet'}
-                </PrimaryButton>
-              </div>
-            </Form>
-          );
-        }}
+        {formikProps => (
+          <SpoofWalletFormContent {...formikProps} handleCancel={handleCancel} hasRequiredApiKey={hasRequiredApiKey} />
+        )}
       </Formik>
     </div>
   );

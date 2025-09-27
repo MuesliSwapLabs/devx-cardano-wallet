@@ -1,4 +1,4 @@
-import { walletsStorage, transactionsStorage, settingsStorage } from '@extension/storage';
+import { walletsStorage, transactionsStorage, settingsStorage, devxData, devxSettings } from '@extension/storage';
 import { createNewWallet, importWallet, spoofWallet } from '@extension/wallet-manager';
 import { getWalletState } from '@extension/blockchain-provider';
 import { decrypt, encrypt } from '@extension/shared';
@@ -27,7 +27,8 @@ export const handleWalletMessages = async (
         const { name, network, password, seedPhrase, address, stakeAddress, rootKey } = message.payload;
 
         const wallet = await createNewWallet(name, network, password, seedPhrase, address, stakeAddress, rootKey);
-        await walletsStorage.addWallet(wallet);
+        await devxData.addWallet(wallet);
+        await devxSettings.setActiveWalletId(wallet.id);
         sendResponse({ success: true, wallet });
         return true;
       }

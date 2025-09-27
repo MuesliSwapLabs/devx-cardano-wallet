@@ -35,9 +35,9 @@ const ImportWalletDetails = () => {
   });
 
   const initialValues = {
-    walletName: settings?.importFormData.walletName || '',
-    network: settings?.importFormData.network || 'Preprod',
-    walletPassword: settings?.importFormData.password || '',
+    walletName: settings?.importFormData?.walletName || '',
+    network: settings?.importFormData?.network || 'Preprod',
+    walletPassword: settings?.importFormData?.password || '',
     confirmPassword: '',
     skipPassword: false,
   };
@@ -45,8 +45,8 @@ const ImportWalletDetails = () => {
   const handleImport = async (values: any, { setSubmitting }: any) => {
     try {
       // Get saved seed phrase from storage
-      const savedSeedWords = settings?.importFormData.seedWords || {};
-      const wordCount = settings?.importFormData.wordCount || 15;
+      const savedSeedWords = settings?.importFormData?.seedWords || {};
+      const wordCount = settings?.importFormData?.wordCount || 15;
 
       const seedPhraseWords = Array.from({ length: wordCount }, (_, i) => savedSeedWords[`word_${i}`] || '');
       const seedPhrase = seedPhraseWords.join(' ');
@@ -62,13 +62,6 @@ const ImportWalletDetails = () => {
       // Check if we have the required API key for the selected network
       if (!hasRequiredApiKey(values.network)) {
         setSubmitting(false);
-
-        // Update to API key setup step
-        await devxSettings.goToStep('api-key-setup');
-        await devxSettings.updateApiKeySetupData({
-          network: values.network,
-          requiredFor: 'import',
-        });
 
         // Navigate to API key setup step
         navigate('/import-wallet/api-key');
@@ -93,13 +86,12 @@ const ImportWalletDetails = () => {
   };
 
   const handleBack = () => {
-    const wordCount = settings?.importFormData.wordCount || 15;
+    const wordCount = settings?.importFormData?.wordCount || 15;
     navigate(`/import-wallet/enter/${wordCount}`);
   };
 
   const handleCancel = async () => {
-    // Rollback to select-method step
-    await devxSettings.goToStep('select-method');
+    // Go back to add wallet selection
     navigate('/add-wallet');
   };
 
@@ -108,11 +100,7 @@ const ImportWalletDetails = () => {
       <h2 className="mb-1 text-xl font-medium">Import Wallet</h2>
       <p className="mb-6 text-sm">Step 3/3 — Enter Wallet Details</p>
 
-      <Formik
-        initialValues={initialValues}
-        validationSchema={validationSchema}
-        onSubmit={handleImport}
-        enableReinitialize={true}>
+      <Formik initialValues={initialValues} validationSchema={validationSchema} onSubmit={handleImport}>
         {({ values, errors, touched, setFieldValue, setFieldError, setFieldTouched, isSubmitting }) => (
           <Form className="flex size-full max-w-sm flex-col">
             <div className="w-full">

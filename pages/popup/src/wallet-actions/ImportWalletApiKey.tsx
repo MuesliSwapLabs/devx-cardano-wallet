@@ -8,7 +8,7 @@ const ImportWalletApiKey = () => {
   const settings = useStorage(devxSettings);
 
   // Get network from settings or default to Preprod
-  const network = settings?.importFormData.network || 'Preprod';
+  const network = settings?.importFormData?.network || 'Preprod';
 
   const handleComplete = async () => {
     // Get form data from onboarding storage and import wallet directly

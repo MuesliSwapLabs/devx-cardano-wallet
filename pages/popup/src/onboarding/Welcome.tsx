@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { PrimaryButton } from '../components/buttons';
 import { devxSettings } from '@extension/storage';
 
@@ -12,14 +12,7 @@ const Welcome = () => {
   const navigate = useNavigate();
   const [testResult, setTestResult] = useState<string>('');
 
-  // Initialize onboarding on mount
-  useEffect(() => {
-    const initOnboarding = async () => {
-      await devxSettings.startOnboarding();
-      await devxSettings.goToStep('welcome');
-    };
-    initOnboarding();
-  }, []);
+  // No onboarding initialization needed - URL is the source of truth
 
   // Test offscreen WASM functionality
   const testOffscreenWasm = async () => {
@@ -71,12 +64,7 @@ const Welcome = () => {
       </div>
 
       <div className="mt-auto w-full pt-6">
-        <PrimaryButton
-          onClick={async () => {
-            await devxSettings.goToStep('legal');
-            navigate('/onboarding/legal');
-          }}
-          className="w-full">
+        <PrimaryButton onClick={() => navigate('/onboarding/legal')} className="w-full">
           Continue
         </PrimaryButton>
       </div>

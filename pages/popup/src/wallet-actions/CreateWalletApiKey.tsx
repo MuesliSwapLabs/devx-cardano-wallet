@@ -8,12 +8,12 @@ const CreateWalletApiKey = () => {
   const settings = useStorage(devxSettings);
 
   // Get network from settings or default to Preprod
-  const network = settings?.createFormData.network || 'Preprod';
+  const network = settings?.createFormData?.network || 'Preprod';
 
   const handleComplete = async () => {
     // Get form data from onboarding storage and create wallet directly
     const formData = settings?.createFormData;
-    if (formData) {
+    if (formData?.walletName && formData?.network) {
       await createWallet(
         {
           walletName: formData.walletName,

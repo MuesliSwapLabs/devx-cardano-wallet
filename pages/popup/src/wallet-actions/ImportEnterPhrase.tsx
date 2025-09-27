@@ -82,7 +82,7 @@ const ImportEnterPhrase = () => {
     const seedWords = {};
 
     // Load individual words from onboarding state if available
-    const savedSeedWords = settings?.importFormData.seedWords || {};
+    const savedSeedWords = settings?.importFormData?.seedWords || {};
 
     for (let i = 0; i < count; i++) {
       seedWords[`word_${i}`] = savedSeedWords[`word_${i}`] || '';
@@ -165,7 +165,7 @@ const ImportEnterPhrase = () => {
     setValidWords(prev => ({ ...prev, [index]: isValidWord }));
 
     // Save individual word to onboarding storage
-    const currentSeedWords = settings?.importFormData.seedWords || {};
+    const currentSeedWords = settings?.importFormData?.seedWords || {};
     await devxSettings.updateImportFormData({
       seedWords: {
         ...currentSeedWords,
@@ -316,8 +316,7 @@ const ImportEnterPhrase = () => {
   };
 
   const handleCancel = async () => {
-    // Rollback to select-method step
-    await devxSettings.goToStep('select-method');
+    // Go back to add wallet selection
     navigate('/add-wallet');
   };
 

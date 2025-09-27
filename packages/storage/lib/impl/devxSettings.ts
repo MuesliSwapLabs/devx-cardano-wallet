@@ -4,12 +4,9 @@ import type { BaseStorage } from '../base/types';
 import {
   type DevxFullUISettings,
   type OnboardingFlow,
-  type OnboardingStep,
   type CreateWalletFormData,
   type ImportWalletFormData,
   type SpoofWalletFormData,
-  type ApiKeySetupData,
-  STEP_PROGRESS,
   DEFAULT_DEVX_FULL_UI_SETTINGS,
 } from '../base/devxTypes';
 
@@ -33,32 +30,15 @@ export interface DevxSettingsStorage extends BaseStorage<DevxFullUISettings> {
   setSidebarCollapsed: (collapsed: boolean) => Promise<void>;
   setLastViewedTab: (tab: string) => Promise<void>;
 
-  // Onboarding management
-  startOnboarding: (flow?: OnboardingFlow) => Promise<void>;
-  completeOnboarding: () => Promise<void>;
+  // Simplified onboarding management
   resetOnboarding: () => Promise<void>;
-  setOnboardingStep: (step: OnboardingStep) => Promise<void>;
-  setOnboardingFlow: (flow: OnboardingFlow | null) => Promise<void>;
-  updateOnboardingProgress: (progress: number) => Promise<void>;
-  updateProgress: (progress: number) => Promise<void>; // Alias for updateOnboardingProgress
-  goToStep: (step: OnboardingStep, updateProgress?: boolean) => Promise<void>;
-  setCurrentFlow: (flow: OnboardingFlow) => Promise<void>; // Alias for setOnboardingFlow
+  setLastOnboardingUrl: (url: string | null) => Promise<void>;
 
   // Form data management
   updateCreateFormData: (data: Partial<CreateWalletFormData>) => Promise<void>;
   updateImportFormData: (data: Partial<ImportWalletFormData>) => Promise<void>;
   updateSpoofFormData: (data: Partial<SpoofWalletFormData>) => Promise<void>;
-  updateApiKeySetupData: (data: Partial<ApiKeySetupData>) => Promise<void>;
   clearFormData: (flow?: OnboardingFlow) => Promise<void>;
-
-  // Utility methods
-  clearTemporaryData: () => Promise<void>;
-  getOnboardingState: () => Promise<{
-    isActive: boolean;
-    currentFlow: OnboardingFlow | null;
-    currentStep: OnboardingStep;
-    progress: number;
-  }>;
 }
 
 // Create the base storage instance using Chrome Storage abstraction
@@ -159,93 +139,22 @@ export const devxSettings: DevxSettingsStorage = {
     }));
   },
 
-  // ========== Onboarding Management ==========
-
-  startOnboarding: async (flow?: OnboardingFlow) => {
-    await storage.set(settings => ({
-      ...settings,
-      isActive: true,
-      currentFlow: flow || null,
-      currentStep: flow ? 'select-method' : 'welcome',
-      progress: flow ? STEP_PROGRESS['select-method'] : STEP_PROGRESS['welcome'],
-      stepHistory: [],
-    }));
-  },
-
-  completeOnboarding: async () => {
-    await storage.set(settings => ({
-      ...settings,
-      isActive: false,
-      currentStep: 'completed',
-      progress: 100,
-      // Clear form data on completion
-      createFormData: {},
-      importFormData: {},
-      spoofFormData: {},
-      apiKeySetupData: {},
-    }));
-  },
+  // ========== Simplified Onboarding Management ==========
 
   resetOnboarding: async () => {
     await storage.set(settings => ({
       ...settings,
-      isActive: false,
-      currentFlow: null,
-      currentStep: 'welcome',
-      progress: 0,
+      lastOnboardingUrl: null,
       createFormData: {},
       importFormData: {},
       spoofFormData: {},
-      apiKeySetupData: {},
-      stepHistory: [],
     }));
   },
 
-  setOnboardingStep: async (step: OnboardingStep) => {
+  setLastOnboardingUrl: async (url: string | null) => {
     await storage.set(settings => ({
       ...settings,
-      currentStep: step,
-      progress: STEP_PROGRESS[step],
-      stepHistory: [...(settings.stepHistory || []), step],
-    }));
-  },
-
-  setOnboardingFlow: async (flow: OnboardingFlow | null) => {
-    await storage.set(settings => ({
-      ...settings,
-      currentFlow: flow,
-    }));
-  },
-
-  updateOnboardingProgress: async (progress: number) => {
-    await storage.set(settings => ({
-      ...settings,
-      progress: Math.min(100, Math.max(0, progress)),
-    }));
-  },
-
-  updateProgress: async (progress: number) => {
-    // Alias for updateOnboardingProgress
-    await storage.set(settings => ({
-      ...settings,
-      progress: Math.min(100, Math.max(0, progress)),
-    }));
-  },
-
-  goToStep: async (step: OnboardingStep, updateProgress = true) => {
-    await storage.set(settings => ({
-      ...settings,
-      currentStep: step,
-      progress: updateProgress ? STEP_PROGRESS[step] : settings.progress,
-      stepHistory: [...(settings.stepHistory || []), step],
-    }));
-  },
-
-  setCurrentFlow: async (flow: OnboardingFlow) => {
-    // Alias for setOnboardingFlow
-    await storage.set(settings => ({
-      ...settings,
-      currentFlow: flow,
+      lastOnboardingUrl: url,
     }));
   },
 
@@ -272,13 +181,6 @@ export const devxSettings: DevxSettingsStorage = {
     }));
   },
 
-  updateApiKeySetupData: async (data: Partial<ApiKeySetupData>) => {
-    await storage.set(settings => ({
-      ...settings,
-      apiKeySetupData: { ...(settings.apiKeySetupData || {}), ...data },
-    }));
-  },
-
   clearFormData: async (flow?: OnboardingFlow) => {
     await storage.set(settings => {
       if (flow === 'create') {
@@ -294,32 +196,8 @@ export const devxSettings: DevxSettingsStorage = {
           createFormData: {},
           importFormData: {},
           spoofFormData: {},
-          apiKeySetupData: {},
         };
       }
     });
-  },
-
-  // ========== Utility Methods ==========
-
-  clearTemporaryData: async () => {
-    await storage.set(settings => ({
-      ...settings,
-      temporaryFormData: {},
-      createFormData: {},
-      importFormData: {},
-      spoofFormData: {},
-      apiKeySetupData: {},
-    }));
-  },
-
-  getOnboardingState: async () => {
-    const settings = await storage.get();
-    return {
-      isActive: settings.isActive || false,
-      currentFlow: (settings.currentFlow as OnboardingFlow) || null,
-      currentStep: (settings.currentStep as OnboardingStep) || 'welcome',
-      progress: settings.progress || 0,
-    };
   },
 };

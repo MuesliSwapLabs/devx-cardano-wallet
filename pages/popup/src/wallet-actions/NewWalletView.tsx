@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PrimaryButton, SecondaryButton } from '@src/components/buttons';
 import { devxSettings } from '@extension/storage';
@@ -7,13 +7,7 @@ const AddWallet = () => {
   const navigate = useNavigate();
   const [showTooltip, setShowTooltip] = useState(false);
 
-  // Set onboarding state when this screen loads
-  useEffect(() => {
-    const updateOnboardingState = async () => {
-      await devxSettings.goToStep('select-method');
-    };
-    updateOnboardingState();
-  }, []);
+  // No onboarding state initialization needed - URL is the source of truth
 
   return (
     <div className="flex h-full flex-col items-center">

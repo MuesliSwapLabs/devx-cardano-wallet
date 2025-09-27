@@ -70,8 +70,7 @@ export const createWallet = async (formData: CreateWalletData, navigate: (path: 
         // Handle the response from our background logic
         if (response?.success) {
           console.log('UI: Wallet created successfully!', response.wallet);
-          // Mark onboarding as complete and clear form data
-          devxSettings.goToStep('success');
+          // Clear form data
           devxSettings.clearFormData('create');
           navigate('/create-new-wallet/success');
         } else {
@@ -109,8 +108,7 @@ export const importWallet = async (formData: ImportWalletData, navigate: (path: 
       if (chrome.runtime.lastError) {
         console.error('Message sending failed:', chrome.runtime.lastError.message);
       } else if (response?.success) {
-        // Mark onboarding as complete and clear form data
-        devxSettings.goToStep('success');
+        // Clear form data
         devxSettings.clearFormData('import');
         navigate('/import-wallet/success');
       } else {
@@ -143,8 +141,7 @@ export const spoofWallet = async (formData: SpoofWalletData, navigate: (path: st
       }
 
       if (response?.success) {
-        // Mark onboarding as complete and clear form data
-        devxSettings.goToStep('success');
+        // Clear form data
         devxSettings.clearFormData('spoof');
         navigate('/spoof-wallet/success');
       } else {

@@ -116,22 +116,15 @@ export interface StorageStats {
   >;
 }
 
-// Extended UI settings with onboarding data (using original property names)
+// Extended UI settings with simplified onboarding data
 export interface DevxFullUISettings extends DevxUISettings {
-  // Onboarding state (from original onboardingStorage)
-  isActive?: boolean;
-  currentFlow?: OnboardingFlow | null;
-  currentStep?: OnboardingStep;
-  progress?: number;
+  // Simplified onboarding state - URL is the source of truth
+  lastOnboardingUrl?: string | null;
 
-  // Form data for each flow
+  // Form data for each flow (keep for persistence)
   createFormData?: CreateWalletFormData;
   importFormData?: ImportWalletFormData;
   spoofFormData?: SpoofWalletFormData;
-  apiKeySetupData?: ApiKeySetupData;
-
-  // Navigation history
-  stepHistory?: OnboardingStep[];
 }
 
 // Progress mapping for each step
@@ -165,14 +158,9 @@ export const DEFAULT_DEVX_UI_SETTINGS: DevxUISettings = {
 
 export const DEFAULT_DEVX_FULL_UI_SETTINGS: DevxFullUISettings = {
   ...DEFAULT_DEVX_UI_SETTINGS,
-  // Onboarding state (from original onboardingStorage defaults)
-  isActive: false,
-  currentFlow: null,
-  currentStep: 'welcome',
-  progress: 0,
+  // Simplified onboarding state
+  lastOnboardingUrl: null,
   createFormData: {},
   importFormData: {},
   spoofFormData: {},
-  apiKeySetupData: {},
-  stepHistory: [],
 };

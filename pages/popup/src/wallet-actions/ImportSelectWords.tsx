@@ -1,5 +1,4 @@
 import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
 import { devxSettings, useStorage } from '@extension/storage';
 import { SecondaryButton } from '@src/components/buttons';
 
@@ -7,17 +6,7 @@ const ImportSelectWords = () => {
   const navigate = useNavigate();
   const settings = useStorage(devxSettings);
 
-  // Initialize onboarding state
-  useEffect(() => {
-    const initOnboarding = async () => {
-      if (!settings?.isOnboarding) {
-        await devxSettings.startOnboarding('import');
-      }
-      await devxSettings.setCurrentFlow('import');
-      await devxSettings.goToStep('import-form');
-    };
-    initOnboarding();
-  }, []);
+  // No onboarding state initialization needed - URL is the source of truth
 
   const handleWordCountChange = async (count: number) => {
     // Save word count to onboarding storage

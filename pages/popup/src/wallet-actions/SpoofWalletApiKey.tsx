@@ -8,12 +8,12 @@ const SpoofWalletApiKey = () => {
   const settings = useStorage(devxSettings);
 
   // Get network from settings or default to Preprod
-  const network = settings?.spoofFormData.network || 'Preprod';
+  const network = settings?.spoofFormData?.network || 'Preprod';
 
   const handleComplete = async () => {
     // Get form data from onboarding storage and spoof wallet directly
     const formData = settings?.spoofFormData;
-    if (formData) {
+    if (formData?.walletName && formData?.network && formData?.walletAddress) {
       await spoofWallet(
         {
           walletName: formData.walletName,

@@ -8,6 +8,112 @@ import NetworkToggle from '@src/components/NetworkToggle';
 import { devxSettings, useStorage } from '@extension/storage';
 import { createWallet } from '../utils/walletOperations';
 
+// Separate component for form content to properly use hooks
+function CreateWalletFormContent({
+  values,
+  errors,
+  touched,
+  setFieldValue,
+  setFieldError,
+  setFieldTouched,
+  handleCancel,
+}: any) {
+  // Save form data whenever values change
+  useEffect(() => {
+    devxSettings.updateCreateFormData({
+      walletName: values.walletName,
+      network: values.network,
+      password: values.skipPassword ? undefined : values.walletPassword,
+    });
+  }, [values.walletName, values.network, values.walletPassword, values.skipPassword]);
+
+  return (
+    <Form className="mt-4 flex size-full max-w-sm flex-col">
+      {/* Wallet Name Field */}
+      <div className="mb-4">
+        <FloatingLabelInput
+          name="walletName"
+          label="Wallet Name"
+          type="text"
+          required
+          error={touched.walletName && errors.walletName}
+        />
+        <ErrorMessage name="walletName" component="p" className="mt-1 text-xs text-red-500" />
+      </div>
+
+      {/* Network Selection Field */}
+      <div className="mb-4">
+        <label className="mb-3 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Network <span className="text-red-500">*</span>
+        </label>
+        <NetworkToggle value={values.network} onChange={network => setFieldValue('network', network)} />
+        <ErrorMessage name="network" component="p" className="mt-1 text-xs text-red-500" />
+      </div>
+
+      {/* Wallet Password Field */}
+      <div className="mb-4">
+        <FloatingLabelInput
+          name="walletPassword"
+          label="Password"
+          type="password"
+          disabled={values.skipPassword}
+          required={!values.skipPassword}
+          error={touched.walletPassword && errors.walletPassword}
+        />
+        <ErrorMessage name="walletPassword" component="p" className="mt-1 text-xs text-red-500" />
+      </div>
+
+      {/* Confirm Password Field */}
+      <div className="mb-4">
+        <FloatingLabelInput
+          name="confirmPassword"
+          label="Confirm Password"
+          type="password"
+          disabled={values.skipPassword}
+          required={!values.skipPassword}
+          error={touched.confirmPassword && errors.confirmPassword}
+        />
+        <ErrorMessage name="confirmPassword" component="p" className="mt-1 text-xs text-red-500" />
+      </div>
+
+      {/* Password Skip Option */}
+      <div className="mb-4">
+        <div className="flex items-start">
+          <Field
+            type="checkbox"
+            id="skipPassword"
+            name="skipPassword"
+            className="mr-2 mt-0.5 size-4"
+            onChange={(e: any) => {
+              const checked = e.target.checked;
+              setFieldValue('skipPassword', checked);
+              if (checked) {
+                setFieldValue('walletPassword', '');
+                setFieldValue('confirmPassword', '');
+                setFieldError('walletPassword', undefined);
+                setFieldError('confirmPassword', undefined);
+                setFieldTouched('walletPassword', false);
+                setFieldTouched('confirmPassword', false);
+              }
+            }}
+          />
+          <label htmlFor="skipPassword" className="block text-left text-xs">
+            Create wallet without a password. I understand the security risks.
+          </label>
+        </div>
+      </div>
+
+      {/* Navigation Buttons */}
+      <div className="mt-auto flex justify-center space-x-4">
+        <CancelButton type="button" onClick={handleCancel}>
+          Cancel
+        </CancelButton>
+        <PrimaryButton type="submit">Create</PrimaryButton>
+      </div>
+    </Form>
+  );
+}
+
 const CreateWalletForm = () => {
   const navigate = useNavigate();
   const settings = useStorage(devxSettings);
@@ -38,24 +144,14 @@ const CreateWalletForm = () => {
   });
 
   const initialValues = {
-    walletName: settings?.createFormData.walletName || '',
-    network: settings?.createFormData.network || ('Preprod' as 'Mainnet' | 'Preprod'),
-    walletPassword: settings?.createFormData.password || '',
+    walletName: settings?.createFormData?.walletName || '',
+    network: settings?.createFormData?.network || ('Preprod' as 'Mainnet' | 'Preprod'),
+    walletPassword: settings?.createFormData?.password || '',
     confirmPassword: '',
     skipPassword: false,
   };
 
-  // Initialize onboarding state on component mount
-  useEffect(() => {
-    const initOnboarding = async () => {
-      if (!settings?.isOnboarding) {
-        await devxSettings.startOnboarding('create');
-      }
-      await devxSettings.setCurrentFlow('create');
-      await devxSettings.goToStep('create-form');
-    };
-    initOnboarding();
-  }, []);
+  // No onboarding state initialization needed - URL is the source of truth
 
   const handleSubmit = async (values: any) => {
     try {
@@ -68,13 +164,6 @@ const CreateWalletForm = () => {
 
       // Check if we have the required API key for the selected network
       if (!hasRequiredApiKey(values.network)) {
-        // Update to API key setup step
-        await devxSettings.goToStep('api-key-setup');
-        await devxSettings.updateApiKeySetupData({
-          network: values.network,
-          requiredFor: 'create',
-        });
-
         // Navigate to API key setup step
         navigate('/create-new-wallet/api-key');
         return;
@@ -95,8 +184,7 @@ const CreateWalletForm = () => {
   };
 
   const handleCancel = async () => {
-    // Rollback to select-method step
-    await devxSettings.goToStep('select-method');
+    // Go back to add wallet selection
     navigate('/add-wallet');
   };
 
@@ -114,109 +202,8 @@ const CreateWalletForm = () => {
       <h2 className="text-xl font-medium">New Wallet</h2>
       <p className="mt-2 text-center text-sm">Create a new wallet!</p>
 
-      <Formik
-        initialValues={initialValues}
-        validationSchema={validationSchema}
-        enableReinitialize
-        onSubmit={handleSubmit}>
-        {({ values, errors, touched, setFieldValue, setFieldError, setFieldTouched }) => {
-          // Save form data whenever values change
-          useEffect(() => {
-            if (settings?.isOnboarding) {
-              devxSettings.updateCreateFormData({
-                walletName: values.walletName,
-                network: values.network,
-                password: values.skipPassword ? undefined : values.walletPassword,
-              });
-            }
-          }, [values.walletName, values.network, values.walletPassword, values.skipPassword]);
-
-          return (
-            <Form className="mt-4 flex size-full max-w-sm flex-col">
-              {/* Wallet Name Field */}
-              <div className="mb-4">
-                <FloatingLabelInput
-                  name="walletName"
-                  label="Wallet Name"
-                  type="text"
-                  required
-                  error={touched.walletName && errors.walletName}
-                />
-                <ErrorMessage name="walletName" component="p" className="mt-1 text-xs text-red-500" />
-              </div>
-
-              {/* Network Selection Field */}
-              <div className="mb-4">
-                <label className="mb-3 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Network <span className="text-red-500">*</span>
-                </label>
-                <NetworkToggle value={values.network} onChange={network => setFieldValue('network', network)} />
-                <ErrorMessage name="network" component="p" className="mt-1 text-xs text-red-500" />
-              </div>
-
-              {/* Wallet Password Field */}
-              <div className="mb-4">
-                <FloatingLabelInput
-                  name="walletPassword"
-                  label="Password"
-                  type="password"
-                  disabled={values.skipPassword}
-                  required={!values.skipPassword}
-                  error={touched.walletPassword && errors.walletPassword}
-                />
-                <ErrorMessage name="walletPassword" component="p" className="mt-1 text-xs text-red-500" />
-              </div>
-
-              {/* Confirm Password Field */}
-              <div className="mb-4">
-                <FloatingLabelInput
-                  name="confirmPassword"
-                  label="Confirm Password"
-                  type="password"
-                  disabled={values.skipPassword}
-                  required={!values.skipPassword}
-                  error={touched.confirmPassword && errors.confirmPassword}
-                />
-                <ErrorMessage name="confirmPassword" component="p" className="mt-1 text-xs text-red-500" />
-              </div>
-
-              {/* Password Skip Option */}
-              <div className="mb-4">
-                <div className="flex items-start">
-                  <Field
-                    type="checkbox"
-                    id="skipPassword"
-                    name="skipPassword"
-                    className="mr-2 mt-0.5 size-4"
-                    onChange={(e: any) => {
-                      const checked = e.target.checked;
-                      setFieldValue('skipPassword', checked);
-                      if (checked) {
-                        setFieldValue('walletPassword', '');
-                        setFieldValue('confirmPassword', '');
-                        setFieldError('walletPassword', undefined);
-                        setFieldError('confirmPassword', undefined);
-                        setFieldTouched('walletPassword', false);
-                        setFieldTouched('confirmPassword', false);
-                      }
-                    }}
-                  />
-                  <label htmlFor="skipPassword" className="block text-left text-xs">
-                    Create wallet without a password. I understand the security risks.
-                  </label>
-                </div>
-              </div>
-
-              {/* Navigation Buttons */}
-              <div className="mt-auto flex justify-center space-x-4">
-                <CancelButton type="button" onClick={handleCancel}>
-                  Cancel
-                </CancelButton>
-                <PrimaryButton type="submit">Create</PrimaryButton>
-              </div>
-            </Form>
-          );
-        }}
+      <Formik initialValues={initialValues} validationSchema={validationSchema} onSubmit={handleSubmit}>
+        {formikProps => <CreateWalletFormContent {...formikProps} handleCancel={handleCancel} />}
       </Formik>
     </div>
   );

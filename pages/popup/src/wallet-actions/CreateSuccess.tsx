@@ -1,5 +1,4 @@
 // popup/src/pages/wallet-actions/CreateSuccess.tsx
-import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { devxSettings } from '@extension/storage';
 import { PrimaryButton, SecondaryButton } from '@src/components/buttons';
@@ -7,15 +6,11 @@ import { PrimaryButton, SecondaryButton } from '@src/components/buttons';
 function CreateSuccess() {
   const navigate = useNavigate();
 
-  // Set onboarding progress to 100% when component mounts
-  useEffect(() => {
-    devxSettings.updateProgress(100);
-  }, []);
-
   const handleFinishOnboardingClick = async () => {
-    // Use the new settings storage to mark onboarding as complete
+    // Mark as onboarded and clear onboarding data
     await devxSettings.markOnboarded();
-    await devxSettings.completeOnboarding();
+    await devxSettings.setLastOnboardingUrl(null);
+    await devxSettings.clearFormData('create');
     navigate('/', { replace: true });
   };
 

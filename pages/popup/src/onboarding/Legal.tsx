@@ -13,13 +13,8 @@ function Legal() {
   const [countdown, setCountdown] = useState(3);
   const [buttonEnabled, setButtonEnabled] = useState(false);
 
-  // Initialize onboarding state and start countdown on component mount
+  // Start countdown on component mount
   useEffect(() => {
-    const initOnboarding = async () => {
-      await devxSettings.goToStep('legal');
-    };
-    initOnboarding();
-
     const timer = setInterval(() => {
       setCountdown(prevCount => {
         if (prevCount <= 1) {
@@ -39,8 +34,6 @@ function Legal() {
   const handleAgreeClick = async () => {
     // Use the convenience method on devxSettings
     await devxSettings.markLegalAccepted();
-    // Update onboarding progress
-    await devxSettings.goToStep('select-method');
     // Navigate to the next step in the onboarding flow
     navigate('/add-wallet');
   };
