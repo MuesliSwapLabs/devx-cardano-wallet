@@ -98,6 +98,17 @@ async function walletLoader({ params }: any) {
   }
 }
 
+// Assets loader function - fetches assets for a specific wallet
+async function assetsLoader({ params }: any) {
+  try {
+    const assets = await devxData.getWalletAssets(params.walletId);
+    return { assets };
+  } catch (error) {
+    console.error('Failed to fetch assets:', error);
+    throw new Response('Failed to load assets', { status: 500 });
+  }
+}
+
 // Layout component that wraps everything
 function AppLayout() {
   const settings = useStorage(devxSettings);
@@ -189,7 +200,7 @@ const router = createHashRouter([
         element: <MainLayout />,
         loader: walletLoader,
         children: [
-          { path: 'assets', element: <AssetsView /> },
+          { path: 'assets', element: <AssetsView />, loader: assetsLoader },
           { path: 'transactions', element: <TransactionsView /> },
           { path: 'utxos', element: <UTXOsViewWrapper /> },
           { index: true, element: <Navigate to="assets" replace /> },

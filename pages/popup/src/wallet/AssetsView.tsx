@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
-import { useStorage, walletsStorage } from '@extension/storage';
-import type { Wallet, Asset } from '@extension/shared';
+import { useSearchParams, useLoaderData } from 'react-router-dom';
+import type { Asset } from '@extension/shared';
 
 // Helper to format token amounts with decimals
 const formatTokenAmount = (quantity: string, decimals: number = 0) => {
@@ -180,23 +179,15 @@ const NFTDisplay = ({ asset }: { asset: Asset }) => {
 };
 
 const AssetsView = () => {
-  const { walletId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { assets } = useLoaderData() as { assets: Asset[] };
 
   // Get tab from URL params, default to 'tokens'
   const activeTab = (searchParams.get('tab') as 'tokens' | 'nfts') || 'tokens';
 
-  const walletsData = useStorage(walletsStorage);
-  const wallets = walletsData?.wallets || [];
-  const wallet = wallets.find((w: Wallet) => w.id === walletId);
-
-  if (!wallet) {
-    return <div>Loading wallet...</div>;
-  }
-
   // Categorize assets: quantity < 10 = NFT, else Token
-  const tokens = wallet.assets?.filter(asset => parseInt(asset.quantity, 10) >= 10) || [];
-  const nfts = wallet.assets?.filter(asset => parseInt(asset.quantity, 10) < 10) || [];
+  const tokens = assets.filter(asset => parseInt(asset.quantity, 10) >= 10);
+  const nfts = assets.filter(asset => parseInt(asset.quantity, 10) < 10);
 
   return (
     <div className="flex h-full flex-col">
