@@ -13,7 +13,6 @@ import {
 // Extended storage interface
 export interface DevxSettingsStorage extends BaseStorage<DevxFullUISettings> {
   // App settings management
-  setTheme: (theme: 'light' | 'dark') => Promise<void>;
   toggleTheme: () => Promise<void>;
   setMainnetApiKey: (apiKey: string) => Promise<void>;
   setPreprodApiKey: (apiKey: string) => Promise<void>;
@@ -52,13 +51,6 @@ export const devxSettings: DevxSettingsStorage = {
   ...storage,
 
   // ========== App Settings Management ==========
-
-  setTheme: async (theme: 'light' | 'dark') => {
-    await storage.set(settings => ({
-      ...settings,
-      theme,
-    }));
-  },
 
   toggleTheme: async () => {
     await storage.set(settings => ({

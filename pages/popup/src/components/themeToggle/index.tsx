@@ -1,9 +1,9 @@
-import { useStorage, settingsStorage } from '@extension/storage';
+import { useStorage, devxSettings } from '@extension/storage';
 import './style.css';
 
 const ThemeToggle = () => {
   // Use the new unified settings storage
-  const settings = useStorage(settingsStorage);
+  const settings = useStorage(devxSettings);
   const isDark = settings?.theme === 'dark';
 
   const dayModeIcon = chrome.runtime.getURL('DayMode.svg');
@@ -16,7 +16,7 @@ const ThemeToggle = () => {
         id="theme-toggle"
         checked={isDark}
         // Use the new toggleTheme method
-        onChange={() => settingsStorage.toggleTheme()}
+        onChange={() => devxSettings.toggleTheme()}
         className="sr-only"
       />
       <span className="slider round flex items-center justify-between px-1.5">
