@@ -1,4 +1,3 @@
-// popup/src/components/WalletDropdown.tsx
 import { useState, useEffect } from 'react';
 import { useStorage, devxSettings, devxData } from '@extension/storage';
 import { Link, useNavigate } from 'react-router-dom';

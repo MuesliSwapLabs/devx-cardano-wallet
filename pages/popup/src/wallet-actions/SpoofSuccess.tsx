@@ -1,4 +1,3 @@
-// popup/src/pages/wallet-actions/SpoofSuccess.tsx
 import { useNavigate } from 'react-router-dom';
 import { devxSettings } from '@extension/storage';
 import { PrimaryButton, SecondaryButton } from '@src/components/buttons';

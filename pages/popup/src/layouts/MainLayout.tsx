@@ -1,4 +1,3 @@
-// popup/src/layouts/MainLayout.tsx
 import { useState, useEffect } from 'react';
 import { Link, Outlet, useNavigate, useParams, useLocation, useLoaderData } from 'react-router-dom';
 import { useStorage, devxSettings } from '@extension/storage';

@@ -1,4 +1,3 @@
-// popup/src/index.tsx
 import { createRoot } from 'react-dom/client';
 import '@src/index.css';
 import App from './App';

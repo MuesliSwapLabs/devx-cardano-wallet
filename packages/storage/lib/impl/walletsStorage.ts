@@ -1,5 +1,3 @@
-// packages/storage/lib/impl/walletsStorage.ts
-
 import { createIndexedDBStorage } from '../base/indexeddb';
 import type { BaseStorage } from '../base/types';
 import type { Wallet } from '@extension/shared';

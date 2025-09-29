@@ -1,4 +1,3 @@
-// popup/src/App.tsx
 import { createHashRouter, RouterProvider, Navigate, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useStorage, devxSettings, devxData } from '@extension/storage';
 import { Suspense, useEffect } from 'react';

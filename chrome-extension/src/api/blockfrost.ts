@@ -1,5 +1,3 @@
-// chrome-extension/src/wallet/blockfrost.ts
-
 // blockforst api wrapper
 
 /**

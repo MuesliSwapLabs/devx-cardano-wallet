@@ -1,4 +1,3 @@
-// popup/src/layouts/WalletActionLayout.tsx
 import { useStorage, settingsStorage, walletsStorage } from '@extension/storage';
 import { Outlet } from 'react-router-dom';
 import OnboardingLayout from './OnboardingLayout';

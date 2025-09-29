@@ -1,5 +1,3 @@
-// packages/shared/lib/utils/encryption.ts
-
 const VERIFICATION_PREFIX = 'devx_verify:';
 
 /**

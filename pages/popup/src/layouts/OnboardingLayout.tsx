@@ -1,4 +1,3 @@
-// popup/src/layouts/OnboardingLayout.tsx
 import { Outlet, useLocation } from 'react-router-dom';
 import { useStorage, devxSettings } from '@extension/storage';
 import ThemeToggle from '../components/themeToggle';
