@@ -1,7 +1,7 @@
 // popup/src/layouts/MainLayout.tsx
 import { useState, useEffect } from 'react';
-import { Link, Outlet, useNavigate, useParams, useLocation } from 'react-router-dom';
-import { useStorage, settingsStorage, walletsStorage } from '@extension/storage';
+import { Link, Outlet, useNavigate, useParams, useLocation, useLoaderData } from 'react-router-dom';
+import { useStorage, devxSettings } from '@extension/storage';
 import WalletDropdown from '../components/WalletDropdown';
 import { PrimaryButton, SecondaryButton } from '@src/components/buttons';
 import { useBalanceSync } from '@src/hooks/useBalanceSync';
@@ -11,15 +11,12 @@ function MainLayout() {
   const { walletId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const { wallet: currentWallet } = useLoaderData() as { wallet: Wallet };
 
   // Get current view from pathname
   const view = location.pathname.split('/').pop() || 'assets';
   const [isExpanded, setIsExpanded] = useState(false);
-  const settings = useStorage(settingsStorage);
-  const walletsData = useStorage(walletsStorage);
-
-  const wallets = walletsData?.wallets || [];
-  const currentWallet = wallets.find((w: Wallet) => w.id === walletId);
+  const settings = useStorage(devxSettings);
   const isDark = settings?.theme === 'dark';
   const iconUrl = isDark ? chrome.runtime.getURL('icon-dark.svg') : chrome.runtime.getURL('icon-light.svg');
 
@@ -48,7 +45,7 @@ function MainLayout() {
 
   const handleWalletSelect = async (newWalletId: string) => {
     // Update the active wallet in storage
-    await walletsStorage.setActiveWallet(newWalletId);
+    await devxSettings.setActiveWalletId(newWalletId);
     // Navigate to the wallet page, keeping current view
     navigate(`/wallet/${newWalletId}/${view}`);
   };

@@ -1,16 +1,7 @@
 // popup/src/App.tsx
-import {
-  createHashRouter,
-  RouterProvider,
-  Navigate,
-  useNavigate,
-  useLocation,
-  useLoaderData,
-  Outlet,
-} from 'react-router-dom';
+import { createHashRouter, RouterProvider, Navigate, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useStorage, devxSettings, devxData } from '@extension/storage';
-import { Suspense, useEffect, useState } from 'react';
-import type { Wallet } from '@extension/shared';
+import { Suspense, useEffect } from 'react';
 
 // Layouts
 import MainLayout from './layouts/MainLayout';
@@ -91,21 +82,20 @@ function OnboardingTracker({ hasWallets }: { hasWallets: boolean }) {
   return null;
 }
 
-// Loader function to fetch wallets
-async function walletsLoader() {
+// Wallet loader function - fetches a specific wallet by ID
+async function walletLoader({ params }: any) {
   try {
-    const wallets = await devxData.getWallets();
-    const settings = await devxSettings.get();
-
-    // Auto-set activeWalletId if it's null but we have wallets
-    if (wallets.length > 0 && !settings?.activeWalletId) {
-      await devxSettings.setActiveWalletId(wallets[0].id);
+    const wallet = await devxData.getWallet(params.walletId);
+    if (!wallet) {
+      throw new Response('Wallet not found', { status: 404 });
     }
-
-    return { wallets, settings };
+    return { wallet };
   } catch (error) {
-    console.error('Failed to fetch wallets:', error);
-    return { wallets: [], settings: null };
+    if (error instanceof Response) {
+      throw error; // Re-throw Response errors (like 404)
+    }
+    console.error('Failed to fetch wallet:', error);
+    throw new Response('Failed to load wallet', { status: 500 });
   }
 }
 
@@ -113,23 +103,9 @@ async function walletsLoader() {
 function AppLayout() {
   const settings = useStorage(devxSettings);
   const isDark = settings?.theme === 'dark';
-  const [wallets, setWallets] = useState<Wallet[]>([]);
 
-  // Fetch wallets for OnboardingTracker
-  useEffect(() => {
-    const fetchWallets = async () => {
-      try {
-        const walletsFromDB = await devxData.getWallets();
-        setWallets(walletsFromDB);
-      } catch (error) {
-        console.error('Failed to fetch wallets for layout:', error);
-        setWallets([]);
-      }
-    };
-    fetchWallets();
-  }, []);
-
-  const hasWallets = wallets.length > 0;
+  // Check if we have wallets by checking if activeWalletId exists
+  const hasWallets = settings?.activeWalletId !== null && settings?.activeWalletId !== undefined;
 
   return (
     <>
@@ -148,20 +124,11 @@ function AppLayout() {
 
 // Component that handles the fallback redirect logic
 function FallbackRedirect() {
-  const { wallets, settings } = useLoaderData() as { wallets: Wallet[]; settings: any };
-  const hasWallets = wallets.length > 0;
+  const settings = useStorage(devxSettings);
 
-  // Get active wallet ID
-  const defaultWalletId = (() => {
-    const activeWalletId = settings?.activeWalletId;
-    if (activeWalletId && wallets.find(w => w.id === activeWalletId)) {
-      return activeWalletId;
-    }
-    if (wallets.length > 0) {
-      return wallets[0].id;
-    }
-    return 'no-wallets';
-  })();
+  // Check if we have wallets by checking if activeWalletId exists
+  const hasWallets = settings?.activeWalletId !== null && settings?.activeWalletId !== undefined;
+  const defaultWalletId = settings?.activeWalletId || 'no-wallets';
 
   return (
     <Navigate
@@ -174,10 +141,11 @@ function FallbackRedirect() {
 const router = createHashRouter([
   {
     path: '/',
+    id: 'root',
     element: <AppLayout />,
     HydrateFallback: () => <div className="flex h-full items-center justify-center">Loading...</div>, // Satisfies v7's initial "hydration" phase
     children: [
-      { index: true, loader: walletsLoader, element: <FallbackRedirect /> },
+      { index: true, element: <FallbackRedirect /> },
       {
         path: 'onboarding',
         element: <OnboardingLayout />,
@@ -218,7 +186,9 @@ const router = createHashRouter([
       { path: 'dapp-permission', element: <DAppPermission /> },
       {
         path: 'wallet/:walletId',
+        id: 'wallet',
         element: <MainLayout />,
+        loader: walletLoader,
         children: [
           { path: 'assets', element: <AssetsView /> },
           { path: 'transactions', element: <TransactionsView /> },

@@ -112,6 +112,18 @@ class DevxDataStorage {
     });
   }
 
+  async hasWallets(): Promise<boolean> {
+    const db = await this.getDatabase();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([DEVX_DB.STORES.WALLETS], 'readonly');
+      const store = transaction.objectStore(DEVX_DB.STORES.WALLETS);
+      const request = store.count();
+
+      request.onsuccess = () => resolve(request.result > 0);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
   async addWallet(wallet: WalletRecord): Promise<void> {
     const db = await this.getDatabase();
     return new Promise((resolve, reject) => {

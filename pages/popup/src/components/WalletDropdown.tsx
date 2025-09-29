@@ -1,7 +1,8 @@
 // popup/src/components/WalletDropdown.tsx
 import { useState, useEffect } from 'react';
-import { useStorage, walletsStorage, settingsStorage } from '@extension/storage';
+import { useStorage, devxSettings, devxData } from '@extension/storage';
 import { Link, useNavigate } from 'react-router-dom';
+import type { Wallet } from '@extension/shared';
 
 interface WalletDropdownProps {
   currentWalletId: string | undefined;
@@ -10,17 +11,30 @@ interface WalletDropdownProps {
 
 function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const walletsData = useStorage(walletsStorage);
-  const settings = useStorage(settingsStorage);
+  const [wallets, setWallets] = useState<Wallet[]>([]);
+  const settings = useStorage(devxSettings);
   const navigate = useNavigate();
 
-  const wallets = walletsData?.wallets || [];
-  const activeWalletId = settings?.activeWalletId; // Extract active wallet ID from settings
+  const activeWalletId = settings?.activeWalletId;
   const currentWallet = wallets.find(w => w.id === currentWalletId) || wallets[0];
 
   // Group wallets by network
   const mainnetWallets = wallets.filter(w => w.network === 'Mainnet');
   const preprodWallets = wallets.filter(w => w.network === 'Preprod');
+
+  // Fetch wallets when component mounts or activeWalletId changes
+  useEffect(() => {
+    const fetchWallets = async () => {
+      try {
+        const fetchedWallets = await devxData.getWallets();
+        setWallets(fetchedWallets);
+      } catch (error) {
+        console.error('Failed to fetch wallets:', error);
+      }
+    };
+
+    fetchWallets();
+  }, [activeWalletId]);
 
   useEffect(() => {
     if (dropdownOpen) {
@@ -53,8 +67,8 @@ function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps
         return;
       }
 
-      await walletsStorage.setActiveWallet(walletId);
-      // No need to manually set state - useStorage(settingsStorage) will update automatically
+      await devxSettings.setActiveWalletId(walletId);
+      // No need to manually set state - useStorage(devxSettings) will update automatically
     } catch (error) {
       console.error('Failed to set active wallet:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
