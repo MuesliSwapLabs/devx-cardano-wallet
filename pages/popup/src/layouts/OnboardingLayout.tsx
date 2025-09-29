@@ -17,7 +17,7 @@ function OnboardingLayout() {
     if (pathname === '/add-wallet') return 40;
     if (pathname.includes('/create-') || pathname.includes('/import-') || pathname.includes('/spoof-')) {
       if (pathname.includes('/api-key')) return 80;
-      if (pathname.includes('/success')) return 90;
+      if (pathname.includes('/success')) return 100;
       return 60; // form pages
     }
     return 0;
