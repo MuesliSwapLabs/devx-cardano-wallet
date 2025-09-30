@@ -1,5 +1,5 @@
 import { Formik, Form, Field } from 'formik';
-import { settingsStorage, useStorage } from '@extension/storage';
+import { devxSettings, useStorage } from '@extension/storage';
 import FloatingLabelInput from './FloatingLabelInput';
 import { PrimaryButton, CancelButton } from './buttons';
 
@@ -23,16 +23,16 @@ const isValidBlockfrostKey = (key: string, network: 'Mainnet' | 'Preprod'): bool
 };
 
 const ApiKeySetup = ({ network, onComplete, onCancel, title, subtitle }: ApiKeySetupProps) => {
-  const settings = useStorage(settingsStorage);
+  const settings = useStorage(devxSettings);
 
   const defaultTitle = `${network} API Key Required`;
   const defaultSubtitle = `Please enter your Blockfrost ${network} API key to continue with this wallet.`;
 
   const handleSubmit = async (apiKey: string) => {
     if (network === 'Mainnet') {
-      await settingsStorage.setMainnetApiKey(apiKey);
+      await devxSettings.setMainnetApiKey(apiKey);
     } else {
-      await settingsStorage.setPreprodApiKey(apiKey);
+      await devxSettings.setPreprodApiKey(apiKey);
     }
     onComplete();
   };

@@ -1,5 +1,5 @@
 import type { Asset, Wallet } from '@extension/shared';
-import { settingsStorage } from '@extension/storage';
+import { devxSettings } from '@extension/storage';
 
 // --- Type Definitions ---
 
@@ -122,7 +122,7 @@ const BLOCKFROST_API_URLS = {
  * Gets the API URL and API key for a specific wallet's network.
  */
 async function getApiConfigForWallet(wallet: Wallet): Promise<{ apiUrl: string; apiKey: string }> {
-  const settings = await settingsStorage.get();
+  const settings = await devxSettings.get();
   const apiUrl = BLOCKFROST_API_URLS[wallet.network];
 
   if (!apiUrl) {

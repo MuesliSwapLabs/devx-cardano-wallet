@@ -38,7 +38,8 @@ export const handleWalletMessages = async (
         const { name, network, seedPhrase, address, stakeAddress, password, rootKey } = message.payload;
 
         const wallet = await importWallet(name, network, seedPhrase, password, address, stakeAddress, rootKey);
-        await walletsStorage.addWallet(wallet);
+        await devxData.addWallet(wallet);
+        await devxSettings.setActiveWalletId(wallet.id);
         sendResponse({ success: true, wallet });
         return true;
       }
@@ -48,7 +49,8 @@ export const handleWalletMessages = async (
           const { address, name, network } = message.payload;
           const newWallet = await spoofWallet(name, address, network);
           console.log('adding Spoofed wallet:', newWallet);
-          await walletsStorage.addWallet(newWallet);
+          await devxData.addWallet(newWallet);
+          await devxSettings.setActiveWalletId(newWallet.id);
           sendResponse({ success: true, payload: newWallet });
         } catch (error) {
           sendResponse({
