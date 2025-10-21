@@ -11,7 +11,7 @@ export default {
         },
       },
       animation: {
-        'fade-out-delayed': 'fadeOutDelayed 3s ease-out forwards',
+        'fade-out-delayed': 'fadeOutDelayed 0.8s ease-out forwards',
       },
     },
   },

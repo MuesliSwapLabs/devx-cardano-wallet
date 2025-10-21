@@ -60,6 +60,7 @@ export async function syncWalletAssets(
 
       if (pageAssets.length === 0) break;
       allAssets.push(...pageAssets);
+      if (pageAssets.length < 100) break; // Stop if less than limit
       page++;
     }
 

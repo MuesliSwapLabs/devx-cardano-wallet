@@ -200,9 +200,15 @@ const AssetsView = () => {
   const [assets, setAssets] = useState(loaderAssets);
   const [syncStatus, setSyncStatus] = useState<'syncing' | 'uptodate' | null>(null);
   const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0 });
-  const [fadeOut, setFadeOut] = useState(false);
+  const [shouldAnimate, setShouldAnimate] = useState(false);
+  const [hasSynced, setHasSynced] = useState(false);
 
   useEffect(() => {
+    // Only run sync once per mount
+    if (hasSynced) {
+      return;
+    }
+
     const checkAndSync = async () => {
       if (!walletId) return;
 
@@ -218,8 +224,6 @@ const AssetsView = () => {
         const latestBlock = await client.getLatestBlock();
 
         if (latestBlock.height && latestBlock.height > lastFetchedBlockAssets) {
-          console.log('BLOCKS:', latestBlock.height, lastFetchedBlockAssets);
-
           // Sync assets and get count of new/changed assets
           const changedCount = await syncWalletAssets(
             wallet,
@@ -240,14 +244,16 @@ const AssetsView = () => {
 
           // Always show green "up to date" after syncing
           setSyncStatus('uptodate');
-          setFadeOut(false);
-          setTimeout(() => setFadeOut(true), 500);
+          setShouldAnimate(false);
+          setTimeout(() => setShouldAnimate(true), 10);
         } else {
           // Already up to date - show green box briefly
           setSyncStatus('uptodate');
-          setFadeOut(false);
-          setTimeout(() => setFadeOut(true), 500);
+          setShouldAnimate(false);
+          setTimeout(() => setShouldAnimate(true), 10);
         }
+
+        setHasSynced(true);
       } catch (error) {
         console.error('Failed to check/sync assets:', error);
         setSyncStatus(null);
@@ -255,7 +261,7 @@ const AssetsView = () => {
     };
 
     checkAndSync();
-  }, [walletId, lastFetchedBlockAssets]);
+  }, [walletId]); // Only depend on walletId, not lastFetchedBlockAssets
 
   // Get tab from URL params, default to 'tokens'
   const activeTab = (searchParams.get('tab') as 'tokens' | 'nfts') || 'tokens';
@@ -319,15 +325,16 @@ const AssetsView = () => {
         )}
       </div>
 
-      {/* Sync status notification */}
+      {/* Sync status notification - fixed above bottom nav */}
       {syncStatus && (
         <div
-          className={`mt-4 w-full px-4 py-1 text-center text-xs text-white shadow-lg transition-opacity duration-[500ms] ${
-            syncStatus === 'syncing' ? 'bg-blue-600 opacity-100' : 'bg-green-600'
-          } ${syncStatus === 'uptodate' ? (fadeOut ? 'opacity-0' : 'opacity-100') : ''}`}
-          onTransitionEnd={() => {
-            if (syncStatus === 'uptodate' && fadeOut) {
+          className={`fixed inset-x-0 bottom-16 z-10 px-4 py-2 text-center text-xs text-white shadow-lg ${
+            syncStatus === 'syncing' ? 'bg-blue-600' : `bg-green-600 ${shouldAnimate ? 'animate-fade-out-delayed' : ''}`
+          }`}
+          onAnimationEnd={() => {
+            if (syncStatus === 'uptodate') {
               setSyncStatus(null);
+              setShouldAnimate(false);
             }
           }}>
           {syncStatus === 'syncing' ? (

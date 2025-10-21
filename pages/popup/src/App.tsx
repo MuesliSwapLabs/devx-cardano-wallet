@@ -113,6 +113,21 @@ async function assetsLoader({ params }: any) {
   }
 }
 
+// Transactions loader function - fetches cached transactions (non-blocking)
+async function transactionsLoader({ params }: any) {
+  try {
+    const wallet = await devxData.getWallet(params.walletId);
+    const transactions = await devxData.getWalletTransactions(params.walletId);
+    return {
+      transactions,
+      lastFetchedBlockTransactions: wallet?.lastFetchedBlockTransactions || 0,
+    };
+  } catch (error) {
+    console.error('Failed to fetch transactions:', error);
+    throw new Response('Failed to load transactions', { status: 500 });
+  }
+}
+
 // Layout component that wraps everything
 function AppLayout() {
   const settings = useStorage(devxSettings);
@@ -205,7 +220,7 @@ const router = createHashRouter([
         loader: walletLoader,
         children: [
           { path: 'assets', element: <AssetsView />, loader: assetsLoader },
-          { path: 'transactions', element: <TransactionsView /> },
+          { path: 'transactions', element: <TransactionsView />, loader: transactionsLoader },
           { path: 'utxos', element: <UTXOsViewWrapper /> },
           { index: true, element: <Navigate to="assets" replace /> },
         ],
