@@ -19,6 +19,7 @@
     "@emurgo/cardano-serialization-lib-asmjs-gc": "^15.0.0",
     "@emurgo/cardano-serialization-lib-browser": "^15.0.0",
     "@extension/blockchain-provider": "workspace:*",
+    "@extension/cardano-provider": "workspace:*",
     "@extension/shared": "workspace:*",
     "@extension/storage": "workspace:*",
     "@scure/bip39": "^1.6.0",

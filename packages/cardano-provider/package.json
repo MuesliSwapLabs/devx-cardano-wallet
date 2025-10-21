@@ -1,0 +1,36 @@
+{
+  "name": "@extension/cardano-provider",
+  "version": "0.3.4",
+  "description": "Unified Cardano blockchain provider and wallet management",
+  "private": true,
+  "sideEffects": false,
+  "type": "module",
+  "files": [
+    "dist/**"
+  ],
+  "types": "index.ts",
+  "main": "./dist/index.js",
+  "scripts": {
+    "clean:bundle": "rimraf dist",
+    "clean:node_modules": "pnpx rimraf node_modules",
+    "clean:turbo": "rimraf .turbo",
+    "clean": "pnpm clean:bundle && pnpm clean:node_modules && pnpm clean:turbo",
+    "ready": "node build.mjs",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "pnpm lint --fix",
+    "prettier": "prettier . --write",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@extension/tsconfig": "workspace:*",
+    "deepmerge": "^4.3.1",
+    "esbuild": "^0.24.0",
+    "tsc-alias": "^1.8.10"
+  },
+  "dependencies": {
+    "@extension/shared": "workspace:*",
+    "@extension/storage": "workspace:*",
+    "@extension/blockchain-provider": "workspace:*",
+    "uuid": "^11.0.2"
+  }
+}

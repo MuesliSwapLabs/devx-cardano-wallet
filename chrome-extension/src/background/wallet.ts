@@ -1,5 +1,6 @@
 import { walletsStorage, transactionsStorage, settingsStorage, devxData, devxSettings } from '@extension/storage';
-import { createNewWallet, importWallet, spoofWallet } from '@extension/wallet-manager';
+import { createNewWallet, spoofWallet } from '@extension/cardano-provider';
+import { importWallet } from '@extension/wallet-manager';
 import { getWalletState } from '@extension/blockchain-provider';
 import { decrypt, encrypt } from '@extension/shared';
 import type { Wallet } from '@extension/shared';

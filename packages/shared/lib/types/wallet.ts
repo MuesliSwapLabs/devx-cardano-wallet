@@ -23,8 +23,8 @@ export type Asset = {
   assetName: string; // Asset name (hex)
 
   // Display info
-  name: string; // Human-readable name
-  ticker?: string; // Symbol (ADA, USDC, etc.)
+  displayName: string; // Human-readable name (e.g., "nutcoin")
+  ticker?: string; // Symbol (ADA, USDC, nutc, etc.)
   decimals?: number; // Decimal places (6 for ADA)
   description?: string; // Asset description
 
@@ -34,7 +34,8 @@ export type Asset = {
   attributes?: Record<string, any>; // NFT traits
 
   // Registry data (from token registry)
-  logo?: string; // Logo URL/hash
+  logo?: string; // Logo raw data (base64/IPFS/URL)
+  logoUrl?: string; // Pre-converted logo URL ready for <img src>
   website?: string; // Official website
 
   // On-chain info

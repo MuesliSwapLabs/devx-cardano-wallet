@@ -98,11 +98,15 @@ async function walletLoader({ params }: any) {
   }
 }
 
-// Assets loader function - fetches assets for a specific wallet
+// Assets loader function - fetches cached assets (non-blocking)
 async function assetsLoader({ params }: any) {
   try {
+    const wallet = await devxData.getWallet(params.walletId);
     const assets = await devxData.getWalletAssets(params.walletId);
-    return { assets };
+    return {
+      assets,
+      lastFetchedBlockAssets: wallet.lastFetchedBlockAssets || 0,
+    };
   } catch (error) {
     console.error('Failed to fetch assets:', error);
     throw new Response('Failed to load assets', { status: 500 });

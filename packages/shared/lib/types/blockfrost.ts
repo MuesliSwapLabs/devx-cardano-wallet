@@ -24,6 +24,44 @@ export interface AddressInfo {
   script: boolean;
 }
 
+// Response from GET /blocks/latest
+export interface BlockInfo {
+  /** Block creation time in UNIX time */
+  time: number;
+  /** Block number */
+  height: number | null;
+  /** Hash of the block */
+  hash: string;
+  /** Slot number */
+  slot: number | null;
+  /** Epoch number */
+  epoch: number | null;
+  /** Slot within the epoch */
+  epoch_slot: number | null;
+  /** Bech32 ID of the slot leader */
+  slot_leader: string;
+  /** Block size in Bytes */
+  size: number;
+  /** Number of transactions in the block */
+  tx_count: number;
+  /** Total output within the block in Lovelaces */
+  output: string | null;
+  /** Total fees within the block in Lovelaces */
+  fees: string | null;
+  /** VRF key of the block */
+  block_vrf: string | null;
+  /** Hash of the operational certificate of the block producer */
+  op_cert: string | null;
+  /** Counter value used to produce the operational certificate */
+  op_cert_counter: string | null;
+  /** Hash of the previous block */
+  previous_block: string | null;
+  /** Hash of the next block */
+  next_block: string | null;
+  /** Number of block confirmations */
+  confirmations: number;
+}
+
 // Response from GET /addresses/{address}/transactions
 export interface AddressTransaction {
   /** Hash of the transaction */

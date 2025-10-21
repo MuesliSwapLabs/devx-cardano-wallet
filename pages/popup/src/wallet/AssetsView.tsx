@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, useLoaderData } from 'react-router-dom';
+import { useSearchParams, useLoaderData, useParams } from 'react-router-dom';
 import type { Asset } from '@extension/shared';
+import { devxSettings, devxData } from '@extension/storage';
+import { BlockfrostClient, syncWalletAssets } from '@extension/cardano-provider';
 
 // Helper to format token amounts with decimals
 const formatTokenAmount = (quantity: string, decimals: number = 0) => {
@@ -71,26 +73,27 @@ const getPlaceholderSvg = (name: string, isToken: boolean = true) => {
 
 const TokenDisplay = ({ asset }: { asset: Asset }) => {
   const [hasError, setHasError] = useState(false);
-  const imageUrl = getImageUrl(asset.logo || asset.image);
-  const placeholderUrl = getPlaceholderSvg(asset.name, true);
+  const imageUrl = asset.logoUrl || getImageUrl(asset.logo || asset.image);
+  const placeholderUrl = getPlaceholderSvg(asset.displayName, true);
 
   return (
     <div className="flex items-center justify-between border-b border-gray-200 p-3 dark:border-gray-700">
       <div className="flex items-center gap-3">
         <img
           src={!hasError && imageUrl ? imageUrl : placeholderUrl}
-          alt={asset.name}
+          alt={asset.displayName}
           className="size-8 rounded-full"
           onError={() => setHasError(true)}
         />
         <div>
-          <div className="text-sm font-medium">{asset.name}</div>
-          {asset.ticker && <div className="text-xs text-gray-500 dark:text-gray-400">{asset.ticker}</div>}
+          <div className="text-sm font-medium">{asset.displayName}</div>
         </div>
       </div>
       <div className="text-right">
-        <div className="font-semibold">{formatTokenAmount(asset.quantity, asset.decimals)}</div>
-        {asset.ticker && <div className="text-xs text-gray-500 dark:text-gray-400">{asset.ticker}</div>}
+        <div className="font-semibold">
+          {formatTokenAmount(asset.quantity, asset.decimals)}{' '}
+          <span className="text-gray-500 dark:text-gray-400">{asset.ticker}</span>
+        </div>
       </div>
     </div>
   );
@@ -137,7 +140,7 @@ const NFTDisplay = ({ asset }: { asset: Asset }) => {
             <img
               key={retryKey} // Force re-render on retry
               src={imageUrl}
-              alt={asset.name}
+              alt={asset.displayName}
               className={`size-full object-cover transition-opacity duration-200 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
               loading="lazy"
               onLoad={() => {
@@ -153,7 +156,11 @@ const NFTDisplay = ({ asset }: { asset: Asset }) => {
             {/* Error fallback with placeholder */}
             {hasError && (
               <div className="absolute inset-0">
-                <img src={getPlaceholderSvg(asset.name, false)} alt={asset.name} className="size-full object-cover" />
+                <img
+                  src={getPlaceholderSvg(asset.displayName, false)}
+                  alt={asset.displayName}
+                  className="size-full object-cover"
+                />
                 <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black bg-opacity-50 px-1 py-0.5 text-xs text-white">
                   <span>Error</span>
                   <button onClick={handleRetry} className="text-blue-300 underline hover:no-underline">
@@ -164,11 +171,15 @@ const NFTDisplay = ({ asset }: { asset: Asset }) => {
             )}
           </>
         ) : (
-          <img src={getPlaceholderSvg(asset.name, false)} alt={asset.name} className="size-full object-cover" />
+          <img
+            src={getPlaceholderSvg(asset.displayName, false)}
+            alt={asset.displayName}
+            className="size-full object-cover"
+          />
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-medium">{asset.name}</div>
+        <div className="truncate text-sm font-medium">{asset.displayName}</div>
         {asset.description && (
           <div className="mt-1 truncate text-xs text-gray-500 dark:text-gray-400">{asset.description}</div>
         )}
@@ -180,7 +191,71 @@ const NFTDisplay = ({ asset }: { asset: Asset }) => {
 
 const AssetsView = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { assets } = useLoaderData() as { assets: Asset[] };
+  const { assets: loaderAssets, lastFetchedBlockAssets } = useLoaderData() as {
+    assets: Asset[];
+    lastFetchedBlockAssets: number;
+  };
+  const { walletId } = useParams<{ walletId: string }>();
+
+  const [assets, setAssets] = useState(loaderAssets);
+  const [syncStatus, setSyncStatus] = useState<'syncing' | 'uptodate' | null>(null);
+  const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0 });
+  const [fadeOut, setFadeOut] = useState(false);
+
+  useEffect(() => {
+    const checkAndSync = async () => {
+      if (!walletId) return;
+
+      try {
+        const settings = await devxSettings.get();
+        const wallet = await devxData.getWallet(walletId);
+        if (!wallet) return;
+
+        const apiKey = wallet.network === 'Mainnet' ? settings.mainnetApiKey : settings.preprodApiKey;
+        if (!apiKey) return;
+
+        const client = new BlockfrostClient({ apiKey, network: wallet.network });
+        const latestBlock = await client.getLatestBlock();
+
+        if (latestBlock.height && latestBlock.height > lastFetchedBlockAssets) {
+          console.log('BLOCKS:', latestBlock.height, lastFetchedBlockAssets);
+
+          // Sync assets and get count of new/changed assets
+          const changedCount = await syncWalletAssets(
+            wallet,
+            latestBlock.height,
+            loaderAssets as any, // Pass existing assets from loader
+            (current, total) => {
+              // Only show progress if there are new assets
+              setSyncStatus('syncing');
+              setSyncProgress({ current, total });
+            },
+          );
+
+          // Refresh assets display if anything changed
+          if (changedCount > 0) {
+            const freshAssets = await devxData.getWalletAssets(walletId);
+            setAssets(freshAssets);
+          }
+
+          // Always show green "up to date" after syncing
+          setSyncStatus('uptodate');
+          setFadeOut(false);
+          setTimeout(() => setFadeOut(true), 500);
+        } else {
+          // Already up to date - show green box briefly
+          setSyncStatus('uptodate');
+          setFadeOut(false);
+          setTimeout(() => setFadeOut(true), 500);
+        }
+      } catch (error) {
+        console.error('Failed to check/sync assets:', error);
+        setSyncStatus(null);
+      }
+    };
+
+    checkAndSync();
+  }, [walletId, lastFetchedBlockAssets]);
 
   // Get tab from URL params, default to 'tokens'
   const activeTab = (searchParams.get('tab') as 'tokens' | 'nfts') || 'tokens';
@@ -243,6 +318,27 @@ const AssetsView = () => {
           <p className="mt-8 text-center text-sm text-gray-400">No NFTs found in this wallet.</p>
         )}
       </div>
+
+      {/* Sync status notification */}
+      {syncStatus && (
+        <div
+          className={`mt-4 w-full px-4 py-1 text-center text-xs text-white shadow-lg transition-opacity duration-[500ms] ${
+            syncStatus === 'syncing' ? 'bg-blue-600 opacity-100' : 'bg-green-600'
+          } ${syncStatus === 'uptodate' ? (fadeOut ? 'opacity-0' : 'opacity-100') : ''}`}
+          onTransitionEnd={() => {
+            if (syncStatus === 'uptodate' && fadeOut) {
+              setSyncStatus(null);
+            }
+          }}>
+          {syncStatus === 'syncing' ? (
+            <span>
+              Syncing {syncProgress.current}/{syncProgress.total}...
+            </span>
+          ) : (
+            <span>✓ Up to date</span>
+          )}
+        </div>
+      )}
     </div>
   );
 };

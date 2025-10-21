@@ -15,29 +15,31 @@ export const DEVX_DB = {
 
 // Wallet record with sync tracking
 export interface WalletRecord extends Wallet {
-  lastSynced?: number;
+  lastFetchedBlockAssets?: number;
+  lastFetchedBlockTransactions?: number;
+  lastFetchedBlockUtxos?: number;
 }
 
 // Asset record with wallet relationship
 export interface AssetRecord extends Asset {
   walletId: string;
-  lastSynced: number;
+  lastSynced?: number;
 }
 
 // Transaction record with wallet relationship
 export interface TransactionRecord extends TransactionInfo {
   walletId: string;
-  lastSynced: number;
   isExternal?: boolean;
+  lastSynced?: number;
 }
 
 // UTXO record with wallet relationship and spent tracking
 export interface UTXORecord extends AddressUTXO {
   walletId: string;
-  lastSynced: number;
   isSpent: boolean;
   spentInTx?: string | null;
   isExternal?: boolean;
+  lastSynced?: number;
 }
 
 // Onboarding flow types
@@ -92,7 +94,6 @@ export interface DevxUISettings {
   onboarded: boolean;
   legalAccepted?: boolean;
   activeWalletId?: string | null;
-  lastSyncBlock?: Record<string, number>;
 
   // UI state
   sidebarCollapsed?: boolean;
@@ -149,7 +150,6 @@ export const DEFAULT_DEVX_UI_SETTINGS: DevxUISettings = {
   mainnetApiKey: '',
   preprodApiKey: '',
   activeWalletId: null,
-  lastSyncBlock: {},
 
   // UI state
   sidebarCollapsed: false,
