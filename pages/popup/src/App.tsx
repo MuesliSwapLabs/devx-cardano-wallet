@@ -128,6 +128,21 @@ async function transactionsLoader({ params }: any) {
   }
 }
 
+// UTXOs loader function - fetches cached UTXOs (non-blocking)
+async function utxosLoader({ params }: any) {
+  try {
+    const wallet = await devxData.getWallet(params.walletId);
+    const utxos = await devxData.getWalletUTXOs(params.walletId);
+    return {
+      utxos,
+      lastFetchedBlockUtxos: wallet?.lastFetchedBlockUtxos || 0,
+    };
+  } catch (error) {
+    console.error('Failed to fetch UTXOs:', error);
+    throw new Response('Failed to load UTXOs', { status: 500 });
+  }
+}
+
 // Layout component that wraps everything
 function AppLayout() {
   const settings = useStorage(devxSettings);
@@ -221,7 +236,7 @@ const router = createHashRouter([
         children: [
           { path: 'assets', element: <AssetsView />, loader: assetsLoader },
           { path: 'transactions', element: <TransactionsView />, loader: transactionsLoader },
-          { path: 'utxos', element: <UTXOsViewWrapper /> },
+          { path: 'utxos', element: <UTXOsViewWrapper />, loader: utxosLoader },
           { index: true, element: <Navigate to="assets" replace /> },
         ],
       },
