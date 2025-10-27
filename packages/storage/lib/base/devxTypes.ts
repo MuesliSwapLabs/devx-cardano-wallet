@@ -51,6 +51,13 @@ export interface UTXORecord extends AddressUTXO {
   lastSynced?: number;
 }
 
+// Chrome Storage data structure for transactions (legacy)
+export interface TransactionsStorageData {
+  transactions: Record<string, TransactionRecord>; // hash -> transaction
+  utxos: Record<string, UTXORecord>; // `${tx_hash}:${output_index}` -> utxo
+  lastFullSync: Record<string, number>; // walletId -> timestamp
+}
+
 // Onboarding flow types
 export type OnboardingFlow = 'create' | 'import' | 'spoof';
 export type OnboardingStep =

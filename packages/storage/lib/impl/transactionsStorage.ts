@@ -1,89 +1,10 @@
 import { createIndexedDBStorage } from '../base/indexeddb';
+import type { TransactionRecord, UTXORecord, TransactionsStorageData } from '../base/devxTypes';
+import type { TransactionInfo, AddressUTXO } from '@extension/shared/lib/types/blockfrost';
 
-// Local type definitions to avoid circular imports
-export interface BlockfrostAmount {
-  unit: string;
-  quantity: string;
-}
-
-export interface TransactionInput {
-  address: string;
-  amount: BlockfrostAmount[];
-  tx_hash: string;
-  output_index: number;
-}
-
-export interface TransactionOutput {
-  address: string;
-  amount: BlockfrostAmount[];
-  output_index: number;
-  data_hash?: string | null;
-  inline_datum?: string | null;
-  reference_script_hash?: string | null;
-}
-
-export interface Transaction {
-  hash: string;
-  block: string;
-  block_height: number;
-  block_time: number;
-  slot: number;
-  index: number;
-  output_amount: BlockfrostAmount[];
-  fees: string;
-  deposit: string;
-  size: number;
-  invalid_before: string | null;
-  invalid_hereafter: string | null;
-  utxo_count: number;
-  withdrawal_count: number;
-  mir_cert_count: number;
-  delegation_count: number;
-  stake_cert_count: number;
-  pool_update_count: number;
-  pool_retire_count: number;
-  asset_mint_or_burn_count: number;
-  redeemer_count: number;
-  valid_contract: boolean;
-  // Input/Output data for complete UTXO tracking
-  inputs?: TransactionInput[];
-  outputs?: TransactionOutput[];
-}
-
-export interface UTXO {
-  address: string;
-  tx_hash: string;
-  output_index: number;
-  amount: BlockfrostAmount[];
-  block: string;
-  data_hash?: string | null;
-  inline_datum?: string | null;
-  reference_script_hash?: string | null;
-  isSpent: boolean;
-  spentInTx?: string | null;
-  isExternal?: boolean;
-}
-
-// Re-export Asset type from shared
+// Re-export types
 export type { Asset } from '@extension/shared';
-
-// Storage data structures
-export interface TransactionRecord extends Transaction {
-  walletId: string;
-  lastSynced: number;
-  isExternal?: boolean; // Mark transactions not directly related to wallet
-}
-
-export interface UTXORecord extends UTXO {
-  walletId: string;
-  lastSynced: number;
-}
-
-export interface TransactionsStorageData {
-  transactions: Record<string, TransactionRecord>; // hash -> transaction
-  utxos: Record<string, UTXORecord>; // `${tx_hash}:${output_index}` -> utxo
-  lastFullSync: Record<string, number>; // walletId -> timestamp
-}
+export type { TransactionRecord, UTXORecord };
 
 const fallbackData: TransactionsStorageData = {
   transactions: {},
@@ -140,7 +61,7 @@ export const transactionsStorage = {
   },
 
   // Store multiple transactions
-  async storeTransactions(walletId: string, transactions: Transaction[]): Promise<void> {
+  async storeTransactions(walletId: string, transactions: TransactionInfo[]): Promise<void> {
     const now = Date.now();
 
     await storage.set(data => {
@@ -156,7 +77,7 @@ export const transactionsStorage = {
   },
 
   // Store multiple UTXOs
-  async storeUTXOs(walletId: string, utxos: UTXO[]): Promise<void> {
+  async storeUTXOs(walletId: string, utxos: AddressUTXO[]): Promise<void> {
     const now = Date.now();
 
     await storage.set(data => {
@@ -167,6 +88,8 @@ export const transactionsStorage = {
           ...utxo,
           walletId,
           lastSynced: now,
+          isSpent: false,
+          spentInTx: null,
         };
       }
       return data;
