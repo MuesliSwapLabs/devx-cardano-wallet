@@ -224,14 +224,16 @@ const AssetsView = () => {
         const latestBlock = await client.getLatestBlock();
 
         if (latestBlock.height && latestBlock.height > lastFetchedBlockAssets) {
+          // Show syncing status immediately before fetching
+          setSyncStatus('syncing');
+
           // Sync assets and get count of new/changed assets
           const changedCount = await syncWalletAssets(
             wallet,
             latestBlock.height,
             loaderAssets as any, // Pass existing assets from loader
             (current, total) => {
-              // Only show progress if there are new assets
-              setSyncStatus('syncing');
+              // Update progress during metadata fetching
               setSyncProgress({ current, total });
             },
           );
@@ -339,7 +341,7 @@ const AssetsView = () => {
           }}>
           {syncStatus === 'syncing' ? (
             <span>
-              Syncing {syncProgress.current}/{syncProgress.total}...
+              {syncProgress.total > 0 ? `Syncing ${syncProgress.current}/${syncProgress.total}...` : 'Syncing...'}
             </span>
           ) : (
             <span>✓ Up to date</span>

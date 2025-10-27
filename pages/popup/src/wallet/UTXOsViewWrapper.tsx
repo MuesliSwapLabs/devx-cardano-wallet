@@ -47,6 +47,9 @@ const UTXOsViewWrapper = () => {
         const latestBlock = await client.getLatestBlock();
 
         if (latestBlock.height && latestBlock.height > initialLastBlock) {
+          // Show syncing status immediately before fetching
+          setSyncStatus('syncing');
+
           // Sync UTXOs and get count of changes
           const changedCount = await syncWalletUtxos(
             walletData,

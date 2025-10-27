@@ -43,14 +43,16 @@ const TransactionsView = () => {
         const latestBlock = await client.getLatestBlock();
 
         if (latestBlock.height && latestBlock.height > initialLastBlock) {
+          // Show syncing status immediately before fetching
+          setSyncStatus('syncing');
+
           // Sync transactions and get count of new/changed transactions
           const changedCount = await syncWalletTransactions(
             walletData,
             latestBlock.height, // Pass current blockchain height
             loaderTransactions as any,
             (current, total) => {
-              // Only show progress if there are new transactions
-              setSyncStatus('syncing');
+              // Update progress during metadata fetching
               setSyncProgress({ current, total });
             },
           );
@@ -115,7 +117,7 @@ const TransactionsView = () => {
           }}>
           {syncStatus === 'syncing' ? (
             <span>
-              Syncing {syncProgress.current}/{syncProgress.total}...
+              {syncProgress.total > 0 ? `Syncing ${syncProgress.current}/${syncProgress.total}...` : 'Syncing...'}
             </span>
           ) : (
             <span>✓ Up to date</span>
