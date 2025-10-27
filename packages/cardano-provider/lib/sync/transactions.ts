@@ -1,5 +1,5 @@
 import type { WalletRecord, TransactionRecord } from '@extension/storage';
-import type { AccountAddress, AddressTransaction, TransactionInfo } from '@extension/shared/lib/types/blockfrost';
+import type { AccountAddress, AddressTransaction } from '@extension/shared/lib/types/blockfrost';
 import { devxSettings, devxData } from '@extension/storage';
 import { BlockfrostClient } from '../client/blockfrost';
 
@@ -95,10 +95,17 @@ export async function syncWalletTransactions(
       onProgress?.(i + 1, newTxRefs.length);
 
       try {
-        const txInfo: TransactionInfo = await client.getTransactionInfo(txRef.tx_hash);
+        // Fetch BOTH transaction info AND input/output UTXOs in parallel
+        const [txInfo, txUtxos] = await Promise.all([
+          client.getTransactionInfo(txRef.tx_hash),
+          client.getTransactionUTXOs(txRef.tx_hash),
+        ]);
 
+        // Merge inputs/outputs with collateral/reference flags into transaction record
         newTransactions.push({
           ...txInfo,
+          inputs: txUtxos.inputs,
+          outputs: txUtxos.outputs,
           walletId: wallet.id,
           lastSynced: Date.now(),
         });

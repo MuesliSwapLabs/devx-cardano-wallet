@@ -1,5 +1,11 @@
 import type { Wallet, Asset } from '@extension/shared';
-import type { TransactionInfo, AddressUTXO, Amount } from '@extension/shared/lib/types/blockfrost';
+import type {
+  TransactionInfo,
+  AddressUTXO,
+  Amount,
+  TransactionInputUTXO,
+  TransactionOutputUTXO,
+} from '@extension/shared/lib/types/blockfrost';
 
 // Database and store names
 export const DEVX_DB = {
@@ -31,6 +37,9 @@ export interface TransactionRecord extends TransactionInfo {
   walletId: string;
   isExternal?: boolean;
   lastSynced?: number;
+  // Input/output UTXOs with collateral and reference flags
+  inputs?: TransactionInputUTXO[];
+  outputs?: TransactionOutputUTXO[];
 }
 
 // UTXO record with wallet relationship and spent tracking
