@@ -24,6 +24,8 @@ export interface WalletRecord extends Wallet {
   lastFetchedBlockAssets?: number;
   lastFetchedBlockTransactions?: number;
   lastFetchedBlockUtxos?: number;
+  paymentAddresses?: string[]; // Cached payment addresses for this wallet
+  lastFetchedBlockPaymentAddresses?: number; // Last block height when payment addresses were fetched
 }
 
 // Asset record with wallet relationship

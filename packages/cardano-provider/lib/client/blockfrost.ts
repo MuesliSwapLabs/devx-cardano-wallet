@@ -32,6 +32,8 @@ export class BlockfrostClient {
   private readonly baseUrl: string;
   private readonly apiKey: string;
   private readonly network: 'Mainnet' | 'Preprod';
+  private lastRequestTime: number = 0;
+  private readonly rateLimitDelay: number = 100; // 100ms = 10 requests/second
 
   constructor(config: BlockfrostClientConfig) {
     this.baseUrl = BLOCKFROST_API_URLS[config.network];
@@ -41,8 +43,20 @@ export class BlockfrostClient {
 
   /**
    * Internal method to make HTTP requests to Blockfrost API
+   * Includes automatic rate limiting (10 requests/second)
    */
   private async makeRequest<T>(endpoint: string): Promise<T> {
+    // Rate limiting: ensure 100ms between requests
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastRequestTime;
+
+    if (timeSinceLastRequest < this.rateLimitDelay) {
+      const delayNeeded = this.rateLimitDelay - timeSinceLastRequest;
+      await new Promise(resolve => setTimeout(resolve, delayNeeded));
+    }
+
+    this.lastRequestTime = Date.now();
+
     const url = `${this.baseUrl}${endpoint}`;
 
     try {

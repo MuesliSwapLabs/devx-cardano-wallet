@@ -304,7 +304,7 @@ class DevxDataStorage {
     });
   }
 
-  async storeUTXOs(walletId: string, utxos: AddressUTXO[]): Promise<void> {
+  async storeUTXOs(walletId: string, utxos: UTXORecord[]): Promise<void> {
     const db = await this.getDatabase();
     const now = Date.now();
 
@@ -315,9 +315,7 @@ class DevxDataStorage {
       utxos.forEach(utxo => {
         const record: UTXORecord = {
           ...utxo,
-          walletId,
           lastSynced: now,
-          isSpent: false,
         };
         store.put(record);
       });

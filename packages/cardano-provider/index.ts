@@ -6,6 +6,7 @@ export { spoofWallet } from './lib/wallet/spoof';
 export { syncWalletAssets } from './lib/sync/assets';
 export { syncWalletTransactions } from './lib/sync/transactions';
 export { syncWalletUtxos } from './lib/sync/utxos';
+export { syncWalletPaymentAddresses } from './lib/sync/paymentAddresses';
 
 // Blockfrost client
 export { BlockfrostClient } from './lib/client/blockfrost';
