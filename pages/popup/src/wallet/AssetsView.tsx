@@ -206,6 +206,15 @@ const AssetsView = () => {
   const [nftsToShow, setNftsToShow] = useState(10);
   const itemsPerLoad = 10;
 
+  // Reset state when wallet changes
+  useEffect(() => {
+    setAssets(loaderAssets);
+    setHasSynced(false); // Allow re-syncing for new wallet
+    setTokensToShow(10); // Reset pagination
+    setNftsToShow(10);
+    setSyncStatus(null);
+  }, [walletId, loaderAssets]);
+
   useEffect(() => {
     // Only run sync once per mount
     if (hasSynced) {

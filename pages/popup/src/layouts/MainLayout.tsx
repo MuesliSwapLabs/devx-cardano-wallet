@@ -45,8 +45,8 @@ function MainLayout() {
   const handleWalletSelect = async (newWalletId: string) => {
     // Update the active wallet in storage
     await devxSettings.setActiveWalletId(newWalletId);
-    // Navigate to the wallet page, keeping current view
-    navigate(`/wallet/${newWalletId}/${view}`);
+    // Always navigate to assets tab when switching wallets to ensure fresh data
+    navigate(`/wallet/${newWalletId}/assets`);
   };
 
   return (

@@ -20,6 +20,15 @@ const UTXOsViewWrapper = () => {
   const [wallet, setWallet] = useState<any>(null);
   const [hasSynced, setHasSynced] = useState(false);
 
+  // Reset state when wallet changes
+  useEffect(() => {
+    setUtxos(loaderUtxos);
+    setHasSynced(false); // Allow re-syncing for new wallet
+    setSyncStatus(null);
+    setWallet(null); // Reset wallet to trigger loading state
+    setTransactions([]); // Clear transactions
+  }, [walletId, loaderUtxos]);
+
   useEffect(() => {
     // Only run sync once per mount
     if (hasSynced) {
