@@ -1,4 +1,4 @@
-import { useStorage, settingsStorage, walletsStorage } from '@extension/storage';
+import { useStorage, devxSettings } from '@extension/storage';
 import { Outlet } from 'react-router-dom';
 import OnboardingLayout from './OnboardingLayout';
 import SubPageLayout from './SubPageLayout';
@@ -9,10 +9,8 @@ import SubPageLayout from './SubPageLayout';
  * then renders the appropriate layout shell for the wallet creation pages.
  */
 function WalletActionLayout() {
-  const settings = useStorage(settingsStorage);
-  const walletsData = useStorage(walletsStorage);
+  const settings = useStorage(devxSettings);
 
-  const wallets = walletsData?.wallets || [];
   const isDark = settings?.theme === 'dark';
   const isOnboarded = settings?.onboarded;
 

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useStorage, walletsStorage, transactionsStorage, settingsStorage } from '@extension/storage';
+import { useStorage, devxSettings, devxData } from '@extension/storage';
 import { Formik, Form, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import FloatingLabelInput from '../components/FloatingLabelInput';
@@ -15,15 +15,29 @@ type View = 'menu' | 'rename' | 'change-password' | 'add-password' | 'reveal-see
 const WalletSettings = () => {
   const { walletId } = useParams<{ walletId: string }>();
   const navigate = useNavigate();
-  const walletsData = useStorage(walletsStorage);
+  const settings = useStorage(devxSettings);
 
   const [currentView, setCurrentView] = useState<View>('menu');
   const [revealedSeed, setRevealedSeed] = useState<string | null>(null);
   const [isDangerZoneOpen, setIsDangerZoneOpen] = useState(false);
+  const [isPaymentAddressesOpen, setIsPaymentAddressesOpen] = useState(false);
   const [deletedWalletName, setDeletedWalletName] = useState<string>('');
+  const [currentWallet, setCurrentWallet] = useState<Wallet | null>(null);
+  const [wallets, setWallets] = useState<Wallet[]>([]);
 
-  const wallets = walletsData?.wallets || [];
-  const currentWallet = wallets.find((w: Wallet) => w.id === walletId);
+  // Load wallet data from IndexedDB
+  useEffect(() => {
+    const loadWalletData = async () => {
+      if (walletId && currentView !== 'wallet-deleted') {
+        const wallet = await devxData.getWallet(walletId);
+        setCurrentWallet(wallet);
+      }
+      // Load all wallets for the deleted view
+      const allWallets = await devxData.getWallets();
+      setWallets(allWallets);
+    };
+    loadWalletData();
+  }, [walletId, currentView]);
 
   // Guard clause in case the wallet isn't found - but allow wallet-deleted view to show
   if (!currentWallet && currentView !== 'wallet-deleted') {
@@ -33,35 +47,34 @@ const WalletSettings = () => {
   // --- Handlers for Form Submissions ---
 
   const handleDeleteWallet = async () => {
-    if (!walletId) return;
+    if (!walletId || !currentWallet) return;
 
     const confirmDelete = confirm(
-      `Are you sure you want to delete "${currentWallet.name}"? This will permanently remove the wallet and all its transaction data. This action cannot be undone.`,
+      `Are you sure you want to delete "${currentWallet.name}"? This will permanently remove the wallet and ALL associated data (transactions, UTXOs, assets) from the database and settings. This action cannot be undone.`,
     );
     if (confirmDelete) {
       try {
-        // 1. Clear all transaction and UTXO data for this wallet
-        await transactionsStorage.clearWalletData(walletId);
+        // Remove the wallet and all associated data (transactions, UTXOs, assets)
+        // devxData.removeWallet handles cascade deletion automatically
+        await devxData.removeWallet(walletId);
 
-        // 2. Remove the wallet from the wallets list
-        const walletsData = await walletsStorage.get();
-        const updatedWallets = walletsData.wallets.filter((w: Wallet) => w.id !== walletId);
-        await walletsStorage.set({ wallets: updatedWallets });
+        // Get remaining wallets
+        const remainingWallets = await devxData.getWallets();
 
-        // 3. If this was the active wallet, set a new active wallet or clear it
-        const settings = await settingsStorage.get();
+        // If this was the active wallet, set a new active wallet or clear it
         if (settings?.activeWalletId === walletId) {
-          const newActiveWalletId = updatedWallets.length > 0 ? updatedWallets[0].id : null;
-          await settingsStorage.setActiveWalletId(newActiveWalletId);
+          const newActiveWalletId = remainingWallets.length > 0 ? remainingWallets[0].id : null;
+          await devxSettings.setActiveWalletId(newActiveWalletId);
 
           // If no wallets left, mark as not onboarded
-          if (updatedWallets.length === 0) {
-            await settingsStorage.set({ ...settings, onboarded: false });
+          if (remainingWallets.length === 0) {
+            await devxSettings.setOnboarded(false);
           }
         }
 
         // Store the deleted wallet name and show success page
         setDeletedWalletName(currentWallet.name);
+        setWallets(remainingWallets);
         setCurrentView('wallet-deleted');
       } catch (error) {
         console.error('Failed to delete wallet:', error);
@@ -322,8 +335,7 @@ const WalletSettings = () => {
         );
 
       case 'wallet-deleted':
-        const remainingWallets = walletsData?.wallets || [];
-        const hasWallets = remainingWallets.length > 0;
+        const hasWallets = wallets.length > 0;
 
         return (
           <div className="flex h-full flex-col items-center justify-center text-center">
@@ -353,7 +365,7 @@ const WalletSettings = () => {
               {hasWallets ? (
                 <PrimaryButton
                   onClick={() => {
-                    navigate(`/wallet/${remainingWallets[0].id}/assets`);
+                    navigate(`/wallet/${wallets[0].id}/assets`);
                   }}>
                   Go Back
                 </PrimaryButton>
@@ -373,28 +385,74 @@ const WalletSettings = () => {
       default:
         return (
           <div className="flex flex-col space-y-4">
+            {/* Payment Addresses */}
+            {currentWallet.paymentAddresses && currentWallet.paymentAddresses.length > 0 && (
+              <div className="rounded-lg bg-white shadow dark:bg-gray-700">
+                <button
+                  onClick={() => setIsPaymentAddressesOpen(!isPaymentAddressesOpen)}
+                  className="flex w-full items-center justify-between p-4 font-medium">
+                  <span>Payment Addresses ({currentWallet.paymentAddresses.length})</span>
+                  {isPaymentAddressesOpen ? (
+                    <ChevronUpIcon className="size-5" />
+                  ) : (
+                    <ChevronDownIcon className="size-5" />
+                  )}
+                </button>
+                {isPaymentAddressesOpen && (
+                  <div className="space-y-2 px-4 pb-4">
+                    {currentWallet.paymentAddresses.map((address, index) => (
+                      <div key={address} className="flex items-center gap-2 text-sm">
+                        <span className="text-gray-500 dark:text-gray-400">{index + 1}.</span>
+                        <code className="flex-1 overflow-hidden text-ellipsis rounded bg-gray-100 px-2 py-1 font-mono text-xs dark:bg-gray-600">
+                          {address}
+                        </code>
+                        <button
+                          onClick={() => navigator.clipboard.writeText(address)}
+                          className="rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-600"
+                          title="Copy address">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="size-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Actions */}
             <div className="flex flex-col space-y-2">
+              <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">Actions</h3>
               <SecondaryButton className="w-full" onClick={() => setCurrentView('rename')}>
                 Rename Wallet
               </SecondaryButton>
-              {currentWallet.hasPassword ? (
-                <SecondaryButton className="w-full" onClick={() => setCurrentView('change-password')}>
-                  Change Password
-                </SecondaryButton>
-              ) : (
-                <SecondaryButton className="w-full" onClick={() => setCurrentView('add-password')}>
-                  Add Password
-                </SecondaryButton>
-              )}
-              {currentWallet.type === 'SPOOFED' ? (
-                <div className="w-full rounded bg-gray-100 p-2 text-center text-xs text-gray-500 dark:bg-gray-700">
-                  Spoofed wallets do not have a seed phrase.
-                </div>
-              ) : (
-                <SecondaryButton className="w-full" onClick={() => setCurrentView('reveal-seed')}>
-                  Export Seed Phrase
-                </SecondaryButton>
-              )}
+              {currentWallet.type !== 'SPOOFED' ? (
+                <>
+                  {currentWallet.hasPassword ? (
+                    <SecondaryButton className="w-full" onClick={() => setCurrentView('change-password')}>
+                      Change Password
+                    </SecondaryButton>
+                  ) : (
+                    <SecondaryButton className="w-full" onClick={() => setCurrentView('add-password')}>
+                      Add Password
+                    </SecondaryButton>
+                  )}
+                  <SecondaryButton className="w-full" onClick={() => setCurrentView('reveal-seed')}>
+                    Export Seed Phrase
+                  </SecondaryButton>
+                </>
+              ) : null}
             </div>
 
             {/* Danger Zone */}
@@ -409,7 +467,8 @@ const WalletSettings = () => {
                 {isDangerZoneOpen && (
                   <div className="px-4 pb-4">
                     <p className="text-sm text-gray-600 dark:text-gray-300">
-                      Deleting will permanently remove this wallet and all its transaction data.
+                      Deleting will permanently remove this wallet and ALL associated data (transactions, UTXOs, assets)
+                      from the database and settings.
                     </p>
                     <div className="pt-4">
                       <CancelButton onClick={handleDeleteWallet}>Delete Wallet</CancelButton>
@@ -427,13 +486,66 @@ const WalletSettings = () => {
     <div className="flex h-full flex-col">
       {currentWallet && (
         <>
-          <div className="mb-2 flex items-center gap-2">
-            <span>Address:</span>
-            <TruncateWithCopy text={currentWallet.address} maxChars={16} />
-          </div>
-          <div className="mb-4 flex items-center gap-2">
-            <span>Stake:</span>
-            <TruncateWithCopy text={currentWallet.stakeAddress} maxChars={16} />
+          {currentWallet.type === 'SPOOFED' && (
+            <div className="mb-4 w-full rounded border border-blue-300 bg-blue-50 p-3 text-sm text-blue-800 dark:border-blue-700 dark:bg-blue-900/30 dark:text-blue-200">
+              ℹ️ This is a spoofed (read-only) wallet. It does not have a seed phrase or password.
+            </div>
+          )}
+          <div className="mb-4 space-y-3">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-left text-sm font-bold text-gray-800 dark:text-gray-100">
+                Imported Using Address
+              </span>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 overflow-hidden text-ellipsis rounded bg-gray-100 px-2 py-1 font-mono text-xs dark:bg-gray-600">
+                  {currentWallet.address}
+                </code>
+                <button
+                  onClick={() => navigator.clipboard.writeText(currentWallet.address)}
+                  className="rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  title="Copy address">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="size-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-left text-sm font-bold text-gray-800 dark:text-gray-100">Stake Address</span>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 overflow-hidden text-ellipsis rounded bg-gray-100 px-2 py-1 font-mono text-xs dark:bg-gray-600">
+                  {currentWallet.stakeAddress}
+                </code>
+                <button
+                  onClick={() => navigator.clipboard.writeText(currentWallet.stakeAddress)}
+                  className="rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  title="Copy address">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="size-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
         </>
       )}

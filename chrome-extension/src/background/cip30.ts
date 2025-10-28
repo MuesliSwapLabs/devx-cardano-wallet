@@ -1,8 +1,16 @@
-import { walletsStorage, transactionsStorage } from '@extension/storage';
+import { devxData, devxSettings } from '@extension/storage';
+import type { Wallet } from '@extension/shared';
 
 // CIP-30 Permission Storage (in-memory for now)
 const dappPermissions = new Map<string, { origin: string; approved: boolean; timestamp: number }>();
 const pendingPermissions = new Map<string, { resolve: Function; reject: Function }>();
+
+// Helper function to get active wallet
+async function getActiveWallet(): Promise<Wallet | null> {
+  const activeWalletId = await devxSettings.getActiveWalletId();
+  if (!activeWalletId) return null;
+  return await devxData.getWallet(activeWalletId);
+}
 
 export const handleCip30Messages = async (
   message: any,
@@ -89,7 +97,7 @@ export const handleCip30Messages = async (
 
       case 'CIP30_GET_NETWORK_ID': {
         // Get active wallet's network
-        const currentWallet = await walletsStorage.getActiveWallet();
+        const currentWallet = await getActiveWallet();
 
         if (!currentWallet) {
           sendResponse({
@@ -110,7 +118,7 @@ export const handleCip30Messages = async (
 
       case 'CIP30_GET_UTXOS': {
         // Get active wallet's UTXOs
-        const currentWallet = await walletsStorage.getActiveWallet();
+        const currentWallet = await getActiveWallet();
 
         if (!currentWallet) {
           sendResponse({
@@ -124,7 +132,7 @@ export const handleCip30Messages = async (
 
         try {
           console.log('CIP30_GET_UTXOS: Getting UTXOs for wallet:', currentWallet.id);
-          const unspentUTXOs = await transactionsStorage.getWalletUnspentUTXOs(currentWallet.id);
+          const unspentUTXOs = await devxData.getWalletUnspentUTXOs(currentWallet.id);
           console.log('CIP30_GET_UTXOS: UTXOs retrieved successfully');
 
           console.log('CIP30_GET_UTXOS: Found UTXOs:', unspentUTXOs.length);
@@ -210,7 +218,7 @@ export const handleCip30Messages = async (
 
       case 'CIP30_GET_BALANCE': {
         // Get active wallet's balance
-        const currentWallet = await walletsStorage.getActiveWallet();
+        const currentWallet = await getActiveWallet();
 
         if (!currentWallet) {
           sendResponse({
@@ -263,7 +271,7 @@ export const handleCip30Messages = async (
 
       case 'CIP30_GET_WALLET_NAME': {
         // Get active wallet's name
-        const currentWallet = await walletsStorage.getActiveWallet();
+        const currentWallet = await getActiveWallet();
 
         if (!currentWallet) {
           sendResponse({
@@ -284,7 +292,7 @@ export const handleCip30Messages = async (
 
       case 'CIP30_GET_REWARD_ADDRESSES': {
         // Get active wallet's reward addresses (stake address)
-        const currentWallet = await walletsStorage.getActiveWallet();
+        const currentWallet = await getActiveWallet();
 
         if (!currentWallet) {
           sendResponse({
@@ -308,7 +316,7 @@ export const handleCip30Messages = async (
 
       case 'CIP30_GET_USED_ADDRESSES': {
         // Get active wallet's used addresses (wallet address)
-        const currentWallet = await walletsStorage.getActiveWallet();
+        const currentWallet = await getActiveWallet();
 
         if (!currentWallet) {
           sendResponse({
@@ -330,7 +338,7 @@ export const handleCip30Messages = async (
 
       case 'CIP30_GET_UNUSED_ADDRESSES': {
         // Get active wallet's unused addresses
-        const currentWallet = await walletsStorage.getActiveWallet();
+        const currentWallet = await getActiveWallet();
 
         if (!currentWallet) {
           sendResponse({
@@ -364,7 +372,7 @@ export const handleCip30Messages = async (
 
       case 'CIP30_GET_CHANGE_ADDRESS': {
         // Get active wallet's change address (just return the wallet address)
-        const currentWallet = await walletsStorage.getActiveWallet();
+        const currentWallet = await getActiveWallet();
 
         if (!currentWallet) {
           sendResponse({

@@ -1,5 +1,6 @@
 import { Outlet, useNavigate, useLocation, useParams } from 'react-router-dom';
-import { useStorage, settingsStorage, walletsStorage } from '@extension/storage';
+import { useStorage, devxSettings, devxData } from '@extension/storage';
+import { useState, useEffect } from 'react';
 import type { Wallet } from '@extension/shared';
 
 /**
@@ -12,10 +13,30 @@ function SubPageLayout() {
   const { walletId } = useParams(); // Get the walletId from the URL
 
   // Use the new unified settings storage
-  const settings = useStorage(settingsStorage);
-  const walletsData = useStorage(walletsStorage); // Get all wallets from storage
+  const settings = useStorage(devxSettings);
+  const [wallets, setWallets] = useState<Wallet[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const wallets = walletsData?.wallets || [];
+  // Load wallets from devxData
+  useEffect(() => {
+    const loadWallets = async () => {
+      const allWallets = await devxData.getWallets();
+      setWallets(allWallets);
+    };
+    loadWallets();
+  }, [location.pathname, refreshKey]); // Reload when route changes or manual refresh
+
+  // Poll for wallet updates when on wallet settings page
+  useEffect(() => {
+    if (walletId && location.pathname.includes('wallet-settings')) {
+      const interval = setInterval(() => {
+        setRefreshKey(prev => prev + 1);
+      }, 1000); // Check for updates every second
+
+      return () => clearInterval(interval);
+    }
+  }, [walletId, location.pathname]);
+
   // The theme is now a property of the settings object
   const isDark = settings?.theme === 'dark';
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Formik, Form, Field } from 'formik';
 import ThemeToggle from './components/themeToggle';
-import { devxSettings, useStorage, walletsStorage } from '@extension/storage';
+import { devxSettings, devxData, useStorage } from '@extension/storage';
 import { CancelButton } from '@src/components/buttons';
 import FloatingLabelInput from './components/FloatingLabelInput';
 import { ChevronUpIcon, ChevronDownIcon, TrashIcon } from '@heroicons/react/24/outline';
@@ -50,8 +50,8 @@ function Settings() {
         // 1. Reset onboarding storage
         await devxSettings.resetOnboarding();
 
-        // 2. Clear IndexedDB (wallets)
-        await walletsStorage.set({ wallets: [] });
+        // 2. Clear IndexedDB (wallets, transactions, UTXOs, assets)
+        await devxData.clearAllData();
 
         // 3. Reset all settings to defaults (this clears activeWalletId, API keys, etc.)
         await devxSettings.set({

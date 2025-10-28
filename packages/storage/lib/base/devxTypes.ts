@@ -144,6 +144,9 @@ export interface DevxFullUISettings extends DevxUISettings {
   createFormData?: CreateWalletFormData;
   importFormData?: ImportWalletFormData;
   spoofFormData?: SpoofWalletFormData;
+
+  // Sync state tracking
+  lastSyncBlock?: Record<string, number>; // walletId -> last synced block height
 }
 
 // Progress mapping for each step

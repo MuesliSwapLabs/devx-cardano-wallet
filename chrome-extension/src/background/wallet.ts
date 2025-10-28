@@ -1,10 +1,16 @@
-import { walletsStorage, transactionsStorage, settingsStorage, devxData, devxSettings } from '@extension/storage';
+import { devxData, devxSettings } from '@extension/storage';
+import type { TransactionRecord, UTXORecord } from '@extension/storage';
 import { createNewWallet, spoofWallet } from '@extension/cardano-provider';
 import { importWallet } from '@extension/wallet-manager';
 import { getWalletState } from '@extension/blockchain-provider';
 import { decrypt, encrypt } from '@extension/shared';
 import type { Wallet } from '@extension/shared';
-import type { Transaction, TransactionInput, TransactionOutput, UTXO } from '@extension/storage';
+import type {
+  TransactionInfo,
+  TransactionInputUTXO,
+  TransactionOutputUTXO,
+  AddressUTXO,
+} from '@extension/shared/lib/types/blockfrost';
 // Crypto operations moved to frontend - no longer needed in background
 
 // Blockfrost API configuration
@@ -19,8 +25,7 @@ export const handleWalletMessages = async (
   sendResponse: (response?: any) => void,
 ): Promise<boolean> => {
   try {
-    const walletsData = await walletsStorage.get();
-    const findWallet = (id: string): Wallet | undefined => walletsData.wallets.find((w: Wallet) => w.id === id);
+    const findWallet = async (id: string): Promise<Wallet | null> => await devxData.getWallet(id);
 
     switch (message.type) {
       case 'CREATE_WALLET': {
@@ -63,13 +68,13 @@ export const handleWalletMessages = async (
       }
 
       case 'WALLET_RENAME': {
-        await walletsStorage.updateWallet(message.payload.id, { name: message.payload.name });
+        await devxData.updateWallet(message.payload.id, { name: message.payload.name });
         sendResponse({ success: true });
         return true;
       }
 
       case 'VALIDATE_PASSWORD': {
-        const wallet = findWallet(message.payload.id);
+        const wallet = await findWallet(message.payload.id);
         if (!wallet || !wallet.seedPhrase) throw new Error('Wallet not found or has no seedPhrase.');
         try {
           await decrypt(wallet.seedPhrase, message.payload.password);
@@ -82,13 +87,13 @@ export const handleWalletMessages = async (
 
       case 'ADD_PASSWORD': {
         const { id, newPassword } = message.payload;
-        const wallet = findWallet(id);
+        const wallet = await findWallet(id);
         if (!wallet || wallet.hasPassword || !wallet.seedPhrase)
           throw new Error('Wallet not found, already has a password, or has no seedPhrase.');
 
         const newEncryptedSeedPhrase = await encrypt(wallet.seedPhrase, newPassword);
         const newEncryptedRootKey = wallet.rootKey ? await encrypt(wallet.rootKey, newPassword) : null;
-        await walletsStorage.updateWallet(id, {
+        await devxData.updateWallet(id, {
           seedPhrase: newEncryptedSeedPhrase,
           rootKey: newEncryptedRootKey,
           hasPassword: true,
@@ -99,13 +104,13 @@ export const handleWalletMessages = async (
 
       case 'CHANGE_PASSWORD': {
         const { id, currentPassword, newPassword } = message.payload;
-        const wallet = findWallet(id);
+        const wallet = await findWallet(id);
         if (!wallet || !wallet.seedPhrase) throw new Error('Wallet not found or has no seedPhrase.');
         const seedPhrase = await decrypt(wallet.seedPhrase, currentPassword);
         const rootKey = wallet.rootKey ? await decrypt(wallet.rootKey, currentPassword) : null;
         const newEncryptedSeedPhrase = await encrypt(seedPhrase, newPassword);
         const newEncryptedRootKey = rootKey ? await encrypt(rootKey, newPassword) : null;
-        await walletsStorage.updateWallet(id, {
+        await devxData.updateWallet(id, {
           seedPhrase: newEncryptedSeedPhrase,
           rootKey: newEncryptedRootKey,
         });
@@ -114,7 +119,7 @@ export const handleWalletMessages = async (
       }
 
       case 'GET_DECRYPTED_SECRET': {
-        const wallet = findWallet(message.payload.id);
+        const wallet = await findWallet(message.payload.id);
         if (!wallet || !wallet.seedPhrase) {
           throw new Error('Wallet not found or has no seedPhrase.');
         }
@@ -129,7 +134,7 @@ export const handleWalletMessages = async (
       }
 
       case 'GET_TRANSACTIONS': {
-        const wallet = findWallet(message.payload.walletId);
+        const wallet = await findWallet(message.payload.walletId);
         if (!wallet) {
           throw new Error('Wallet not found.');
         }
@@ -161,7 +166,7 @@ export const handleWalletMessages = async (
 
       case 'GET_CACHED_DATA': {
         const { walletId } = message.payload;
-        const wallet = findWallet(walletId);
+        const wallet = await findWallet(walletId);
         if (!wallet) {
           sendResponse({ success: false, error: 'Wallet not found' });
           return false;
@@ -170,8 +175,8 @@ export const handleWalletMessages = async (
         // Load existing data from storage without syncing
         try {
           const [transactions, utxos] = await Promise.all([
-            transactionsStorage.getWalletTransactions(wallet.id),
-            transactionsStorage.getWalletUTXOs(wallet.id),
+            devxData.getWalletTransactions(wallet.id),
+            devxData.getWalletUTXOs(wallet.id),
           ]);
 
           sendResponse({
@@ -190,13 +195,12 @@ export const handleWalletMessages = async (
         const { txHash, outputIndex, walletId } = message.payload;
 
         try {
-          let utxo = await transactionsStorage.getUTXO(txHash, outputIndex);
+          let utxo = await devxData.getUTXO(txHash, outputIndex);
 
           // If UTXO not found or has incomplete data, fetch it on-demand
           if (!utxo || !utxo.block) {
             // Get wallet to determine network
-            const wallets = await walletsStorage.get();
-            const wallet = wallets.wallets.find(w => w.id === walletId);
+            const wallet = await findWallet(walletId);
             if (!wallet) {
               sendResponse({ success: false, error: 'Wallet not found' });
               return true;
@@ -217,7 +221,7 @@ export const handleWalletMessages = async (
 
                 if (output) {
                   // Create or update UTXO with complete data
-                  const completeUtxo: UTXO = {
+                  const completeUtxo: AddressUTXO = {
                     tx_hash: txHash,
                     output_index: outputIndex,
                     address: output.address,
@@ -226,13 +230,18 @@ export const handleWalletMessages = async (
                     data_hash: output.data_hash || null,
                     inline_datum: output.inline_datum || null,
                     reference_script_hash: output.reference_script_hash || null,
-                    isSpent: utxo?.isSpent || false,
-                    spentInTx: utxo?.spentInTx || null,
                   };
 
                   // Store the complete UTXO for future use
-                  await transactionsStorage.storeUTXOs(wallet.id, [completeUtxo]);
-                  utxo = await transactionsStorage.getUTXO(txHash, outputIndex);
+                  await devxData.storeUTXOs(wallet.id, [
+                    {
+                      ...completeUtxo,
+                      walletId: wallet.id,
+                      isSpent: utxo?.isSpent || false,
+                      spentInTx: utxo?.spentInTx || null,
+                    },
+                  ]);
+                  utxo = await devxData.getUTXO(txHash, outputIndex);
                 }
               }
             } catch (fetchError) {
@@ -256,7 +265,7 @@ export const handleWalletMessages = async (
 
       case 'REFRESH_WALLET_BALANCE': {
         const { walletId } = message.payload;
-        const wallet = findWallet(walletId);
+        const wallet = await findWallet(walletId);
         if (!wallet) {
           sendResponse({ success: false, error: 'Wallet not found' });
           return true;
@@ -277,7 +286,7 @@ export const handleWalletMessages = async (
 
           // For both 'found' and 'not_found' wallets, we can update with the state
           // 'not_found' wallets will have balance: '0' which is correct for new wallets
-          await walletsStorage.updateWallet(walletId, {
+          await devxData.updateWallet(walletId, {
             balance: state.balance,
           });
 
@@ -310,7 +319,7 @@ export const handleWalletMessages = async (
 
 // Helper function to get API config for a wallet
 async function getApiConfig(wallet: Wallet) {
-  const settings = await settingsStorage.get();
+  const settings = await devxSettings.get();
   const apiUrl = BLOCKFROST_API_URLS[wallet.network];
   const apiKey = wallet.network === 'Mainnet' ? settings.mainnetApiKey : settings.preprodApiKey;
 
@@ -346,12 +355,12 @@ async function performTransactionSync(
   wallet: Wallet,
   onProgress?: (current: number, total: number, message?: string, phase?: string, newItemsCount?: number) => void,
 ) {
-  const settings = await settingsStorage.get();
+  const settings = await devxSettings.get();
   const lastBlock = settings.lastSyncBlock?.[wallet.id] || 0;
   console.log(`Sync starting for wallet ${wallet.id}, lastBlock: ${lastBlock}`);
 
   // Get existing transactions to identify what's new
-  const existingTransactions = await transactionsStorage.getWalletTransactions(wallet.id);
+  const existingTransactions = await devxData.getWalletTransactions(wallet.id);
   const existingTxHashes = new Set(existingTransactions.map(tx => tx.hash));
   console.log(`Found ${existingTransactions.length} existing transactions`);
 
@@ -426,8 +435,8 @@ async function performTransactionSync(
     if (onProgress) {
       onProgress(0, 0, 'Up to date', 'complete', 0);
     }
-    const allStoredTransactions = await transactionsStorage.getWalletTransactions(wallet.id);
-    const allUTXOs = await transactionsStorage.getWalletUTXOs(wallet.id);
+    const allStoredTransactions = await devxData.getWalletTransactions(wallet.id);
+    const allUTXOs = await devxData.getWalletUTXOs(wallet.id);
     return {
       success: true,
       transactions: allStoredTransactions,
@@ -436,7 +445,7 @@ async function performTransactionSync(
   }
 
   // Fetch only new transaction details
-  const transactions: Transaction[] = [];
+  const transactions: TransactionRecord[] = [];
   let highestBlock = lastBlock;
   let processedCount = 0;
 
@@ -470,8 +479,9 @@ async function performTransactionSync(
 
     const [txData, utxoData] = await Promise.all([txResponse.json(), utxosResponse.json()]);
 
-    const transaction: Transaction = {
+    const transaction: TransactionRecord = {
       ...txData,
+      walletId: wallet.id,
       inputs: utxoData.inputs || [],
       outputs: utxoData.outputs || [],
     };
@@ -481,11 +491,11 @@ async function performTransactionSync(
   }
 
   // Store all wallet transactions
-  await transactionsStorage.storeTransactions(wallet.id, transactions);
+  await devxData.storeTransactions(wallet.id, transactions);
 
   // Check existing UTXO database to avoid redundant fetches
-  const existingUTXOs = await transactionsStorage.getWalletUTXOs(wallet.id);
-  const existingUTXOMap = new Map<string, UTXO>();
+  const existingUTXOs = await devxData.getWalletUTXOs(wallet.id);
+  const existingUTXOMap = new Map<string, UTXORecord>();
   for (const utxo of existingUTXOs) {
     existingUTXOMap.set(`${utxo.tx_hash}:${utxo.output_index}`, utxo);
   }
@@ -520,13 +530,13 @@ async function performTransactionSync(
 
   // Store basic UTXO data from inputs (without fetching external transactions)
   // We'll fetch complete data on-demand when user clicks on a specific UTXO
-  const externalUTXOs: UTXO[] = [];
+  const externalUTXOs: UTXORecord[] = [];
   if (missingUTXOs.size > 0) {
     // Create basic UTXO records from transaction inputs
     for (const [utxoKey, utxoInfo] of Array.from(missingUTXOs)) {
       // Find which transaction spent this UTXO
       let spentInTx: string | null = null;
-      let inputData: TransactionInput | undefined;
+      let inputData: TransactionInputUTXO | undefined;
 
       for (const tx of transactions) {
         const input = tx.inputs?.find(i => i.tx_hash === utxoInfo.tx_hash && i.output_index === utxoInfo.output_index);
@@ -540,6 +550,7 @@ async function performTransactionSync(
       if (inputData) {
         // Create UTXO from input data (we have address and amount from the input)
         externalUTXOs.push({
+          walletId: wallet.id,
           tx_hash: utxoInfo.tx_hash,
           output_index: utxoInfo.output_index,
           address: inputData.address,
@@ -557,8 +568,8 @@ async function performTransactionSync(
   }
 
   // Build complete UTXO set from transactions with lifecycle tracking
-  const completeUTXOs: UTXO[] = [];
-  const utxoMap = new Map<string, UTXO>(); // key: "tx_hash:output_index"
+  const completeUTXOs: UTXORecord[] = [];
+  const utxoMap = new Map<string, UTXORecord>(); // key: "tx_hash:output_index"
 
   // First, load ALL existing UTXOs to preserve their lifecycle state
   for (const existingUtxo of existingUTXOs) {
@@ -589,7 +600,8 @@ async function performTransactionSync(
 
       // Only create new UTXO if it doesn't already exist
       if (!utxoMap.has(key)) {
-        const utxo: UTXO = {
+        const utxo: UTXORecord = {
+          walletId: wallet.id,
           tx_hash: tx.hash,
           output_index: outputIndex,
           address: output.address,
@@ -622,7 +634,8 @@ async function performTransactionSync(
       } else if (paymentAddresses.includes(input.address)) {
         // Only create historical records for wallet-owned UTXOs that we don't have
         console.log(`Creating historical UTXO ${key} (already spent by ${tx.hash.slice(0, 8)}...)`);
-        const historicalUtxo: UTXO = {
+        const historicalUtxo: UTXORecord = {
+          walletId: wallet.id,
           tx_hash: input.tx_hash,
           output_index: input.output_index,
           address: input.address,
@@ -663,12 +676,12 @@ async function performTransactionSync(
 
   // Store all UTXOs with lifecycle data
   if (completeUTXOs.length > 0) {
-    await transactionsStorage.storeUTXOs(wallet.id, completeUTXOs);
+    await devxData.storeUTXOs(wallet.id, completeUTXOs);
     console.log(`Stored all UTXOs to database`);
   }
 
   // Update last sync block
-  await settingsStorage.set({
+  await devxSettings.set({
     ...settings,
     lastSyncBlock: {
       ...settings.lastSyncBlock,
@@ -677,8 +690,8 @@ async function performTransactionSync(
   });
 
   // Return all transactions from storage
-  const allStoredTransactions = await transactionsStorage.getWalletTransactions(wallet.id);
-  const allUTXOs = await transactionsStorage.getWalletUTXOs(wallet.id);
+  const allStoredTransactions = await devxData.getWalletTransactions(wallet.id);
+  const allUTXOs = await devxData.getWalletUTXOs(wallet.id);
 
   console.log(
     `Sync complete for wallet ${wallet.id}: ${allStoredTransactions.length} transactions, ${allUTXOs.length} UTXOs`,
