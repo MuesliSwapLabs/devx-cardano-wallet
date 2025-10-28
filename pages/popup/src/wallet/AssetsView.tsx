@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useLoaderData, useParams } from 'react-router-dom';
 import type { Asset } from '@extension/shared';
 import { devxSettings, devxData } from '@extension/storage';
@@ -202,6 +202,9 @@ const AssetsView = () => {
   const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0 });
   const [shouldAnimate, setShouldAnimate] = useState(false);
   const [hasSynced, setHasSynced] = useState(false);
+  const [tokensToShow, setTokensToShow] = useState(10);
+  const [nftsToShow, setNftsToShow] = useState(10);
+  const itemsPerLoad = 10;
 
   useEffect(() => {
     // Only run sync once per mount
@@ -269,8 +272,49 @@ const AssetsView = () => {
   const activeTab = (searchParams.get('tab') as 'tokens' | 'nfts') || 'tokens';
 
   // Categorize assets: quantity < 10 = NFT, else Token
-  const tokens = assets.filter(asset => parseInt(asset.quantity, 10) >= 10);
-  const nfts = assets.filter(asset => parseInt(asset.quantity, 10) < 10);
+  const tokens = useMemo(() => {
+    return assets.filter(asset => parseInt(asset.quantity, 10) >= 10);
+  }, [assets]);
+
+  const nfts = useMemo(() => {
+    return assets.filter(asset => parseInt(asset.quantity, 10) < 10);
+  }, [assets]);
+
+  // Slice for pagination
+  const visibleTokens = tokens.slice(0, tokensToShow);
+  const visibleNfts = nfts.slice(0, nftsToShow);
+
+  // Reset pagination when switching tabs
+  useEffect(() => {
+    if (activeTab === 'tokens') {
+      setTokensToShow(10);
+    } else {
+      setNftsToShow(10);
+    }
+  }, [activeTab]);
+
+  // Handle scroll to load more
+  useEffect(() => {
+    const handleScroll = (e: Event) => {
+      const element = e.target as HTMLElement;
+      // Check if scrolled near bottom (within 100px)
+      if (element.scrollHeight - element.scrollTop <= element.clientHeight + 100) {
+        if (activeTab === 'tokens' && tokensToShow < tokens.length) {
+          setTokensToShow(prev => Math.min(prev + itemsPerLoad, tokens.length));
+        } else if (activeTab === 'nfts' && nftsToShow < nfts.length) {
+          setNftsToShow(prev => Math.min(prev + itemsPerLoad, nfts.length));
+        }
+      }
+    };
+
+    // Find the scrollable parent
+    const scrollableParent = document.querySelector('div.flex-1.overflow-y-auto');
+    if (scrollableParent) {
+      scrollableParent.addEventListener('scroll', handleScroll);
+      return () => scrollableParent.removeEventListener('scroll', handleScroll);
+    }
+    return undefined;
+  }, [activeTab, tokensToShow, nftsToShow, tokens.length, nfts.length]);
 
   return (
     <div className="flex h-full flex-col">
@@ -308,20 +352,48 @@ const AssetsView = () => {
       <div className="flex-1 overflow-y-auto">
         {activeTab === 'tokens' ? (
           tokens.length > 0 ? (
-            <div>
-              {tokens.map(asset => (
-                <TokenDisplay key={asset.unit} asset={asset} />
-              ))}
-            </div>
+            <>
+              <div>
+                {visibleTokens.map(asset => (
+                  <TokenDisplay key={asset.unit} asset={asset} />
+                ))}
+              </div>
+              {tokens.length > 0 && (
+                <div className="mt-4 pb-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                  {tokensToShow < tokens.length ? (
+                    <div>
+                      Showing {tokensToShow} of {tokens.length} tokens
+                      <div className="mt-2 text-xs">Scroll down to load more</div>
+                    </div>
+                  ) : (
+                    `All ${tokens.length} tokens loaded`
+                  )}
+                </div>
+              )}
+            </>
           ) : (
             <p className="mt-8 text-center text-sm text-gray-400">No tokens found in this wallet.</p>
           )
         ) : nfts.length > 0 ? (
-          <div>
-            {nfts.map(asset => (
-              <NFTDisplay key={asset.unit} asset={asset} />
-            ))}
-          </div>
+          <>
+            <div>
+              {visibleNfts.map(asset => (
+                <NFTDisplay key={asset.unit} asset={asset} />
+              ))}
+            </div>
+            {nfts.length > 0 && (
+              <div className="mt-4 pb-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                {nftsToShow < nfts.length ? (
+                  <div>
+                    Showing {nftsToShow} of {nfts.length} NFTs
+                    <div className="mt-2 text-xs">Scroll down to load more</div>
+                  </div>
+                ) : (
+                  `All ${nfts.length} NFTs loaded`
+                )}
+              </div>
+            )}
+          </>
         ) : (
           <p className="mt-8 text-center text-sm text-gray-400">No NFTs found in this wallet.</p>
         )}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import type { Wallet } from '@extension/shared';
 import type { UTXORecord, TransactionRecord } from '@extension/storage';
@@ -14,8 +14,8 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos, transactions }) =>
   const [filter, setFilter] = useState<'all' | 'unspent' | 'spent' | 'external'>('unspent');
   const [expandedUtxo, setExpandedUtxo] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [itemsToShow, setItemsToShow] = useState(50);
-  const itemsPerLoad = 50;
+  const [itemsToShow, setItemsToShow] = useState(10);
+  const itemsPerLoad = 10;
 
   const formatAda = (lovelace: string) => {
     return (parseInt(lovelace) / 1000000).toFixed(6) + ' ADA';
@@ -136,27 +136,24 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos, transactions }) =>
     return false;
   });
 
-  // Group filtered UTXOs by day
-  const groupedUtxos = groupUTXOsByDay(filteredUtxos);
+  // Sort by date FIRST (newest first)
+  const sortedUtxos = useMemo(() => {
+    return [...filteredUtxos].sort((a, b) => {
+      const dateA = getUTXODate(a) || 0;
+      const dateB = getUTXODate(b) || 0;
+      return dateB - dateA; // Newest first
+    });
+  }, [filteredUtxos]);
 
-  // Get visible UTXOs with proper grouping
-  let totalShown = 0;
-  const visibleGroups: { [key: string]: UTXORecord[] } = {};
+  // THEN slice to get visible ones
+  const visibleUtxos = sortedUtxos.slice(0, itemsToShow);
 
-  for (const [dayKey, dayUtxos] of Object.entries(groupedUtxos)) {
-    const remainingToShow = itemsToShow - totalShown;
-    if (remainingToShow <= 0) break;
-
-    const utxosToShow = dayUtxos.slice(0, remainingToShow);
-    if (utxosToShow.length > 0) {
-      visibleGroups[dayKey] = utxosToShow;
-      totalShown += utxosToShow.length;
-    }
-  }
+  // THEN group the visible ones
+  const visibleGroups = groupUTXOsByDay(visibleUtxos);
 
   // Reset items when search or filter changes
   useEffect(() => {
-    setItemsToShow(50);
+    setItemsToShow(10);
   }, [searchQuery, filter]);
 
   // Handle scroll to load more
@@ -165,8 +162,8 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos, transactions }) =>
       const element = e.target as HTMLElement;
       // Check if scrolled near bottom (within 100px)
       if (element.scrollHeight - element.scrollTop <= element.clientHeight + 100) {
-        if (itemsToShow < filteredUtxos.length) {
-          setItemsToShow(prev => Math.min(prev + itemsPerLoad, filteredUtxos.length));
+        if (itemsToShow < sortedUtxos.length) {
+          setItemsToShow(prev => Math.min(prev + itemsPerLoad, sortedUtxos.length));
         }
       }
     };
@@ -178,7 +175,7 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos, transactions }) =>
       return () => scrollableParent.removeEventListener('scroll', handleScroll);
     }
     return undefined;
-  }, [itemsToShow, filteredUtxos.length]);
+  }, [itemsToShow, sortedUtxos.length]);
 
   const stats = {
     total: utxos.length,
@@ -453,15 +450,15 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos, transactions }) =>
       )}
 
       {/* Show loading indicator or count */}
-      {filteredUtxos.length > 0 && (
+      {sortedUtxos.length > 0 && (
         <div className="mt-4 pb-4 text-center text-sm text-gray-500 dark:text-gray-400">
-          {totalShown < filteredUtxos.length ? (
+          {itemsToShow < sortedUtxos.length ? (
             <div>
-              Showing {totalShown} of {filteredUtxos.length} UTXOs
+              Showing {itemsToShow} of {sortedUtxos.length} UTXOs
               <div className="mt-2 text-xs">Scroll down to load more</div>
             </div>
           ) : (
-            `All ${filteredUtxos.length} UTXOs loaded`
+            `All ${sortedUtxos.length} UTXOs loaded`
           )}
         </div>
       )}

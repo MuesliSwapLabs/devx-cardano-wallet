@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { Wallet } from '@extension/shared';
 import type { UTXORecord, TransactionRecord } from '@extension/storage';
 import { TruncateWithCopy } from '@extension/shared';
@@ -12,8 +12,8 @@ interface TransactionsProps {
 const Transactions: React.FC<TransactionsProps> = ({ wallet, transactions }) => {
   const [expandedTx, setExpandedTx] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [itemsToShow, setItemsToShow] = useState(50);
-  const itemsPerLoad = 50;
+  const [itemsToShow, setItemsToShow] = useState(10);
+  const itemsPerLoad = 10;
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleString();
@@ -185,27 +185,20 @@ const Transactions: React.FC<TransactionsProps> = ({ wallet, transactions }) => 
     return false;
   });
 
-  // Group filtered transactions by day
-  const groupedTransactions = groupTransactionsByDay(filteredTransactions);
+  // Sort by date FIRST (newest first)
+  const sortedTransactions = useMemo(() => {
+    return [...filteredTransactions].sort((a, b) => b.block_time - a.block_time);
+  }, [filteredTransactions]);
 
-  // Get visible transactions with proper grouping
-  let totalShown = 0;
-  const visibleGroups: { [key: string]: TransactionRecord[] } = {};
+  // THEN slice to get visible ones
+  const visibleTransactions = sortedTransactions.slice(0, itemsToShow);
 
-  for (const [dayKey, dayTransactions] of Object.entries(groupedTransactions)) {
-    const remainingToShow = itemsToShow - totalShown;
-    if (remainingToShow <= 0) break;
-
-    const transactionsToShow = dayTransactions.slice(0, remainingToShow);
-    if (transactionsToShow.length > 0) {
-      visibleGroups[dayKey] = transactionsToShow;
-      totalShown += transactionsToShow.length;
-    }
-  }
+  // THEN group the visible ones
+  const visibleGroups = groupTransactionsByDay(visibleTransactions);
 
   // Reset items when search changes
   useEffect(() => {
-    setItemsToShow(50);
+    setItemsToShow(10);
   }, [searchQuery]);
 
   // Handle scroll to load more
@@ -214,8 +207,8 @@ const Transactions: React.FC<TransactionsProps> = ({ wallet, transactions }) => 
       const element = e.target as HTMLElement;
       // Check if scrolled near bottom (within 100px)
       if (element.scrollHeight - element.scrollTop <= element.clientHeight + 100) {
-        if (itemsToShow < filteredTransactions.length) {
-          setItemsToShow(prev => Math.min(prev + itemsPerLoad, filteredTransactions.length));
+        if (itemsToShow < sortedTransactions.length) {
+          setItemsToShow(prev => Math.min(prev + itemsPerLoad, sortedTransactions.length));
         }
       }
     };
@@ -227,7 +220,7 @@ const Transactions: React.FC<TransactionsProps> = ({ wallet, transactions }) => 
       return () => scrollableParent.removeEventListener('scroll', handleScroll);
     }
     return undefined;
-  }, [itemsToShow, filteredTransactions.length]);
+  }, [itemsToShow, sortedTransactions.length]);
 
   return (
     <div>
@@ -308,15 +301,15 @@ const Transactions: React.FC<TransactionsProps> = ({ wallet, transactions }) => 
       )}
 
       {/* Show loading indicator or count */}
-      {filteredTransactions.length > 0 && (
+      {sortedTransactions.length > 0 && (
         <div className="mt-4 pb-4 text-center text-sm text-gray-500 dark:text-gray-400">
-          {totalShown < filteredTransactions.length ? (
+          {itemsToShow < sortedTransactions.length ? (
             <div>
-              Showing {totalShown} of {filteredTransactions.length} transactions
+              Showing {itemsToShow} of {sortedTransactions.length} transactions
               <div className="mt-2 text-xs">Scroll down to load more</div>
             </div>
           ) : (
-            `All ${filteredTransactions.length} transactions loaded`
+            `All ${sortedTransactions.length} transactions loaded`
           )}
         </div>
       )}
