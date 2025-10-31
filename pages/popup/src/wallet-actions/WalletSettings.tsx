@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useStorage, devxSettings, devxData } from '@extension/storage';
+import { useStorage, devxSettings, devxData, type WalletRecord } from '@extension/storage';
 import { Formik, Form, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import FloatingLabelInput from '../components/FloatingLabelInput';
@@ -12,6 +12,27 @@ import { ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 // Define the possible views for this component
 type View = 'menu' | 'rename' | 'change-password' | 'add-password' | 'reveal-seed' | 'wallet-deleted';
 
+// Helper function to format addresses for display
+const formatAddressForDisplay = (address: string): string => {
+  // Find where the prefix ends (after the first '1')
+  const prefixEndIndex = address.indexOf('1');
+  if (prefixEndIndex === -1) return address; // Fallback if no '1' found
+
+  const prefix = address.substring(0, prefixEndIndex + 1); // Include the '1'
+  const remainder = address.substring(prefixEndIndex + 1);
+
+  // Show prefix + 6 chars + ... + last 6 chars
+  if (remainder.length <= 14) {
+    // If remaining part is short, just show it all
+    return address;
+  }
+
+  const start = remainder.substring(0, 6);
+  const end = remainder.substring(remainder.length - 6);
+
+  return `${prefix}${start}...${end}`;
+};
+
 const WalletSettings = () => {
   const { walletId } = useParams<{ walletId: string }>();
   const navigate = useNavigate();
@@ -22,7 +43,7 @@ const WalletSettings = () => {
   const [isDangerZoneOpen, setIsDangerZoneOpen] = useState(false);
   const [isPaymentAddressesOpen, setIsPaymentAddressesOpen] = useState(false);
   const [deletedWalletName, setDeletedWalletName] = useState<string>('');
-  const [currentWallet, setCurrentWallet] = useState<Wallet | null>(null);
+  const [currentWallet, setCurrentWallet] = useState<WalletRecord | null>(null);
   const [wallets, setWallets] = useState<Wallet[]>([]);
 
   // Load wallet data from IndexedDB
@@ -303,6 +324,51 @@ const WalletSettings = () => {
             </div>
           );
         }
+
+        // If wallet has no password, reveal seed directly
+        if (currentWallet && !currentWallet.hasPassword) {
+          return (
+            <Formik
+              initialValues={{}}
+              onSubmit={() => {
+                const payload = {
+                  id: walletId,
+                  password: undefined,
+                };
+
+                chrome.runtime.sendMessage({ type: 'GET_DECRYPTED_SECRET', payload }, response => {
+                  if (response?.success) {
+                    setRevealedSeed(response.secret);
+                  } else {
+                    alert(response?.error || 'Failed to decrypt seed.');
+                  }
+                });
+              }}>
+              {({ isSubmitting }) => (
+                <Form className="flex h-full flex-col">
+                  <div className="grow">
+                    <p className="mb-4 text-center text-gray-600 dark:text-gray-300">
+                      This wallet has no password protection.
+                    </p>
+                    <p className="text-center text-sm text-gray-600 dark:text-gray-300">
+                      Click "Reveal" to display your seed phrase.
+                    </p>
+                  </div>
+                  <div className="mt-auto flex justify-center space-x-4">
+                    <SecondaryButton type="button" onClick={() => setCurrentView('menu')}>
+                      Back
+                    </SecondaryButton>
+                    <PrimaryButton type="submit" disabled={isSubmitting}>
+                      Reveal
+                    </PrimaryButton>
+                  </div>
+                </Form>
+              )}
+            </Formik>
+          );
+        }
+
+        // Wallet has password, ask for it
         return (
           <Formik
             initialValues={{ password: '' }}
@@ -403,8 +469,10 @@ const WalletSettings = () => {
                     {currentWallet.paymentAddresses.map((address, index) => (
                       <div key={address} className="flex items-center gap-2 text-sm">
                         <span className="text-gray-500 dark:text-gray-400">{index + 1}.</span>
-                        <code className="flex-1 overflow-hidden text-ellipsis rounded bg-gray-100 px-2 py-1 font-mono text-xs dark:bg-gray-600">
-                          {address}
+                        <code
+                          className="flex-1 cursor-help rounded bg-gray-100 px-2 py-1 font-mono text-xs dark:bg-gray-600"
+                          title={address}>
+                          {formatAddressForDisplay(address)}
                         </code>
                         <button
                           onClick={() => navigator.clipboard.writeText(address)}

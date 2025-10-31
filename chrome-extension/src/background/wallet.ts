@@ -1,8 +1,7 @@
 import { devxData, devxSettings } from '@extension/storage';
 import type { TransactionRecord, UTXORecord } from '@extension/storage';
-import { createNewWallet, spoofWallet } from '@extension/cardano-provider';
-import { importWallet } from '@extension/wallet-manager';
-import { getWalletState } from '@extension/blockchain-provider';
+import { createNewWallet, spoofWallet, importWallet, getWalletState } from '@extension/cardano-provider';
+import { isExternalAddress } from '@extension/cardano-provider/lib/utils/address';
 import { decrypt, encrypt } from '@extension/shared';
 import type { Wallet } from '@extension/shared';
 import type {
@@ -33,7 +32,24 @@ export const handleWalletMessages = async (
         const { name, network, password, seedPhrase, address, stakeAddress, rootKey } = message.payload;
 
         const wallet = await createNewWallet(name, network, password, seedPhrase, address, stakeAddress, rootKey);
-        await devxData.addWallet(wallet);
+
+        // Fetch all payment addresses for the wallet
+        try {
+          const { apiUrl, apiKey } = await getApiConfig(wallet);
+          const paymentAddresses = await getPaymentAddresses(apiUrl, apiKey, stakeAddress);
+          console.log(`Fetched ${paymentAddresses.length} payment addresses for new wallet`);
+
+          // Add payment addresses to wallet before saving
+          await devxData.addWallet({
+            ...wallet,
+            paymentAddresses,
+          });
+        } catch (error) {
+          console.warn('Failed to fetch payment addresses during wallet creation:', error);
+          // Save wallet without payment addresses - they'll be fetched later
+          await devxData.addWallet(wallet);
+        }
+
         await devxSettings.setActiveWalletId(wallet.id);
         sendResponse({ success: true, wallet });
         return true;
@@ -44,7 +60,24 @@ export const handleWalletMessages = async (
         const { name, network, seedPhrase, address, stakeAddress, password, rootKey } = message.payload;
 
         const wallet = await importWallet(name, network, seedPhrase, password, address, stakeAddress, rootKey);
-        await devxData.addWallet(wallet);
+
+        // Fetch all payment addresses for the wallet
+        try {
+          const { apiUrl, apiKey } = await getApiConfig(wallet);
+          const paymentAddresses = await getPaymentAddresses(apiUrl, apiKey, stakeAddress);
+          console.log(`Fetched ${paymentAddresses.length} payment addresses for imported wallet`);
+
+          // Add payment addresses to wallet before saving
+          await devxData.addWallet({
+            ...wallet,
+            paymentAddresses,
+          });
+        } catch (error) {
+          console.warn('Failed to fetch payment addresses during wallet import:', error);
+          // Save wallet without payment addresses - they'll be fetched later
+          await devxData.addWallet(wallet);
+        }
+
         await devxSettings.setActiveWalletId(wallet.id);
         sendResponse({ success: true, wallet });
         return true;
@@ -55,7 +88,24 @@ export const handleWalletMessages = async (
           const { address, name, network } = message.payload;
           const newWallet = await spoofWallet(name, address, network);
           console.log('adding Spoofed wallet:', newWallet);
-          await devxData.addWallet(newWallet);
+
+          // Fetch all payment addresses for the wallet
+          try {
+            const { apiUrl, apiKey } = await getApiConfig(newWallet);
+            const paymentAddresses = await getPaymentAddresses(apiUrl, apiKey, newWallet.stakeAddress);
+            console.log(`Fetched ${paymentAddresses.length} payment addresses for spoofed wallet`);
+
+            // Add payment addresses to wallet before saving
+            await devxData.addWallet({
+              ...newWallet,
+              paymentAddresses,
+            });
+          } catch (error) {
+            console.warn('Failed to fetch payment addresses during wallet spoof:', error);
+            // Save wallet without payment addresses - they'll be fetched later
+            await devxData.addWallet(newWallet);
+          }
+
           await devxSettings.setActiveWalletId(newWallet.id);
           sendResponse({ success: true, payload: newWallet });
         } catch (error) {
@@ -220,8 +270,8 @@ export const handleWalletMessages = async (
                 const output = utxoData.outputs?.[outputIndex];
 
                 if (output) {
-                  // Create or update UTXO with complete data
-                  const completeUtxo: AddressUTXO = {
+                  // Create or update UTXO with complete data - cast to AddressUTXO
+                  const completeUtxo = {
                     tx_hash: txHash,
                     output_index: outputIndex,
                     address: output.address,
@@ -230,7 +280,7 @@ export const handleWalletMessages = async (
                     data_hash: output.data_hash || null,
                     inline_datum: output.inline_datum || null,
                     reference_script_hash: output.reference_script_hash || null,
-                  };
+                  } as AddressUTXO;
 
                   // Store the complete UTXO for future use
                   await devxData.storeUTXOs(wallet.id, [
@@ -332,22 +382,42 @@ async function getApiConfig(wallet: Wallet) {
   return { apiUrl, apiKey };
 }
 
-// Get payment addresses for a stake address
+// Get payment addresses for a stake address with full pagination support
 async function getPaymentAddresses(apiUrl: string, apiKey: string, stakeAddress: string): Promise<string[]> {
-  const response = await fetch(`${apiUrl}/accounts/${stakeAddress}/addresses`, {
-    headers: { project_id: apiKey },
-  });
+  const allAddresses: string[] = [];
+  let page = 1;
 
-  if (!response.ok) {
-    if (response.status === 404) {
-      // Stake address has no payment addresses yet - return empty array
-      return [];
+  while (true) {
+    const response = await fetch(`${apiUrl}/accounts/${stakeAddress}/addresses?count=100&page=${page}`, {
+      headers: { project_id: apiKey },
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        // Stake address has no payment addresses yet - return what we have (empty for first page)
+        return allAddresses;
+      }
+      throw new Error(`Failed to fetch payment addresses: ${response.statusText}`);
     }
-    throw new Error(`Failed to fetch payment addresses: ${response.statusText}`);
+
+    const data: { address: string }[] = await response.json();
+
+    if (data.length === 0) {
+      // No more addresses
+      break;
+    }
+
+    allAddresses.push(...data.map(item => item.address));
+
+    // If we got less than 100, we're on the last page
+    if (data.length < 100) {
+      break;
+    }
+
+    page++;
   }
 
-  const data: { address: string }[] = await response.json();
-  return data.map(item => item.address);
+  return allAddresses;
 }
 
 // Main sync function
@@ -561,7 +631,7 @@ async function performTransactionSync(
           reference_script_hash: null, // Will be fetched on-demand
           isSpent: true, // It's an input, so it's spent
           spentInTx: spentInTx,
-          isExternal: !paymentAddresses.includes(inputData.address),
+          isExternal: isExternalAddress(inputData.address, paymentAddresses),
         });
       }
     }
@@ -612,7 +682,7 @@ async function performTransactionSync(
           reference_script_hash: output.reference_script_hash || null,
           isSpent: false, // Initially mark as unspent
           spentInTx: null,
-          isExternal: !paymentAddresses.includes(output.address),
+          isExternal: isExternalAddress(output.address, paymentAddresses),
         };
         utxoMap.set(key, utxo);
         console.log(
@@ -646,7 +716,7 @@ async function performTransactionSync(
           reference_script_hash: null,
           isSpent: true,
           spentInTx: tx.hash,
-          isExternal: !paymentAddresses.includes(input.address),
+          isExternal: isExternalAddress(input.address, paymentAddresses),
         };
         utxoMap.set(key, historicalUtxo);
       } else {

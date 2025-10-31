@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import type { Wallet } from '@extension/shared';
-import { getWalletState } from '@extension/blockchain-provider';
+import { getWalletState } from './state';
 
 export async function spoofWallet(name: string, inputAddress: string, network: 'Mainnet' | 'Preprod'): Promise<Wallet> {
   // Determine if input is stake address or payment address

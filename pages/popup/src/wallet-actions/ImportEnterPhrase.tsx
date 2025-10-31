@@ -39,11 +39,11 @@ const highlightMatch = (word, query) => {
 };
 
 const ImportEnterPhrase = () => {
-  const { words } = useParams();
+  const { wordCount: wordCountParam } = useParams();
   const navigate = useNavigate();
   const settings = useStorage(devxSettings);
 
-  const wordCount = parseInt(words) || 15;
+  const wordCount = parseInt(wordCountParam || '15') || 15;
   const [suggestions, setSuggestions] = useState({});
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState({});
   const [BIP39_WORDS, setBIP39_WORDS] = useState<string[]>([]);

@@ -1,27 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { useStorage, walletsStorage } from '@extension/storage';
+import { devxData, devxSettings } from '@extension/storage';
 import type { Wallet } from '@extension/shared';
-import type { UTXORecord, TransactionRecord } from '@extension/storage';
+import type { TransactionRecord } from '@extension/storage';
+import type { TransactionOutputUTXO, AssetInfo } from '@extension/shared/lib/types/blockfrost';
 import { TruncateWithCopy } from '@extension/shared';
+import { BlockfrostClient } from '@extension/cardano-provider/lib/client/blockfrost';
 
 const UTXODetail: React.FC = () => {
   const { walletId, txHash, outputIndex } = useParams<{ walletId: string; txHash: string; outputIndex: string }>();
-  const walletsData = useStorage(walletsStorage);
-  const wallets = walletsData?.wallets || [];
-  const wallet = wallets.find((w: Wallet) => w.id === walletId);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [utxo, setUtxo] = useState<UTXORecord | null>(null);
+  const [wallet, setWallet] = useState<Wallet | null>(null);
+  const [utxo, setUtxo] = useState<TransactionOutputUTXO | null>(null);
   const [creatingTransaction, setCreatingTransaction] = useState<TransactionRecord | null>(null);
   const [spendingTransaction, setSpendingTransaction] = useState<TransactionRecord | null>(null);
-  const [assetDetails, setAssetDetails] = useState<{ [unit: string]: any }>({});
+  const [assetDetails, setAssetDetails] = useState<{ [unit: string]: AssetInfo }>({});
 
-  const BLOCKFROST_PROJECT_ID = 'preprodUCRP6WTpWi0DXWZF4eduE2VZPod9CjAJ'; // Preprod Blockfrost project ID
-
-  const decodeAssetName = (hex: string): string => {
-    if (!hex) return null; // Return null if empty, so we skip display
+  const decodeAssetName = (hex: string): string | null => {
+    if (!hex) return null;
     try {
       const bytes: number[] = [];
       for (let i = 0; i < hex.length; i += 2) {
@@ -30,112 +28,122 @@ const UTXODetail: React.FC = () => {
       const decoder = new TextDecoder('utf-8', { fatal: true });
       const decoded = decoder.decode(new Uint8Array(bytes));
       const trimmed = decoded.trim();
-      return trimmed ? trimmed : null; // Skip if empty after trim
+      return trimmed ? trimmed : null;
     } catch (e) {
-      return null; // Fail silently for binary/non-text
+      return null;
     }
   };
 
-  const getUnitDetails = async (unit: string) => {
+  const getUnitDetails = async (unit: string, client: BlockfrostClient) => {
     if (unit === 'lovelace' || !unit || assetDetails[unit]) {
       return assetDetails[unit];
     }
 
     try {
-      const response = await fetch(`https://cardano-preprod.blockfrost.io/api/v0/assets/${unit}`, {
-        method: 'GET',
-        headers: {
-          project_id: BLOCKFROST_PROJECT_ID,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = await client.getAssetInfo(unit);
       setAssetDetails(prev => ({ ...prev, [unit]: data }));
       return data;
     } catch (err) {
       console.error('Failed to fetch asset details:', err);
-      setAssetDetails(prev => ({ ...prev, [unit]: { asset_name: '', metadata: { decimals: 0 } } }));
-      return { asset_name: '', metadata: { decimals: 0 } };
+      // Return minimal data on error
+      const fallback: AssetInfo = {
+        asset: unit,
+        policy_id: unit.slice(0, 56),
+        asset_name: '',
+        fingerprint: '',
+        quantity: '0',
+        initial_mint_tx_hash: '',
+        mint_or_burn_count: 0,
+        onchain_metadata: null,
+        onchain_metadata_standard: null,
+        onchain_metadata_extra: null,
+        metadata: { decimals: 0 },
+      };
+      setAssetDetails(prev => ({ ...prev, [unit]: fallback }));
+      return fallback;
     }
   };
 
   useEffect(() => {
-    if (!txHash || !outputIndex || !wallet) {
-      setError(!wallet ? 'Wallet not found' : 'Invalid UTXO reference');
-      setLoading(false);
-      return;
-    }
+    const fetchUTXODetails = async () => {
+      if (!walletId || !txHash || !outputIndex) {
+        setError('Invalid UTXO reference');
+        setLoading(false);
+        return;
+      }
 
-    const fetchUTXODetails = () => {
       setLoading(true);
       setError(null);
 
-      chrome.runtime.sendMessage(
-        {
-          type: 'GET_UTXO_DETAILS',
-          payload: { txHash, outputIndex: parseInt(outputIndex), walletId: wallet.id },
-        },
-        response => {
-          if (response?.success) {
-            setUtxo(response.utxo);
+      try {
+        // Fetch wallet from devxData
+        const walletRecord = await devxData.getWallet(walletId);
+        if (!walletRecord) {
+          setError('Wallet not found');
+          setLoading(false);
+          return;
+        }
+        setWallet(walletRecord);
 
-            // Fetch creating transaction details
-            chrome.runtime.sendMessage(
-              {
-                type: 'GET_TRANSACTIONS',
-                payload: { walletId: wallet.id },
-              },
-              txResponse => {
-                if (txResponse?.success) {
-                  const transactions = txResponse.transactions as TransactionRecord[];
+        // Fetch settings to get API key
+        const settings = await devxSettings.get();
+        const apiKey = walletRecord.network === 'Mainnet' ? settings.mainnetApiKey : settings.preprodApiKey;
 
-                  // Find creating transaction
-                  const creating = transactions.find(tx => tx.hash === txHash);
-                  if (creating) {
-                    setCreatingTransaction(creating);
-                  }
+        if (!apiKey) {
+          setError(`${walletRecord.network} API key not configured`);
+          setLoading(false);
+          return;
+        }
 
-                  // Find spending transaction if UTXO is spent
-                  if (response.utxo.isSpent && response.utxo.spentInTx) {
-                    const spending = transactions.find(tx => tx.hash === response.utxo.spentInTx);
-                    if (spending) {
-                      setSpendingTransaction(spending);
-                    }
-                  }
-                }
-                setLoading(false);
-              },
-            );
-          } else {
-            console.error('Failed to fetch UTXO details:', response?.error);
-            setError(response?.error || 'Failed to fetch UTXO details');
-            setLoading(false);
+        // Create Blockfrost client
+        const client = new BlockfrostClient({
+          network: walletRecord.network,
+          apiKey,
+        });
+
+        // Fetch transaction UTXOs from Blockfrost
+        const txUTXOs = await client.getTransactionUTXOs(txHash);
+
+        // Find the specific output by index
+        const output = txUTXOs.outputs.find(o => o.output_index === parseInt(outputIndex));
+        if (!output) {
+          setError(`Output index ${outputIndex} not found in transaction`);
+          setLoading(false);
+          return;
+        }
+
+        setUtxo(output);
+
+        // Fetch creating transaction from devxData
+        const creatingTx = await devxData.getTransaction(walletId, txHash);
+        if (creatingTx) {
+          setCreatingTransaction(creatingTx);
+        }
+
+        // Fetch spending transaction if UTXO is spent
+        if (output.consumed_by_tx) {
+          const spendingTx = await devxData.getTransaction(walletId, output.consumed_by_tx);
+          if (spendingTx) {
+            setSpendingTransaction(spendingTx);
           }
-        },
-      );
-    };
+        }
 
-    fetchUTXODetails();
-  }, [txHash, outputIndex, wallet?.id]);
+        // Fetch asset details for non-lovelace assets
+        const otherAssets = output.amount.filter(a => a.unit !== 'lovelace');
+        for (const asset of otherAssets) {
+          await getUnitDetails(asset.unit, client);
+        }
 
-  useEffect(() => {
-    const fetchAssetDetails = async () => {
-      if (!utxo) return;
-
-      const otherAssets = utxo.amount.filter(a => a.unit !== 'lovelace');
-
-      for (const asset of otherAssets) {
-        await getUnitDetails(asset.unit);
+        setLoading(false);
+      } catch (err) {
+        console.error('Failed to fetch UTXO details:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch UTXO details');
+        setLoading(false);
       }
     };
 
-    fetchAssetDetails();
-  }, [utxo]);
+    fetchUTXODetails();
+  }, [walletId, txHash, outputIndex]);
 
   const formatAda = (lovelace: string) => {
     return (parseInt(lovelace) / 1000000).toFixed(6) + ' ADA';
@@ -168,6 +176,7 @@ const UTXODetail: React.FC = () => {
 
   const adaAmount = utxo.amount.find(a => a.unit === 'lovelace');
   const otherAssets = utxo.amount.filter(a => a.unit !== 'lovelace');
+  const isSpent = !!utxo.consumed_by_tx;
 
   return (
     <div className="mx-auto max-w-2xl p-4">
@@ -175,18 +184,13 @@ const UTXODetail: React.FC = () => {
       <div className="relative mb-6 flex items-center justify-center">
         <h2 className="text-lg font-semibold">UTXO Details</h2>
         <div className="absolute right-0 flex items-center gap-2">
-          {utxo.isExternal && (
-            <div className="rounded-full bg-orange-100 px-3 py-1 text-sm text-orange-800 dark:bg-orange-900 dark:text-orange-200">
-              External
-            </div>
-          )}
           <div
             className={`rounded-full px-3 py-1 text-sm ${
-              utxo.isSpent
+              isSpent
                 ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                 : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
             }`}>
-            {utxo.isSpent ? 'Spent' : 'Unspent'}
+            {isSpent ? 'Spent' : 'Unspent'}
           </div>
         </div>
       </div>
@@ -198,7 +202,7 @@ const UTXODetail: React.FC = () => {
           <div className="grid grid-cols-1 gap-3 text-sm">
             <div className="flex items-center justify-between">
               <strong className="text-gray-600 dark:text-gray-400">Transaction Hash:</strong>
-              <TruncateWithCopy text={utxo.tx_hash} maxChars={10} />
+              <TruncateWithCopy text={txHash!} maxChars={10} />
             </div>
             <div className="flex items-center justify-between">
               <strong className="text-gray-600 dark:text-gray-400">Output Index:</strong>
@@ -210,25 +214,6 @@ const UTXODetail: React.FC = () => {
             </div>
           </div>
         </div>
-
-        {/* External UTXO Information */}
-        {utxo.isExternal && (
-          <div className="rounded-lg border border-orange-200 bg-orange-50 p-4 dark:border-orange-700 dark:bg-orange-900/30">
-            <h3 className="text-md mb-3 flex items-center gap-2 font-semibold text-orange-900 dark:text-orange-100">
-              ⚠️ External UTXO
-            </h3>
-            <div className="space-y-3 text-sm">
-              <div className="text-orange-800 dark:text-orange-200">
-                This UTXO belongs to an external address, not your wallet. It appears in your transaction history
-                because it was either an input to a transaction that involved your wallet, or an output that went to an
-                external address.
-              </div>
-              <div className="text-xs italic text-orange-700 dark:text-orange-400">
-                External UTXOs are tracked for transaction completeness but do not belong to your wallet.
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Value Information */}
         <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
@@ -256,10 +241,10 @@ const UTXODetail: React.FC = () => {
                 </h4>
                 <div className="space-y-2">
                   {otherAssets.map((asset, idx) => {
-                    const details = assetDetails[asset.unit] || {};
-                    const assetNameHex = details.asset_name || '';
+                    const details = assetDetails[asset.unit];
+                    const assetNameHex = details?.asset_name || '';
                     const decodedName = decodeAssetName(assetNameHex);
-                    const metadata = details.metadata || {};
+                    const metadata = details?.metadata || {};
                     const decimals = metadata.decimals || 0;
                     const rawQuantity = parseInt(asset.quantity);
                     let formattedQuantity: string;
@@ -268,7 +253,7 @@ const UTXODetail: React.FC = () => {
                     } else {
                       formattedQuantity = rawQuantity.toLocaleString();
                     }
-                    const hexStringToShow = assetNameHex || asset.unit.slice(56); // Use asset_name if available, else full unit's name part
+                    const hexStringToShow = assetNameHex || asset.unit.slice(56);
 
                     return (
                       <div key={idx} className="rounded bg-purple-50 p-3 dark:bg-purple-900/30">
@@ -335,11 +320,11 @@ const UTXODetail: React.FC = () => {
               <div className="mb-2 text-left">
                 <strong className="text-green-700 dark:text-green-300">Created by Transaction:</strong>
               </div>
-              {creatingTransaction && (
+              {creatingTransaction ? (
                 <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
                   <div className="flex justify-between">
                     <span>Hash:</span>
-                    <TruncateWithCopy text={utxo.tx_hash} maxChars={10} />
+                    <TruncateWithCopy text={txHash!} maxChars={10} />
                   </div>
                   <div className="flex justify-between">
                     <span>Timestamp:</span>
@@ -350,20 +335,24 @@ const UTXODetail: React.FC = () => {
                     <TruncateWithCopy text={`#${creatingTransaction.block_height}`} maxChars={15} />
                   </div>
                 </div>
+              ) : (
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  Transaction details not available in wallet history
+                </div>
               )}
             </div>
 
             {/* Spending Transaction */}
-            {utxo.isSpent && utxo.spentInTx && (
+            {isSpent && utxo.consumed_by_tx && (
               <div className="border-l-4 border-red-500 pl-4">
                 <div className="mb-2 text-left">
                   <strong className="text-red-700 dark:text-red-300">Spent by Transaction:</strong>
                 </div>
-                {spendingTransaction && (
+                {spendingTransaction ? (
                   <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
                     <div className="flex justify-between">
                       <span>Hash:</span>
-                      <TruncateWithCopy text={utxo.spentInTx} maxChars={10} />
+                      <TruncateWithCopy text={utxo.consumed_by_tx} maxChars={10} />
                     </div>
                     <div className="flex justify-between">
                       <span>Timestamp:</span>
@@ -373,6 +362,10 @@ const UTXODetail: React.FC = () => {
                       <span>Block:</span>
                       <TruncateWithCopy text={`#${spendingTransaction.block_height}`} maxChars={15} />
                     </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    Transaction details not available in wallet history
                   </div>
                 )}
               </div>

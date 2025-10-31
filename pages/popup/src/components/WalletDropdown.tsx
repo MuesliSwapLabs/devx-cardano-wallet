@@ -107,7 +107,7 @@ function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps
       </button>
 
       {dropdownOpen && (
-        <div className="absolute z-10 mt-1 w-full overflow-hidden border border-gray-200 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-800">
+        <div className="absolute z-50 mt-1 w-full overflow-hidden border border-gray-200 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-800">
           {/* Mainnet Section */}
           <div className="flex items-center py-1">
             <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>

@@ -1,3 +1,3 @@
-export { default as PrimaryButton } from './primaryButton';
-export { default as SecondaryButton } from './secondaryButton';
-export { default as CancelButton } from './cancelButton';
+export { default as PrimaryButton } from './PrimaryButton';
+export { default as SecondaryButton } from './SecondaryButton';
+export { default as CancelButton } from './CancelButton';

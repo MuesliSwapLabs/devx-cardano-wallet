@@ -1,7 +1,13 @@
-import type { WalletRecord, TransactionRecord } from '@extension/storage';
+import type {
+  WalletRecord,
+  TransactionRecord,
+  EnhancedTransactionInputUTXO,
+  EnhancedTransactionOutputUTXO,
+} from '@extension/storage';
 import type { AccountAddress, AddressTransaction } from '@extension/shared/lib/types/blockfrost';
 import { devxSettings, devxData } from '@extension/storage';
 import { BlockfrostClient } from '../client/blockfrost';
+import { isExternalAddress } from '../utils/address';
 
 /**
  * Syncs wallet transactions using stake address
@@ -101,11 +107,26 @@ export async function syncWalletTransactions(
           client.getTransactionUTXOs(txRef.tx_hash),
         ]);
 
+        // Payment addresses for ownership check
+        const paymentAddresses = wallet.paymentAddresses || [];
+
+        // Enhance inputs with isExternal flag
+        const enhancedInputs: EnhancedTransactionInputUTXO[] = txUtxos.inputs.map(input => ({
+          ...input,
+          isExternal: isExternalAddress(input.address as string, paymentAddresses),
+        }));
+
+        // Enhance outputs with isExternal flag
+        const enhancedOutputs: EnhancedTransactionOutputUTXO[] = txUtxos.outputs.map(output => ({
+          ...output,
+          isExternal: isExternalAddress(output.address as string, paymentAddresses),
+        }));
+
         // Merge inputs/outputs with collateral/reference flags into transaction record
         newTransactions.push({
           ...txInfo,
-          inputs: txUtxos.inputs,
-          outputs: txUtxos.outputs,
+          inputs: enhancedInputs,
+          outputs: enhancedOutputs,
           walletId: wallet.id,
           lastSynced: Date.now(),
         });

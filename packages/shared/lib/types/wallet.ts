@@ -48,3 +48,12 @@ export type Asset = {
   lastUpdated?: number; // Timestamp of last fetch
   verified?: boolean; // From trusted registry
 };
+
+// Snapshot of a wallet's current on-chain state
+export type WalletState = {
+  status: 'found' | 'not_found' | 'invalid_address';
+  address: string;
+  stakeAddress: string | null;
+  balance: string; // Lovelace
+  assets: Asset[];
+};

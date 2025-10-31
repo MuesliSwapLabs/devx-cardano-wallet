@@ -18,7 +18,6 @@
   "dependencies": {
     "@emurgo/cardano-serialization-lib-asmjs-gc": "^15.0.0",
     "@emurgo/cardano-serialization-lib-browser": "^15.0.0",
-    "@extension/blockchain-provider": "workspace:*",
     "@extension/cardano-provider": "workspace:*",
     "@extension/shared": "workspace:*",
     "@extension/storage": "workspace:*",
@@ -31,7 +30,6 @@
     "@extension/hmr": "workspace:*",
     "@extension/tsconfig": "workspace:*",
     "@extension/vite-config": "workspace:*",
-    "@extension/wallet-manager": "workspace:*",
     "@laynezh/vite-plugin-lib-assets": "^0.5.23",
     "@types/ws": "^8.5.12",
     "cross-env": "^7.0.3",

@@ -52,9 +52,11 @@ class DevxDataStorage {
           walletsStore.createIndex('stakeAddress', 'stakeAddress', { unique: false });
         }
 
-        // Create transactions store
+        // Create transactions store with composite key (walletId + hash)
         if (!db.objectStoreNames.contains(DEVX_DB.STORES.TRANSACTIONS)) {
-          const txStore = db.createObjectStore(DEVX_DB.STORES.TRANSACTIONS, { keyPath: 'hash' });
+          const txStore = db.createObjectStore(DEVX_DB.STORES.TRANSACTIONS, {
+            keyPath: ['walletId', 'hash'],
+          });
           txStore.createIndex('walletId', 'walletId', { unique: false });
           txStore.createIndex('block_time', 'block_time', { unique: false });
           txStore.createIndex('walletId_block_time', ['walletId', 'block_time'], { unique: false });
@@ -155,41 +157,23 @@ class DevxDataStorage {
 
   async removeWallet(walletId: string): Promise<void> {
     const db = await this.getDatabase();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(
-        [DEVX_DB.STORES.WALLETS, DEVX_DB.STORES.TRANSACTIONS, DEVX_DB.STORES.UTXOS, DEVX_DB.STORES.ASSETS],
-        'readwrite',
-      );
 
-      // Remove wallet
+    // Delete wallet record
+    await new Promise<void>((resolve, reject) => {
+      const transaction = db.transaction([DEVX_DB.STORES.WALLETS], 'readwrite');
       transaction.objectStore(DEVX_DB.STORES.WALLETS).delete(walletId);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
 
-      // Remove associated transactions
-      const txStore = transaction.objectStore(DEVX_DB.STORES.TRANSACTIONS);
-      const txIndex = txStore.index('walletId');
-      txIndex.openCursor(IDBKeyRange.only(walletId)).onsuccess = event => {
-        const cursor = (event.target as IDBRequest).result;
-        if (cursor) {
-          cursor.delete();
-          cursor.continue();
-        }
-      };
+    // Delete all transactions for this wallet
+    await new Promise<void>((resolve, reject) => {
+      const transaction = db.transaction([DEVX_DB.STORES.TRANSACTIONS], 'readwrite');
+      const store = transaction.objectStore(DEVX_DB.STORES.TRANSACTIONS);
+      const index = store.index('walletId');
+      const request = index.openCursor(IDBKeyRange.only(walletId));
 
-      // Remove associated UTXOs
-      const utxoStore = transaction.objectStore(DEVX_DB.STORES.UTXOS);
-      const utxoIndex = utxoStore.index('walletId');
-      utxoIndex.openCursor(IDBKeyRange.only(walletId)).onsuccess = event => {
-        const cursor = (event.target as IDBRequest).result;
-        if (cursor) {
-          cursor.delete();
-          cursor.continue();
-        }
-      };
-
-      // Remove associated assets
-      const assetsStore = transaction.objectStore(DEVX_DB.STORES.ASSETS);
-      const assetsIndex = assetsStore.index('walletId');
-      assetsIndex.openCursor(IDBKeyRange.only(walletId)).onsuccess = event => {
+      request.onsuccess = event => {
         const cursor = (event.target as IDBRequest).result;
         if (cursor) {
           cursor.delete();
@@ -200,6 +184,46 @@ class DevxDataStorage {
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error);
     });
+
+    // Delete all UTXOs for this wallet
+    await new Promise<void>((resolve, reject) => {
+      const transaction = db.transaction([DEVX_DB.STORES.UTXOS], 'readwrite');
+      const store = transaction.objectStore(DEVX_DB.STORES.UTXOS);
+      const index = store.index('walletId');
+      const request = index.openCursor(IDBKeyRange.only(walletId));
+
+      request.onsuccess = event => {
+        const cursor = (event.target as IDBRequest).result;
+        if (cursor) {
+          cursor.delete();
+          cursor.continue();
+        }
+      };
+
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+
+    // Delete all assets for this wallet
+    await new Promise<void>((resolve, reject) => {
+      const transaction = db.transaction([DEVX_DB.STORES.ASSETS], 'readwrite');
+      const store = transaction.objectStore(DEVX_DB.STORES.ASSETS);
+      const index = store.index('walletId');
+      const request = index.openCursor(IDBKeyRange.only(walletId));
+
+      request.onsuccess = event => {
+        const cursor = (event.target as IDBRequest).result;
+        if (cursor) {
+          cursor.delete();
+          cursor.continue();
+        }
+      };
+
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+
+    console.log(`Wallet ${walletId} and all associated data deleted successfully`);
   }
 
   // ========== Transaction Methods ==========
@@ -221,12 +245,12 @@ class DevxDataStorage {
     });
   }
 
-  async getTransaction(txHash: string): Promise<TransactionRecord | null> {
+  async getTransaction(walletId: string, txHash: string): Promise<TransactionRecord | null> {
     const db = await this.getDatabase();
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([DEVX_DB.STORES.TRANSACTIONS], 'readonly');
       const store = transaction.objectStore(DEVX_DB.STORES.TRANSACTIONS);
-      const request = store.get(txHash);
+      const request = store.get([walletId, txHash]);
 
       request.onsuccess = () => resolve(request.result || null);
       request.onerror = () => reject(request.error);

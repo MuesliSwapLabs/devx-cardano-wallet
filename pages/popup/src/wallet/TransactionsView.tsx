@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useLoaderData } from 'react-router-dom';
-import type { TransactionRecord } from '@extension/storage';
+import type { TransactionRecord, WalletRecord } from '@extension/storage';
 import { devxData, devxSettings } from '@extension/storage';
-import { syncWalletTransactions } from '@extension/cardano-provider';
-import { BlockfrostClient } from '@extension/cardano-provider';
+import {
+  syncWalletTransactions,
+  getWalletState,
+  syncWalletPaymentAddresses,
+  BlockfrostClient,
+} from '@extension/cardano-provider';
 import Transactions from './Transactions';
 
 const TransactionsView = () => {
@@ -17,7 +21,7 @@ const TransactionsView = () => {
   const [syncStatus, setSyncStatus] = useState<'syncing' | 'uptodate' | null>(null);
   const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0 });
   const [shouldAnimate, setShouldAnimate] = useState(false);
-  const [wallet, setWallet] = useState<any>(null);
+  const [wallet, setWallet] = useState<WalletRecord | null>(null);
   const [hasSynced, setHasSynced] = useState(false);
 
   // Reset state when wallet changes
@@ -54,7 +58,23 @@ const TransactionsView = () => {
           // Show syncing status immediately before fetching
           setSyncStatus('syncing');
 
-          // Sync transactions and get count of new/changed transactions
+          // Check if wallet exists on-chain first
+          const walletState = await getWalletState(walletData);
+
+          if (walletState.status === 'not_found') {
+            // New wallet, no transactions yet - skip sync
+            console.log('Wallet not found on-chain, skipping transaction sync');
+            setSyncStatus('uptodate');
+            setShouldAnimate(false);
+            setTimeout(() => setShouldAnimate(true), 10);
+            setHasSynced(true);
+            return;
+          }
+
+          // Update payment addresses incrementally (fetches only new pages if needed)
+          await syncWalletPaymentAddresses(walletData, latestBlock.height);
+
+          // Wallet exists, proceed with sync
           const changedCount = await syncWalletTransactions(
             walletData,
             latestBlock.height, // Pass current blockchain height

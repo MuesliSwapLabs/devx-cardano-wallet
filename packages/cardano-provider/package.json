@@ -30,7 +30,6 @@
   "dependencies": {
     "@extension/shared": "workspace:*",
     "@extension/storage": "workspace:*",
-    "@extension/blockchain-provider": "workspace:*",
     "uuid": "^11.0.2"
   }
 }

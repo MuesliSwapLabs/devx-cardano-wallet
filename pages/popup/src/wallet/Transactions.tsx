@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import type { Wallet } from '@extension/shared';
-import type { UTXORecord, TransactionRecord } from '@extension/storage';
+import type { UTXORecord, TransactionRecord, WalletRecord } from '@extension/storage';
 import { TruncateWithCopy } from '@extension/shared';
 import TransactionDetail from './TransactionDetail';
 
 interface TransactionsProps {
-  wallet: Wallet;
+  wallet: WalletRecord;
   transactions: TransactionRecord[];
 }
 
@@ -91,7 +90,7 @@ const Transactions: React.FC<TransactionsProps> = ({ wallet, transactions }) => 
       return `${sign}${amountStr}`;
     } else {
       const assetName = decodeAssetName(unit);
-      amountStr = absQty.toString();
+      amountStr = Number(absQty).toLocaleString();
       name = assetName || unit.slice(56, 64) || (absQty === 1n ? 'Asset' : 'Assets');
       if (absQty === 1n && assetName) {
         name = assetName;
@@ -106,7 +105,7 @@ const Transactions: React.FC<TransactionsProps> = ({ wallet, transactions }) => 
 
     // Sum up inputs from non-external addresses (our wallet)
     (tx.inputs || []).forEach(input => {
-      if (input.address === wallet.address) {
+      if (!input.isExternal) {
         // Only our wallet's inputs
         input.amount.forEach(asset => {
           if (!inputTotals[asset.unit]) inputTotals[asset.unit] = 0n;
@@ -117,7 +116,7 @@ const Transactions: React.FC<TransactionsProps> = ({ wallet, transactions }) => 
 
     // Sum up outputs to non-external addresses (our wallet)
     (tx.outputs || []).forEach(output => {
-      if (output.address === wallet.address) {
+      if (!output.isExternal) {
         // Only our wallet's outputs
         output.amount.forEach(asset => {
           if (!outputTotals[asset.unit]) outputTotals[asset.unit] = 0n;
@@ -127,6 +126,7 @@ const Transactions: React.FC<TransactionsProps> = ({ wallet, transactions }) => 
     });
 
     // Calculate net change (output - input) for each asset
+    // The fee is already reflected in this difference, so we don't subtract it separately
     const net: Record<string, bigint> = {};
     const allUnits = new Set([...Object.keys(inputTotals), ...Object.keys(outputTotals)]);
 
@@ -137,24 +137,6 @@ const Transactions: React.FC<TransactionsProps> = ({ wallet, transactions }) => 
 
       if (netChange !== 0n) {
         net[unit] = netChange;
-      }
-    });
-
-    // Subtract fees from the net ADA change
-    const feesLovelace = BigInt(tx.fees || '0');
-    if (feesLovelace > 0n) {
-      if (net['lovelace'] !== undefined) {
-        net['lovelace'] -= feesLovelace;
-      } else {
-        // If no lovelace change but we paid fees, show negative fee amount
-        net['lovelace'] = -feesLovelace;
-      }
-    }
-
-    // Remove zero amounts
-    Object.keys(net).forEach(unit => {
-      if (net[unit] === 0n) {
-        delete net[unit];
       }
     });
 
@@ -257,6 +239,8 @@ const Transactions: React.FC<TransactionsProps> = ({ wallet, transactions }) => 
                   const sortedUnits = Object.keys(netAssets).sort((a, b) =>
                     a === 'lovelace' ? -1 : b === 'lovelace' ? 1 : 0,
                   );
+                  // Check if we paid the fee (we have inputs in this transaction)
+                  const wePaidFee = (tx.inputs || []).some(input => !input.isExternal);
                   return (
                     <div key={tx.hash || index} className="rounded-lg border border-gray-200 dark:border-gray-700">
                       <div
@@ -275,12 +259,25 @@ const Transactions: React.FC<TransactionsProps> = ({ wallet, transactions }) => 
                         </div>
                         {Object.keys(netAssets).length > 0 && (
                           <div className="mt-1 space-y-1">
-                            {sortedUnits.map(unit => (
-                              <div key={unit} className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {getAssetDisplay(unit, netAssets[unit], formatAda)}
-                              </div>
-                            ))}
+                            {sortedUnits.map(unit => {
+                              const qty = netAssets[unit];
+                              const colorClass =
+                                qty > 0n
+                                  ? 'text-green-600 dark:text-green-400'
+                                  : qty < 0n
+                                    ? 'text-red-600 dark:text-red-400'
+                                    : 'text-gray-900 dark:text-gray-100';
+                              return (
+                                <div key={unit} className={`text-sm font-medium ${colorClass}`}>
+                                  {getAssetDisplay(unit, qty, formatAda)}
+                                </div>
+                              );
+                            })}
                           </div>
+                        )}
+                        {/* Only show fee if we paid it */}
+                        {wePaidFee && (
+                          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">Fee: {formatAda(tx.fees)}</div>
                         )}
                       </div>
 

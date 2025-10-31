@@ -2,7 +2,12 @@ import { useState, useEffect } from 'react';
 import { useParams, useLoaderData } from 'react-router-dom';
 import type { UTXORecord, TransactionRecord } from '@extension/storage';
 import { devxData, devxSettings } from '@extension/storage';
-import { syncWalletUtxos, syncWalletTransactions, syncWalletPaymentAddresses } from '@extension/cardano-provider';
+import {
+  syncWalletUtxos,
+  syncWalletTransactions,
+  syncWalletPaymentAddresses,
+  getWalletState,
+} from '@extension/cardano-provider';
 import { BlockfrostClient } from '@extension/cardano-provider';
 import UTXOsView from './UTXOsView';
 
@@ -63,6 +68,19 @@ const UTXOsViewWrapper = () => {
         // Step 2: Check if sync needed
         if (!currentBlock || currentBlock <= lastFetchedBlockUtxos) {
           // Already up to date
+          setSyncStatus('uptodate');
+          setShouldAnimate(false);
+          setTimeout(() => setShouldAnimate(true), 10);
+          setHasSynced(true);
+          return;
+        }
+
+        // Step 2.5: Check if wallet exists on-chain
+        const walletState = await getWalletState(walletData);
+
+        if (walletState.status === 'not_found') {
+          // New wallet, no transactions yet - skip sync
+          console.log('Wallet not found on-chain, skipping UTXO sync');
           setSyncStatus('uptodate');
           setShouldAnimate(false);
           setTimeout(() => setShouldAnimate(true), 10);

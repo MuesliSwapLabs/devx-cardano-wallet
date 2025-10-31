@@ -1,5 +1,6 @@
 import type { WalletRecord, UTXORecord, TransactionRecord } from '@extension/storage';
 import { devxData } from '@extension/storage';
+import { isExternalAddress } from '../utils/address';
 
 /**
  * Syncs wallet UTXOs by deriving them from transaction data
@@ -65,7 +66,7 @@ export async function syncWalletUtxos(
             walletId: wallet.id,
             isSpent: false, // Initially unspent
             spentInTx: null,
-            isExternal: !paymentAddressSet.has(output.address as string), // Check against all wallet payment addresses
+            isExternal: isExternalAddress(output.address as string, paymentAddresses),
             lastSynced: Date.now(),
           };
 
@@ -97,7 +98,7 @@ export async function syncWalletUtxos(
               walletId: wallet.id,
               isSpent: true, // Already spent in this transaction
               spentInTx: transaction.hash,
-              isExternal: !paymentAddressSet.has(input.address as string),
+              isExternal: isExternalAddress(input.address as string, paymentAddresses),
               lastSynced: Date.now(),
             };
 

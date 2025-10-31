@@ -34,14 +34,24 @@ export interface AssetRecord extends Asset {
   lastSynced?: number;
 }
 
+// Enhanced transaction input/output types with isExternal flag
+// These extend the Blockfrost API types to include ownership information
+export interface EnhancedTransactionInputUTXO extends TransactionInputUTXO {
+  isExternal?: boolean;
+}
+
+export interface EnhancedTransactionOutputUTXO extends TransactionOutputUTXO {
+  isExternal?: boolean;
+}
+
 // Transaction record with wallet relationship
 export interface TransactionRecord extends TransactionInfo {
   walletId: string;
   isExternal?: boolean;
   lastSynced?: number;
-  // Input/output UTXOs with collateral and reference flags
-  inputs?: TransactionInputUTXO[];
-  outputs?: TransactionOutputUTXO[];
+  // Input/output UTXOs with collateral and reference flags, enhanced with isExternal
+  inputs?: EnhancedTransactionInputUTXO[];
+  outputs?: EnhancedTransactionOutputUTXO[];
 }
 
 // UTXO record with wallet relationship and spent tracking

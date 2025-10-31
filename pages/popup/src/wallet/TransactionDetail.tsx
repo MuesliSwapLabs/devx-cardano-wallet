@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { Wallet } from '@extension/shared';
 import { TruncateWithCopy } from '@extension/shared';
-import type { TransactionRecord } from '@extension/storage';
+import type { TransactionRecord, WalletRecord } from '@extension/storage';
 
 interface TransactionDetailProps {
   tx: TransactionRecord;
-  wallet: Wallet;
+  wallet: WalletRecord;
   formatAda: (lovelace: string) => string;
   formatDate: (timestamp: number) => string;
 }
@@ -17,9 +16,16 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
   const [showReferences, setShowReferences] = useState(false);
   const [showCollaterals, setShowCollaterals] = useState(false);
 
-  // Helper function to determine if an address is external
-  const isExternalAddress = (address: string): boolean => {
-    return address !== wallet.address;
+  // Helper function to determine if a UTXO is external
+  // Uses stored isExternal flag if available (computed during sync with script address detection)
+  // Falls back to payment address check for backward compatibility with legacy data
+  const isExternalUTXO = (utxo: { address: string; isExternal?: boolean }): boolean => {
+    // Use stored flag if available
+    if (utxo.isExternal !== undefined) {
+      return utxo.isExternal;
+    }
+    // Fallback for legacy data without isExternal flag
+    return !wallet.paymentAddresses?.includes(utxo.address);
   };
 
   // Check if transaction has any references or collaterals
@@ -172,7 +178,7 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
                       </Link>
                     </div>
                     <div className="flex items-center gap-1">
-                      {isExternalAddress(input.address) && (
+                      {isExternalUTXO(input) && (
                         <span className="rounded bg-yellow-100 px-1 py-0.5 text-xs text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
                           External
                         </span>
@@ -214,7 +220,7 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
                     <div className="mb-2 flex items-center justify-between">
                       <TruncateWithCopy text={input.address} maxChars={16} />
                       <div className="flex items-center gap-1">
-                        {isExternalAddress(input.address) && (
+                        {isExternalUTXO(input) && (
                           <span className="rounded bg-yellow-100 px-2 py-1 text-xs text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
                             External
                           </span>
@@ -301,7 +307,7 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
                       </Link>
                     </div>
                     <div className="flex items-center gap-1">
-                      {isExternalAddress(output.address) && (
+                      {isExternalUTXO(output) && (
                         <span className="rounded bg-yellow-100 px-1 py-0.5 text-xs text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
                           External
                         </span>
@@ -343,7 +349,7 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
                     <div className="mb-2 flex items-center justify-between">
                       <TruncateWithCopy text={output.address} maxChars={16} />
                       <div className="flex items-center gap-1">
-                        {isExternalAddress(output.address) && (
+                        {isExternalUTXO(output) && (
                           <span className="rounded bg-yellow-100 px-2 py-1 text-xs text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
                             External
                           </span>

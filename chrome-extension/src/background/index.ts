@@ -10,7 +10,7 @@ async function createOffscreenDocument() {
   try {
     await chrome.offscreen.createDocument({
       url: 'offscreen.html',
-      reasons: ['WORKERS'],
+      reasons: ['WORKERS' as chrome.offscreen.Reason],
       justification: 'Need DOM context for Cardano WASM operations',
     });
     offscreenDocumentExists = true;

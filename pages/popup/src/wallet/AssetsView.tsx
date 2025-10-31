@@ -2,7 +2,12 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useLoaderData, useParams } from 'react-router-dom';
 import type { Asset } from '@extension/shared';
 import { devxSettings, devxData } from '@extension/storage';
-import { BlockfrostClient, syncWalletAssets } from '@extension/cardano-provider';
+import {
+  BlockfrostClient,
+  syncWalletAssets,
+  getWalletState,
+  syncWalletPaymentAddresses,
+} from '@extension/cardano-provider';
 
 // Helper to format token amounts with decimals
 const formatTokenAmount = (quantity: string, decimals: number = 0) => {
@@ -239,7 +244,23 @@ const AssetsView = () => {
           // Show syncing status immediately before fetching
           setSyncStatus('syncing');
 
-          // Sync assets and get count of new/changed assets
+          // Check if wallet exists on-chain first
+          const walletState = await getWalletState(wallet);
+
+          if (walletState.status === 'not_found') {
+            // New wallet, no transactions yet - skip sync
+            console.log('Wallet not found on-chain, skipping asset sync');
+            setSyncStatus('uptodate');
+            setShouldAnimate(false);
+            setTimeout(() => setShouldAnimate(true), 10);
+            setHasSynced(true);
+            return;
+          }
+
+          // Update payment addresses incrementally (fetches only new pages if needed)
+          await syncWalletPaymentAddresses(wallet, latestBlock.height);
+
+          // Wallet exists, proceed with sync
           const changedCount = await syncWalletAssets(
             wallet,
             latestBlock.height,
