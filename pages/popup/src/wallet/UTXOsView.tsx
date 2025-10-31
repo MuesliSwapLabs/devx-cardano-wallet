@@ -253,7 +253,7 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos, transactions }) =>
             <div key={dayKey} className="space-y-2">
               {/* Day Header */}
               <div className="sticky top-0 z-10 bg-slate-50 pb-2 dark:bg-gray-800">
-                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{dayKey}</h4>
+                <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300">{dayKey}</h4>
               </div>
 
               {/* UTXOs for this day */}
@@ -265,9 +265,11 @@ const UTXOsView: React.FC<UTXOsViewProps> = ({ wallet, utxos, transactions }) =>
                   const adaFormatted = adaAmount ? formatAda(adaAmount.quantity) : '0 ADA';
 
                   return (
-                    <div key={utxoKey} className="rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div
+                      key={utxoKey}
+                      className="rounded-lg border border-gray-200 transition-all duration-150 hover:scale-[1.02] hover:shadow-md dark:border-gray-700">
                       <div
-                        className="cursor-pointer p-3 hover:bg-gray-50 dark:hover:bg-gray-800"
+                        className="cursor-pointer rounded-lg p-3 transition-colors duration-150 hover:bg-gray-100 dark:hover:bg-gray-700"
                         onClick={() => toggleExpanded(utxoKey)}>
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
