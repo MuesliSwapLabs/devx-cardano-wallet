@@ -110,7 +110,9 @@ function WalletDropdown({ currentWalletId, onSelectWallet, disabled }: WalletDro
       </button>
 
       {dropdownOpen && (
-        <div className="absolute z-50 mt-1 w-full overflow-hidden border border-gray-200 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-800">
+        <div
+          className="absolute left-1/2 z-50 mt-1 min-w-48 -translate-x-1/2 overflow-hidden rounded-md border border-gray-200 shadow-lg dark:border-gray-600"
+          style={{ backgroundColor: settings?.theme === 'dark' ? '#1f2937' : '#f8fafc' }}>
           {/* Mainnet Section */}
           <div className="flex items-center py-1">
             <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>

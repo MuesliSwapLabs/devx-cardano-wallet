@@ -191,7 +191,6 @@ export async function getWalletState(wallet: Wallet): Promise<WalletState> {
   } catch (error) {
     // Handle 404 errors (account not found) - expected for new wallets
     if (error instanceof BlockfrostError && error.statusCode === 404) {
-      console.log('Wallet not found on blockchain (expected for new wallets):', address);
       return {
         status: 'not_found',
         address,

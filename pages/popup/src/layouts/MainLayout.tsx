@@ -30,7 +30,7 @@ function MainLayout() {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="relative flex items-center justify-between px-4 pb-2 pt-3">
+      <header className="relative z-50 flex items-center justify-between px-4 pb-2 pt-3">
         <img src={iconUrl} alt="icon" width="34" height="34" />
         <div className="absolute left-1/2 -translate-x-1/2">
           <WalletDropdown currentWalletId={walletId} onSelectWallet={handleWalletSelect} disabled={isSyncing} />

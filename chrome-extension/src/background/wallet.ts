@@ -4,14 +4,7 @@ import { createNewWallet, spoofWallet, importWallet, getWalletState } from '@ext
 import { isExternalAddress } from '@extension/cardano-provider/lib/utils/address';
 import { decrypt, encrypt } from '@extension/shared';
 import type { Wallet } from '@extension/shared';
-import type {
-  TransactionInfo,
-  TransactionInputUTXO,
-  TransactionOutputUTXO,
-  AddressUTXO,
-} from '@extension/shared/lib/types/blockfrost';
-// Crypto operations moved to frontend - no longer needed in background
-
+import type { TransactionInputUTXO, AddressUTXO } from '@extension/shared/lib/types/blockfrost';
 // Blockfrost API configuration
 const BLOCKFROST_API_URLS = {
   Mainnet: 'https://cardano-mainnet.blockfrost.io/api/v0',
@@ -37,7 +30,6 @@ export const handleWalletMessages = async (
         try {
           const { apiUrl, apiKey } = await getApiConfig(wallet);
           const paymentAddresses = await getPaymentAddresses(apiUrl, apiKey, stakeAddress);
-          console.log(`Fetched ${paymentAddresses.length} payment addresses for new wallet`);
 
           // Add payment addresses to wallet before saving
           await devxData.addWallet({
@@ -65,7 +57,6 @@ export const handleWalletMessages = async (
         try {
           const { apiUrl, apiKey } = await getApiConfig(wallet);
           const paymentAddresses = await getPaymentAddresses(apiUrl, apiKey, stakeAddress);
-          console.log(`Fetched ${paymentAddresses.length} payment addresses for imported wallet`);
 
           // Add payment addresses to wallet before saving
           await devxData.addWallet({
@@ -87,13 +78,11 @@ export const handleWalletMessages = async (
         try {
           const { address, name, network } = message.payload;
           const newWallet = await spoofWallet(name, address, network);
-          console.log('adding Spoofed wallet:', newWallet);
 
           // Fetch all payment addresses for the wallet
           try {
             const { apiUrl, apiKey } = await getApiConfig(newWallet);
             const paymentAddresses = await getPaymentAddresses(apiUrl, apiKey, newWallet.stakeAddress);
-            console.log(`Fetched ${paymentAddresses.length} payment addresses for spoofed wallet`);
 
             // Add payment addresses to wallet before saving
             await devxData.addWallet({
@@ -427,12 +416,10 @@ async function performTransactionSync(
 ) {
   const settings = await devxSettings.get();
   const lastBlock = settings.lastSyncBlock?.[wallet.id] || 0;
-  console.log(`Sync starting for wallet ${wallet.id}, lastBlock: ${lastBlock}`);
 
   // Get existing transactions to identify what's new
   const existingTransactions = await devxData.getWalletTransactions(wallet.id);
   const existingTxHashes = new Set(existingTransactions.map(tx => tx.hash));
-  console.log(`Found ${existingTransactions.length} existing transactions`);
 
   // Start with checking phase
   if (onProgress) {
@@ -444,7 +431,6 @@ async function performTransactionSync(
 
   // Get payment addresses
   const paymentAddresses = await getPaymentAddresses(apiUrl, apiKey, wallet.stakeAddress);
-  console.log(`Found ${paymentAddresses.length} payment addresses:`, paymentAddresses);
 
   if (paymentAddresses.length === 0) {
     // No addresses yet - show complete status
@@ -466,7 +452,6 @@ async function performTransactionSync(
     if (lastBlock > 0) {
       url += `&from=${lastBlock + 1}`;
     }
-    console.log(`Fetching transactions for address ${address} with URL: ${url}`);
 
     // Paginate through all transactions
     let page = 1;
@@ -476,15 +461,12 @@ async function performTransactionSync(
 
       if (!response.ok) {
         if (response.status === 404) {
-          console.log(`No transactions found for address ${address} (404)`);
           break; // No more transactions
         }
-        console.error(`Failed to fetch transactions for ${address}: ${response.statusText}`);
         throw new Error(`Failed to fetch transactions: ${response.statusText}`);
       }
 
       const txs: Array<{ tx_hash: string; block_height: number }> = await response.json();
-      console.log(`Page ${page} for address ${address}: ${txs.length} transactions`);
       if (txs.length === 0) break;
 
       txs.forEach(tx => allTransactionHashes.add(tx.tx_hash));
@@ -494,11 +476,8 @@ async function performTransactionSync(
     }
   }
 
-  console.log(`Total transaction hashes collected: ${allTransactionHashes.size}`);
-
   // Identify new transactions
   const newTransactionHashes = Array.from(allTransactionHashes).filter(hash => !existingTxHashes.has(hash));
-  console.log(`Found ${newTransactionHashes.length} new transactions out of ${allTransactionHashes.size} total`);
 
   // If no new transactions, complete immediately
   if (newTransactionHashes.length === 0) {
@@ -655,14 +634,8 @@ async function performTransactionSync(
     }
   }
 
-  console.log(`Processing ${transactions.length} transactions for UTXO lifecycle`);
-
   // Process all wallet transactions to build UTXO lifecycle
   for (const tx of transactions) {
-    console.log(
-      `Processing transaction ${tx.hash.slice(0, 8)}... (${tx.outputs?.length} outputs, ${tx.inputs?.length} inputs)`,
-    );
-
     // Create UTXOs from ALL outputs (not just ones to our addresses)
     for (let outputIndex = 0; outputIndex < (tx.outputs?.length || 0); outputIndex++) {
       const output = tx.outputs![outputIndex];
@@ -685,10 +658,6 @@ async function performTransactionSync(
           isExternal: isExternalAddress(output.address, paymentAddresses),
         };
         utxoMap.set(key, utxo);
-        console.log(
-          `Created UTXO ${key} (${utxo.isExternal ? 'external' : 'internal'}) with amount:`,
-          utxo.amount.find(a => a.unit === 'lovelace')?.quantity,
-        );
       }
     }
 
@@ -697,13 +666,10 @@ async function performTransactionSync(
       const key = `${input.tx_hash}:${input.output_index}`;
       const existingUtxo = utxoMap.get(key);
       if (existingUtxo) {
-        // Mark this UTXO as spent
-        console.log(`Marking UTXO ${key} as SPENT by transaction ${tx.hash.slice(0, 8)}...`);
         existingUtxo.isSpent = true;
         existingUtxo.spentInTx = tx.hash;
       } else if (paymentAddresses.includes(input.address)) {
-        // Only create historical records for wallet-owned UTXOs that we don't have
-        console.log(`Creating historical UTXO ${key} (already spent by ${tx.hash.slice(0, 8)}...)`);
+        // Create historical records for wallet-owned UTXOs that we don't have
         const historicalUtxo: UTXORecord = {
           walletId: wallet.id,
           tx_hash: input.tx_hash,
@@ -719,8 +685,6 @@ async function performTransactionSync(
           isExternal: isExternalAddress(input.address, paymentAddresses),
         };
         utxoMap.set(key, historicalUtxo);
-      } else {
-        console.log(`Input ${key} not found and not wallet-owned (address: ${input.address})`);
       }
     }
   }
@@ -728,26 +692,9 @@ async function performTransactionSync(
   // Convert map to array
   completeUTXOs.push(...Array.from(utxoMap.values()));
 
-  // Log final UTXO summary
-  const unspent = completeUTXOs.filter(u => !u.isSpent);
-  const spent = completeUTXOs.filter(u => u.isSpent);
-  const external = completeUTXOs.filter(u => u.isExternal);
-  const internal = completeUTXOs.filter(u => !u.isExternal);
-
-  console.log(`UTXO Summary:`);
-  console.log(`- Total: ${completeUTXOs.length}`);
-  console.log(
-    `- Unspent: ${unspent.length} (${unspent.filter(u => !u.isExternal).length} internal, ${unspent.filter(u => u.isExternal).length} external)`,
-  );
-  console.log(
-    `- Spent: ${spent.length} (${spent.filter(u => !u.isExternal).length} internal, ${spent.filter(u => u.isExternal).length} external)`,
-  );
-  console.log(`- Internal: ${internal.length}, External: ${external.length}`);
-
   // Store all UTXOs with lifecycle data
   if (completeUTXOs.length > 0) {
     await devxData.storeUTXOs(wallet.id, completeUTXOs);
-    console.log(`Stored all UTXOs to database`);
   }
 
   // Update last sync block
@@ -762,10 +709,6 @@ async function performTransactionSync(
   // Return all transactions from storage
   const allStoredTransactions = await devxData.getWalletTransactions(wallet.id);
   const allUTXOs = await devxData.getWalletUTXOs(wallet.id);
-
-  console.log(
-    `Sync complete for wallet ${wallet.id}: ${allStoredTransactions.length} transactions, ${allUTXOs.length} UTXOs`,
-  );
 
   // Send completion status
   if (onProgress) {

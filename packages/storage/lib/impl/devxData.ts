@@ -222,8 +222,6 @@ class DevxDataStorage {
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error);
     });
-
-    console.log(`Wallet ${walletId} and all associated data deleted successfully`);
   }
 
   // ========== Transaction Methods ==========

@@ -107,8 +107,6 @@ export const handleCip30Messages = async (
           return true;
         }
 
-        console.log('CIP30_GET_NETWORK_ID: Using wallet:', currentWallet.name, 'Network:', currentWallet.network);
-
         sendResponse({
           success: true,
           network: currentWallet.network,
@@ -128,18 +126,10 @@ export const handleCip30Messages = async (
           return true;
         }
 
-        console.log('CIP30_GET_UTXOS: Using wallet:', currentWallet.name);
-
         try {
-          console.log('CIP30_GET_UTXOS: Getting UTXOs for wallet:', currentWallet.id);
           const unspentUTXOs = await devxData.getWalletUnspentUTXOs(currentWallet.id);
-          console.log('CIP30_GET_UTXOS: UTXOs retrieved successfully');
 
-          console.log('CIP30_GET_UTXOS: Found UTXOs:', unspentUTXOs.length);
-          console.log('CIP30_GET_UTXOS: First UTXO sample:', unspentUTXOs[0]);
-
-          const { amount, paginate } = message.payload || {};
-          console.log('CIP30_GET_UTXOS: Request params:', { amount, paginate });
+          const { amount } = message.payload || {};
 
           // If amount is specified, implement coin selection
           if (amount) {
@@ -155,8 +145,6 @@ export const handleCip30Messages = async (
 
               return !hasNFTs; // Only include UTXOs without NFTs
             });
-
-            console.log('CIP30_GET_UTXOS: After NFT filtering:', candidateUTXOs.length);
 
             // Sort by ADA value ascending (smallest first)
             candidateUTXOs.sort((a, b) => {
@@ -179,8 +167,6 @@ export const handleCip30Messages = async (
               }
             }
 
-            console.log('CIP30_GET_UTXOS: Selected UTXOs:', selectedUTXOs.length, 'Total:', totalSelected.toString());
-
             // If we couldn't reach the target amount, return null
             if (totalSelected < targetAmount) {
               sendResponse({
@@ -196,18 +182,14 @@ export const handleCip30Messages = async (
               utxos: selectedUTXOs,
             });
           } else {
-            // Return all unspent UTXOs (need to convert to CBOR format)
-            console.log('CIP30_GET_UTXOS: Returning all UTXOs:', unspentUTXOs.length);
+            // Return all unspent UTXOs
             sendResponse({
               success: true,
               utxos: unspentUTXOs,
             });
           }
         } catch (error) {
-          console.error('CIP30_GET_UTXOS: Error retrieving UTXOs:', error);
           const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-          console.error('CIP30_GET_UTXOS: Error stack:', error instanceof Error ? error.stack : 'No stack');
-          console.error('CIP30_GET_UTXOS: Error message:', errorMsg);
           sendResponse({
             success: false,
             error: { code: -2, info: `Failed to retrieve UTXOs: ${errorMsg}` },
@@ -228,32 +210,18 @@ export const handleCip30Messages = async (
           return true;
         }
 
-        console.log('CIP30_GET_BALANCE: Using wallet:', currentWallet.name);
-
         try {
-          // SIMPLIFIED: Use the wallet's stored balance directly instead of calling getWalletState
-          // This ensures we get the balance that was fetched when the wallet was spoofed/created
+          // Use the wallet's stored balance directly (already in lovelaces from Blockfrost)
           const storedBalance = currentWallet.balance;
-
-          console.log('CIP30_GET_BALANCE: Wallet stored balance:', storedBalance);
-
-          // The stored balance is already in lovelaces from Blockfrost
-          // No need to multiply by 1,000,000 since it's not in ADA format
           const balanceLovelace = parseInt(storedBalance);
 
           if (isNaN(balanceLovelace)) {
-            console.error('Could not parse balance as lovelaces:', storedBalance);
             sendResponse({
               success: false,
               error: { code: -4, info: 'Invalid balance format' },
             });
             return true;
           }
-
-          console.log('Balance conversion:', {
-            original: storedBalance,
-            lovelace: balanceLovelace,
-          });
 
           sendResponse({
             success: true,
@@ -281,8 +249,6 @@ export const handleCip30Messages = async (
           return true;
         }
 
-        console.log('CIP30_GET_WALLET_NAME: Using wallet:', currentWallet.name);
-
         sendResponse({
           success: true,
           name: currentWallet.name,
@@ -301,10 +267,6 @@ export const handleCip30Messages = async (
           });
           return true;
         }
-
-        console.log('CIP30_GET_REWARD_ADDRESSES: Using wallet:', currentWallet.name);
-        console.log('CIP30_GET_REWARD_ADDRESSES: Wallet stakeAddress:', currentWallet.stakeAddress);
-        console.log('CIP30_GET_REWARD_ADDRESSES: Full wallet object keys:', Object.keys(currentWallet));
 
         // Return array containing the wallet's stake address
         sendResponse({
@@ -326,8 +288,6 @@ export const handleCip30Messages = async (
           return true;
         }
 
-        console.log('CIP30_GET_USED_ADDRESSES: Using wallet:', currentWallet.name);
-
         // Return array containing the wallet's address
         sendResponse({
           success: true,
@@ -347,8 +307,6 @@ export const handleCip30Messages = async (
           });
           return true;
         }
-
-        console.log('CIP30_GET_UNUSED_ADDRESSES: Using wallet:', currentWallet.name);
 
         // Simple implementation based on wallet type:
         // - If spoofed wallet: return empty list
@@ -382,9 +340,7 @@ export const handleCip30Messages = async (
           return true;
         }
 
-        console.log('CIP30_GET_CHANGE_ADDRESS: Using wallet:', currentWallet.name);
-
-        // Simple implementation: return wallet's address as change address
+        // Return wallet's address as change address
         sendResponse({
           success: true,
           address: currentWallet.address,

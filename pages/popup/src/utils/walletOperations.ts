@@ -24,14 +24,10 @@ export interface SpoofWalletData {
 
 export const createWallet = async (formData: CreateWalletData, navigate: (path: string) => void) => {
   try {
-    console.log('UI: Generating mnemonic and deriving address...');
-
     // Generate mnemonic and derive address in frontend (popup context)
     const seedPhrase = await generateMnemonic();
     const { address, stakeAddress } = await deriveAddressFromMnemonic(seedPhrase, formData.network);
     const rootKey = await generateRootKeyFromMnemonic(seedPhrase);
-
-    console.log('UI: Generated seedPhrase, address, stakeAddress, and rootKey successfully');
 
     // Update onboarding state with generated data
     await devxSettings.updateCreateFormData({
@@ -50,8 +46,6 @@ export const createWallet = async (formData: CreateWalletData, navigate: (path: 
       rootKey: rootKey,
     };
 
-    console.log('UI: Sending CREATE_WALLET message with payload:', payload);
-
     // Send the complete data to the background script for storage
     chrome.runtime.sendMessage(
       {
@@ -69,7 +63,6 @@ export const createWallet = async (formData: CreateWalletData, navigate: (path: 
 
         // Handle the response from our background logic
         if (response?.success) {
-          console.log('UI: Wallet created successfully!', response.wallet);
           // Clear form data
           devxSettings.clearFormData('create');
           navigate('/create-new-wallet/success');
@@ -127,8 +120,6 @@ export const spoofWallet = async (formData: SpoofWalletData, navigate: (path: st
     network: formData.network,
   };
 
-  console.log('Spoofing wallet with payload:', payload);
-
   chrome.runtime.sendMessage(
     {
       type: 'SPOOF_WALLET',
@@ -145,8 +136,7 @@ export const spoofWallet = async (formData: SpoofWalletData, navigate: (path: st
         devxSettings.clearFormData('spoof');
         navigate('/spoof-wallet/success');
       } else {
-        console.log('Spoof wallet response error:', response?.error);
-        console.error('UI: Failed to spoof wallet:', response?.error);
+        console.error('Failed to spoof wallet:', response?.error);
       }
     },
   );

@@ -10,10 +10,8 @@ const injectScript = () => {
   (document.head || document.documentElement).appendChild(script);
 };
 
-console.log('Injecting CIP30 connector');
 injectScript();
 
-console.log('Creating CIP30 listener');
 const app = Messaging.createBackgroundController();
 app.listen();
 
@@ -39,12 +37,10 @@ window.addEventListener('message', async event => {
     // Handle UTXO responses with CBOR encoding
     if (message.type === 'CIP30_GET_UTXOS' && response.success && response.utxos && Array.isArray(response.utxos)) {
       try {
-        console.log('Content Script: Converting UTXOs to CBOR');
         const cborUtxos = cborConverter.convertUtxosToCbor(response.utxos);
         response.utxos = cborUtxos;
-        console.log('Content Script: CBOR conversion successful, converted', cborUtxos.length, 'UTXOs');
       } catch (cborError) {
-        console.error('Content Script: CBOR conversion failed:', cborError);
+        console.error('CBOR conversion failed:', cborError);
         // Fall back to original response if CBOR conversion fails
       }
     }
@@ -76,5 +72,3 @@ window.addEventListener('message', async event => {
     );
   }
 });
-
-console.log('DevX CIP-30 message bridge initialized');

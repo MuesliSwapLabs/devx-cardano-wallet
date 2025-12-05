@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import type { Wallet } from '@extension/shared';
 import type { UTXORecord, TransactionRecord } from '@extension/storage';

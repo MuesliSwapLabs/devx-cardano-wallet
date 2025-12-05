@@ -26,7 +26,6 @@ export class CBORConverter {
       // Load WASM using CardanoLoader pattern (same as popup)
       await CardanoLoader.load();
       this.initialized = true;
-      console.log('CBOR Converter: WASM loaded successfully');
     } catch (error) {
       console.error('CBOR Converter: Failed to initialize WASM:', error);
       throw new Error(`Failed to initialize WASM: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -124,12 +123,6 @@ export class CBORConverter {
 
         // Convert to CBOR hex
         const cborHex = bytesToHex(unspentOutput.to_bytes());
-
-        console.log('CBOR Converter: Converted UTXO to CBOR:', {
-          utxoId: `${utxo.tx_hash}:${utxo.output_index}`,
-          cborLength: cborHex.length,
-          cbor: cborHex.slice(0, 100) + '...', // Log first 100 chars
-        });
 
         return cborHex;
       } catch (error) {

@@ -31,8 +31,6 @@ export async function spoofWallet(name: string, inputAddress: string, network: '
   // For spoofed wallets, 'not_found' is acceptable - it just means the wallet doesn't exist on-chain yet
   // We'll create the wallet with default values and the stake address we can determine
   if (state.status === 'not_found') {
-    console.log('Creating spoof wallet for address that does not exist on blockchain yet:', inputAddress);
-
     // For new wallets, we still need a stake address to make it functional
     // If we couldn't get one from getWalletState, we can't create a functional spoof wallet
     if (!state.stakeAddress && !isStakeAddress) {
