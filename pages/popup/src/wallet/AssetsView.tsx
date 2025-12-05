@@ -1,13 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useLoaderData, useParams } from 'react-router-dom';
 import type { Asset } from '@extension/shared';
-import { devxSettings, devxData } from '@extension/storage';
-import {
-  BlockfrostClient,
-  syncWalletAssets,
-  getWalletState,
-  syncWalletPaymentAddresses,
-} from '@extension/cardano-provider';
+import { devxData } from '@extension/storage';
+import { useSyncStatus } from '../hooks/useSyncStatus';
 
 // Helper to format token amounts with decimals
 const formatTokenAmount = (quantity: string, decimals: number = 0) => {
@@ -196,107 +191,35 @@ const NFTDisplay = ({ asset }: { asset: Asset }) => {
 
 const AssetsView = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { assets: loaderAssets, lastFetchedBlockAssets } = useLoaderData() as {
+  const { assets: loaderAssets } = useLoaderData() as {
     assets: Asset[];
-    lastFetchedBlockAssets: number;
   };
   const { walletId } = useParams<{ walletId: string }>();
 
   const [assets, setAssets] = useState(loaderAssets);
-  const [syncStatus, setSyncStatus] = useState<'syncing' | 'uptodate' | null>(null);
-  const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0 });
-  const [shouldAnimate, setShouldAnimate] = useState(false);
-  const [hasSynced, setHasSynced] = useState(false);
   const [tokensToShow, setTokensToShow] = useState(10);
   const [nftsToShow, setNftsToShow] = useState(10);
   const itemsPerLoad = 10;
 
+  // Use the sync status hook to listen for sync progress (sync is triggered by MainLayout)
+  const { syncState } = useSyncStatus(walletId);
+  const assetsSyncState = syncState.assets;
+
   // Reset state when wallet changes
   useEffect(() => {
     setAssets(loaderAssets);
-    setHasSynced(false); // Allow re-syncing for new wallet
     setTokensToShow(10); // Reset pagination
     setNftsToShow(10);
-    setSyncStatus(null);
   }, [walletId, loaderAssets]);
 
+  // Refresh assets when sync completes
   useEffect(() => {
-    // Only run sync once per mount
-    if (hasSynced) {
-      return;
+    if (assetsSyncState.status === 'completed' && walletId) {
+      devxData.getWalletAssets(walletId).then(freshAssets => {
+        setAssets(freshAssets);
+      });
     }
-
-    const checkAndSync = async () => {
-      if (!walletId) return;
-
-      try {
-        const settings = await devxSettings.get();
-        const wallet = await devxData.getWallet(walletId);
-        if (!wallet) return;
-
-        const apiKey = wallet.network === 'Mainnet' ? settings.mainnetApiKey : settings.preprodApiKey;
-        if (!apiKey) return;
-
-        const client = new BlockfrostClient({ apiKey, network: wallet.network });
-        const latestBlock = await client.getLatestBlock();
-
-        if (latestBlock.height && latestBlock.height > lastFetchedBlockAssets) {
-          // Show syncing status immediately before fetching
-          setSyncStatus('syncing');
-
-          // Check if wallet exists on-chain first
-          const walletState = await getWalletState(wallet);
-
-          if (walletState.status === 'not_found') {
-            // New wallet, no transactions yet - skip sync
-            console.log('Wallet not found on-chain, skipping asset sync');
-            setSyncStatus('uptodate');
-            setShouldAnimate(false);
-            setTimeout(() => setShouldAnimate(true), 10);
-            setHasSynced(true);
-            return;
-          }
-
-          // Update payment addresses incrementally (fetches only new pages if needed)
-          await syncWalletPaymentAddresses(wallet, latestBlock.height);
-
-          // Wallet exists, proceed with sync
-          const changedCount = await syncWalletAssets(
-            wallet,
-            latestBlock.height,
-            loaderAssets as any, // Pass existing assets from loader
-            (current, total) => {
-              // Update progress during metadata fetching
-              setSyncProgress({ current, total });
-            },
-          );
-
-          // Refresh assets display if anything changed
-          if (changedCount > 0) {
-            const freshAssets = await devxData.getWalletAssets(walletId);
-            setAssets(freshAssets);
-          }
-
-          // Always show green "up to date" after syncing
-          setSyncStatus('uptodate');
-          setShouldAnimate(false);
-          setTimeout(() => setShouldAnimate(true), 10);
-        } else {
-          // Already up to date - show green box briefly
-          setSyncStatus('uptodate');
-          setShouldAnimate(false);
-          setTimeout(() => setShouldAnimate(true), 10);
-        }
-
-        setHasSynced(true);
-      } catch (error) {
-        console.error('Failed to check/sync assets:', error);
-        setSyncStatus(null);
-      }
-    };
-
-    checkAndSync();
-  }, [walletId]); // Only depend on walletId, not lastFetchedBlockAssets
+  }, [assetsSyncState.status, walletId]);
 
   // Get tab from URL params, default to 'tokens'
   const activeTab = (searchParams.get('tab') as 'tokens' | 'nfts') || 'tokens';
@@ -429,25 +352,12 @@ const AssetsView = () => {
         )}
       </div>
 
-      {/* Sync status notification - fixed above bottom nav */}
-      {syncStatus && (
-        <div
-          className={`fixed inset-x-0 bottom-16 z-10 px-4 py-2 text-center text-xs text-white shadow-lg ${
-            syncStatus === 'syncing' ? 'bg-blue-600' : `bg-green-600 ${shouldAnimate ? 'animate-fade-out-delayed' : ''}`
-          }`}
-          onAnimationEnd={() => {
-            if (syncStatus === 'uptodate') {
-              setSyncStatus(null);
-              setShouldAnimate(false);
-            }
-          }}>
-          {syncStatus === 'syncing' ? (
-            <span>
-              {syncProgress.total > 0 ? `Syncing ${syncProgress.current}/${syncProgress.total}...` : 'Syncing...'}
-            </span>
-          ) : (
-            <span>✓ Up to date</span>
-          )}
+      {/* Sync status notification - only show during active sync */}
+      {(assetsSyncState.status === 'progress' || assetsSyncState.status === 'started') && (
+        <div className="fixed inset-x-0 bottom-16 z-10 bg-blue-600 px-4 py-2 text-center text-xs text-white shadow-lg">
+          {assetsSyncState.progress
+            ? `Syncing assets ${assetsSyncState.progress.current}/${assetsSyncState.progress.total}...`
+            : assetsSyncState.message || 'Syncing assets...'}
         </div>
       )}
     </div>

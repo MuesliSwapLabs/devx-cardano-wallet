@@ -1,4 +1,5 @@
 import type { WalletRecord, UTXORecord, TransactionRecord } from '@extension/storage';
+import type { SyncProgress } from '@extension/shared/lib/types/sync';
 import { devxData } from '@extension/storage';
 import { isExternalAddress } from '../utils/address';
 
@@ -6,22 +7,39 @@ import { isExternalAddress } from '../utils/address';
  * Syncs wallet UTXOs by deriving them from transaction data
  * Builds complete UTXO history (spent + unspent) from transaction inputs/outputs
  * @param wallet - Wallet record to sync
+ * @param transactions - Transactions to process (sorted by block_height)
  * @param currentBlockHeight - Current blockchain block height for sync tracking
- * @param existingUtxos - Currently stored UTXOs from DB
- * @param transactions - New transactions to process (sorted by block_height)
- * @param paymentAddresses - All payment addresses belonging to this wallet (for external UTXO detection)
- * @param onProgress - Optional callback for progress updates (current, total)
+ * @param apiUrl - Blockfrost API URL (not used for UTXOs but kept for consistency)
+ * @param apiKey - Blockfrost API key (not used for UTXOs but kept for consistency)
+ * @param abortSignal - AbortSignal to cancel the operation
+ * @param onProgress - Optional callback for progress updates
  * @returns Count of changes (new UTXOs + newly spent UTXOs)
  */
 export async function syncWalletUtxos(
   wallet: WalletRecord,
-  currentBlockHeight: number,
-  existingUtxos: UTXORecord[],
   transactions: TransactionRecord[],
-  paymentAddresses: string[],
-  onProgress?: (current: number, total: number) => void,
+  currentBlockHeight: number,
+  apiUrl: string,
+  apiKey: string,
+  abortSignal?: AbortSignal,
+  onProgress?: (progress: SyncProgress) => void,
 ): Promise<number> {
   try {
+    // Early exit: If we've already synced up to current block, no changes possible
+    const lastFetchedBlock = wallet.lastFetchedBlockUtxos || 0;
+    if (lastFetchedBlock >= currentBlockHeight) {
+      return 0;
+    }
+
+    // Quick check: If no transactions, nothing to process
+    if (transactions.length === 0) {
+      return 0;
+    }
+
+    // Get existing UTXOs and payment addresses
+    const existingUtxos = await devxData.getWalletUTXOs(wallet.id);
+    const paymentAddresses = wallet.paymentAddresses || [];
+
     // Step 1: Create set of payment addresses for fast lookup
     const paymentAddressSet = new Set(paymentAddresses);
 
@@ -36,12 +54,18 @@ export async function syncWalletUtxos(
     // Step 3: Sort transactions chronologically (oldest first)
     const sortedTransactions = [...transactions].sort((a, b) => a.block_height - b.block_height);
 
-    // Step 3: Process each transaction
-    for (let i = 0; i < sortedTransactions.length; i++) {
-      const transaction = sortedTransactions[i];
+    onProgress?.({
+      status: 'progress',
+      message: `Processing ${sortedTransactions.length} transactions for UTXOs`,
+    });
 
-      // Report progress
-      onProgress?.(i + 1, sortedTransactions.length);
+    // Step 4: Process each transaction (in-memory, fast)
+    for (let i = 0; i < sortedTransactions.length; i++) {
+      if (abortSignal?.aborted) {
+        throw new Error('Sync aborted');
+      }
+
+      const transaction = sortedTransactions[i];
 
       // A. Process outputs (create new UTXOs)
       if (transaction.outputs) {
@@ -108,6 +132,11 @@ export async function syncWalletUtxos(
       }
     }
 
+    onProgress?.({
+      status: 'progress',
+      message: 'Storing UTXOs',
+    });
+
     // Step 4: Store results
     const utxoArray = Array.from(utxoMap.values());
     await devxData.storeUTXOs(wallet.id, utxoArray);
@@ -115,6 +144,11 @@ export async function syncWalletUtxos(
     // Update wallet with current blockchain height
     await devxData.updateWallet(wallet.id, {
       lastFetchedBlockUtxos: currentBlockHeight,
+    });
+
+    onProgress?.({
+      status: 'progress',
+      message: `Synced ${utxoArray.length} UTXOs`,
     });
 
     // Step 5: Return change count

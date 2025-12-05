@@ -21,6 +21,7 @@ export const DEVX_DB = {
 
 // Wallet record with sync tracking
 export interface WalletRecord extends Wallet {
+  lastSynced?: number; // Timestamp of last sync operation
   lastFetchedBlockAssets?: number;
   lastFetchedBlockTransactions?: number;
   lastFetchedBlockUtxos?: number;

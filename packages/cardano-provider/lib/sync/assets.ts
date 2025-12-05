@@ -1,5 +1,6 @@
 import type { WalletRecord, AssetRecord } from '@extension/storage';
 import type { AssetInfo } from '@extension/shared/lib/types/blockfrost';
+import type { SyncProgress } from '@extension/shared/lib/types/sync';
 import { devxSettings, devxData } from '@extension/storage';
 import { BlockfrostClient } from '../client/blockfrost';
 import { getImageUrl } from '../utils/imageUrl';
@@ -28,24 +29,29 @@ function hexToAscii(hex: string): string {
  * Fetches asset metadata from Blockfrost only for new/changed assets
  * @param wallet - Wallet record to sync
  * @param currentBlockHeight - Current blockchain block height for sync tracking
- * @param existingAssets - Currently stored assets from DB
- * @param onProgress - Optional callback for progress updates (current, total) - only called for new/changed assets
+ * @param apiUrl - Blockfrost API URL
+ * @param apiKey - Blockfrost API key
+ * @param abortSignal - AbortSignal to cancel the operation
+ * @param onProgress - Optional callback for progress updates
  * @returns Count of new/changed assets that were synced
  */
 export async function syncWalletAssets(
   wallet: WalletRecord,
   currentBlockHeight: number,
-  existingAssets: AssetRecord[],
-  onProgress?: (current: number, total: number) => void,
+  apiUrl: string,
+  apiKey: string,
+  abortSignal?: AbortSignal,
+  onProgress?: (progress: SyncProgress) => void,
 ): Promise<number> {
   try {
-    const settings = await devxSettings.get();
-    const apiKey = wallet.network === 'Mainnet' ? settings.mainnetApiKey : settings.preprodApiKey;
-
-    if (!apiKey) {
-      throw new Error(`No API key configured for ${wallet.network} network`);
+    // Early exit: If we've already synced up to current block, no new assets possible
+    const lastFetchedBlock = wallet.lastFetchedBlockAssets || 0;
+    if (lastFetchedBlock >= currentBlockHeight) {
+      return 0;
     }
 
+    // Get existing assets from DB
+    const existingAssets = await devxData.getWalletAssets(wallet.id);
     const client = new BlockfrostClient({ apiKey, network: wallet.network });
 
     // Fetch ALL assets from Blockfrost with pagination
@@ -53,6 +59,10 @@ export async function syncWalletAssets(
     let page = 1;
 
     while (true) {
+      if (abortSignal?.aborted) {
+        throw new Error('Sync aborted');
+      }
+
       const pageAssets = await client.getAccountAddressesAssets(wallet.stakeAddress as any, {
         count: 100,
         page,
@@ -60,6 +70,7 @@ export async function syncWalletAssets(
 
       if (pageAssets.length === 0) break;
       allAssets.push(...pageAssets);
+
       if (pageAssets.length < 100) break; // Stop if less than limit
       page++;
     }
@@ -85,11 +96,27 @@ export async function syncWalletAssets(
     // Fetch metadata only for new/changed assets
     const assetsToStore: AssetRecord[] = [];
 
+    onProgress?.({
+      status: 'progress',
+      message: `Fetching metadata for ${newOrChangedAssets.length} assets`,
+      current: 0,
+      total: newOrChangedAssets.length,
+    });
+
     for (let i = 0; i < newOrChangedAssets.length; i++) {
+      if (abortSignal?.aborted) {
+        throw new Error('Sync aborted');
+      }
+
       const asset = newOrChangedAssets[i];
 
       // Report progress for metadata fetching
-      onProgress?.(i + 1, newOrChangedAssets.length);
+      onProgress?.({
+        status: 'progress',
+        message: `Fetching metadata (${i + 1}/${newOrChangedAssets.length})`,
+        current: i + 1,
+        total: newOrChangedAssets.length,
+      });
 
       try {
         // Fetch full asset metadata
@@ -143,6 +170,11 @@ export async function syncWalletAssets(
       }
     }
 
+    onProgress?.({
+      status: 'progress',
+      message: 'Storing assets',
+    });
+
     // Store all assets (this replaces ALL assets for the wallet, not just new ones)
     // We need to merge: keep existing assets that haven't changed + add new/updated ones
     const finalAssets = [
@@ -154,6 +186,11 @@ export async function syncWalletAssets(
     // Update wallet with latest synced block height
     await devxData.updateWallet(wallet.id, {
       lastFetchedBlockAssets: currentBlockHeight,
+    });
+
+    onProgress?.({
+      status: 'progress',
+      message: `Synced ${newOrChangedAssets.length} assets`,
     });
 
     return newOrChangedAssets.length;

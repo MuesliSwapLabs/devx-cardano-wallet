@@ -14,7 +14,7 @@ import TransactionsView from './wallet/TransactionsView';
 import UTXOsViewWrapper from './wallet/UTXOsViewWrapper';
 import UTXODetail from './wallet/UTXODetail';
 import Settings from './Settings';
-import SpoofedWalletInfo from './info/SpoofedWalletInfo';
+import AboutDevX from './info/AboutDevX';
 import DAppPermission from './cip30/DAppPermission';
 import NoWallets from './components/NoWallets';
 
@@ -119,8 +119,8 @@ async function transactionsLoader({ params }: any) {
     const wallet = await devxData.getWallet(params.walletId);
     const transactions = await devxData.getWalletTransactions(params.walletId);
     return {
+      wallet,
       transactions,
-      lastFetchedBlockTransactions: wallet?.lastFetchedBlockTransactions || 0,
     };
   } catch (error) {
     console.error('Failed to fetch transactions:', error);
@@ -131,11 +131,15 @@ async function transactionsLoader({ params }: any) {
 // UTXOs loader function - fetches cached UTXOs (non-blocking)
 async function utxosLoader({ params }: any) {
   try {
-    const wallet = await devxData.getWallet(params.walletId);
-    const utxos = await devxData.getWalletUTXOs(params.walletId);
+    const [wallet, utxos, transactions] = await Promise.all([
+      devxData.getWallet(params.walletId),
+      devxData.getWalletUTXOs(params.walletId),
+      devxData.getWalletTransactions(params.walletId),
+    ]);
     return {
+      wallet,
       utxos,
-      lastFetchedBlockUtxos: wallet?.lastFetchedBlockUtxos || 0,
+      transactions,
     };
   } catch (error) {
     console.error('Failed to fetch UTXOs:', error);
@@ -222,7 +226,7 @@ const router = createHashRouter([
         children: [
           { path: 'settings', element: <Settings /> },
           { path: 'wallet-settings/:walletId', element: <WalletSettings /> },
-          { path: 'spoofed-info', element: <SpoofedWalletInfo /> },
+          { path: 'about-devx', element: <AboutDevX /> },
           { path: 'no-wallets', element: <NoWallets /> },
           { path: 'wallet/:walletId/utxo/:txHash/:outputIndex', element: <UTXODetail /> },
         ],

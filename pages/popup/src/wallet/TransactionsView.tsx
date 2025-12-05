@@ -1,122 +1,36 @@
 import { useState, useEffect } from 'react';
 import { useParams, useLoaderData } from 'react-router-dom';
 import type { TransactionRecord, WalletRecord } from '@extension/storage';
-import { devxData, devxSettings } from '@extension/storage';
-import {
-  syncWalletTransactions,
-  getWalletState,
-  syncWalletPaymentAddresses,
-  BlockfrostClient,
-} from '@extension/cardano-provider';
+import { devxData } from '@extension/storage';
+import { useSyncStatus } from '../hooks/useSyncStatus';
 import Transactions from './Transactions';
 
 const TransactionsView = () => {
   const { walletId } = useParams<{ walletId: string }>();
-  const { transactions: loaderTransactions, lastFetchedBlockTransactions: initialLastBlock } = useLoaderData() as {
+  const { wallet: loaderWallet, transactions: loaderTransactions } = useLoaderData() as {
+    wallet: WalletRecord;
     transactions: TransactionRecord[];
-    lastFetchedBlockTransactions: number;
   };
 
   const [transactions, setTransactions] = useState(loaderTransactions);
-  const [syncStatus, setSyncStatus] = useState<'syncing' | 'uptodate' | null>(null);
-  const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0 });
-  const [shouldAnimate, setShouldAnimate] = useState(false);
-  const [wallet, setWallet] = useState<WalletRecord | null>(null);
-  const [hasSynced, setHasSynced] = useState(false);
 
-  // Reset state when wallet changes
+  // Use the sync status hook to listen for sync progress (sync is triggered by MainLayout)
+  const { syncState } = useSyncStatus(walletId);
+  const transactionsSyncState = syncState.transactions;
+
+  // Reset transactions when wallet/data changes
   useEffect(() => {
     setTransactions(loaderTransactions);
-    setHasSynced(false); // Allow re-syncing for new wallet
-    setSyncStatus(null);
-    setWallet(null); // Reset wallet to trigger loading state
-  }, [walletId, loaderTransactions]);
+  }, [loaderTransactions]);
 
+  // Refresh transactions when sync completes
   useEffect(() => {
-    // Only run sync once per mount
-    if (hasSynced) {
-      return;
+    if (transactionsSyncState.status === 'completed' && walletId) {
+      devxData.getWalletTransactions(walletId).then(freshTransactions => {
+        setTransactions(freshTransactions);
+      });
     }
-
-    const checkAndSync = async () => {
-      if (!walletId) return;
-
-      try {
-        const settings = await devxSettings.get();
-        const walletData = await devxData.getWallet(walletId);
-        if (!walletData) return;
-
-        setWallet(walletData);
-
-        const apiKey = walletData.network === 'Mainnet' ? settings.mainnetApiKey : settings.preprodApiKey;
-        if (!apiKey) return;
-
-        const client = new BlockfrostClient({ apiKey, network: walletData.network });
-        const latestBlock = await client.getLatestBlock();
-
-        if (latestBlock.height && latestBlock.height > initialLastBlock) {
-          // Show syncing status immediately before fetching
-          setSyncStatus('syncing');
-
-          // Check if wallet exists on-chain first
-          const walletState = await getWalletState(walletData);
-
-          if (walletState.status === 'not_found') {
-            // New wallet, no transactions yet - skip sync
-            console.log('Wallet not found on-chain, skipping transaction sync');
-            setSyncStatus('uptodate');
-            setShouldAnimate(false);
-            setTimeout(() => setShouldAnimate(true), 10);
-            setHasSynced(true);
-            return;
-          }
-
-          // Update payment addresses incrementally (fetches only new pages if needed)
-          await syncWalletPaymentAddresses(walletData, latestBlock.height);
-
-          // Wallet exists, proceed with sync
-          const changedCount = await syncWalletTransactions(
-            walletData,
-            latestBlock.height, // Pass current blockchain height
-            loaderTransactions as any,
-            (current, total) => {
-              // Update progress during metadata fetching
-              setSyncProgress({ current, total });
-            },
-          );
-
-          // Refresh transactions display if anything changed
-          if (changedCount > 0) {
-            const freshTransactions = await devxData.getWalletTransactions(walletId);
-            setTransactions(freshTransactions);
-          }
-
-          // Database has been updated with current block height by syncWalletTransactions
-
-          // Always show green "up to date" after syncing
-          setSyncStatus('uptodate');
-          setShouldAnimate(false);
-          setTimeout(() => setShouldAnimate(true), 10);
-        } else {
-          // Already up to date - show green box briefly
-          setSyncStatus('uptodate');
-          setShouldAnimate(false);
-          setTimeout(() => setShouldAnimate(true), 10);
-        }
-
-        setHasSynced(true);
-      } catch (error) {
-        console.error('Failed to check/sync transactions:', error);
-        setSyncStatus(null);
-      }
-    };
-
-    checkAndSync();
-  }, [walletId]); // Only depend on walletId, not lastFetchedBlockTransactions
-
-  if (!wallet) {
-    return <div>Loading wallet...</div>;
-  }
+  }, [transactionsSyncState.status, walletId]);
 
   return (
     <div className="relative flex h-full flex-col">
@@ -127,29 +41,16 @@ const TransactionsView = () => {
         </div>
       ) : (
         <div>
-          <Transactions wallet={wallet} transactions={transactions} />
+          <Transactions wallet={loaderWallet} transactions={transactions} />
         </div>
       )}
 
-      {/* Sync status notification - fixed above bottom nav */}
-      {syncStatus && (
-        <div
-          className={`fixed inset-x-0 bottom-16 z-10 px-4 py-2 text-center text-xs text-white shadow-lg ${
-            syncStatus === 'syncing' ? 'bg-blue-600' : `bg-green-600 ${shouldAnimate ? 'animate-fade-out-delayed' : ''}`
-          }`}
-          onAnimationEnd={() => {
-            if (syncStatus === 'uptodate') {
-              setSyncStatus(null);
-              setShouldAnimate(false);
-            }
-          }}>
-          {syncStatus === 'syncing' ? (
-            <span>
-              {syncProgress.total > 0 ? `Syncing ${syncProgress.current}/${syncProgress.total}...` : 'Syncing...'}
-            </span>
-          ) : (
-            <span>✓ Up to date</span>
-          )}
+      {/* Sync status notification - only show during active sync */}
+      {(transactionsSyncState.status === 'progress' || transactionsSyncState.status === 'started') && (
+        <div className="fixed inset-x-0 bottom-16 z-10 bg-blue-600 px-4 py-2 text-center text-xs text-white shadow-lg">
+          {transactionsSyncState.progress
+            ? `Syncing transactions ${transactionsSyncState.progress.current}/${transactionsSyncState.progress.total}...`
+            : transactionsSyncState.message || 'Syncing transactions...'}
         </div>
       )}
     </div>

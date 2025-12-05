@@ -1,5 +1,6 @@
 import { handleCip30Messages } from './cip30';
 import { handleWalletMessages } from './wallet';
+import { handleSyncMessages } from './syncHandlers';
 
 // Offscreen document management
 let offscreenDocumentExists = false;
@@ -50,7 +51,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return;
     }
 
-    // Try CIP-30 handlers first
+    // Try sync handlers first
+    const syncHandled = await handleSyncMessages(message, sender, sendResponse);
+    if (syncHandled) return;
+
+    // Try CIP-30 handlers next
     const cip30Handled = await handleCip30Messages(message, sender, sendResponse);
     if (cip30Handled) return;
 

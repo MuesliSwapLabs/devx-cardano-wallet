@@ -131,8 +131,8 @@ class DevxDataStorage {
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([DEVX_DB.STORES.WALLETS], 'readwrite');
       const store = transaction.objectStore(DEVX_DB.STORES.WALLETS);
-      const walletWithTimestamp = { ...wallet, lastSynced: Date.now() };
-      const request = store.add(walletWithTimestamp);
+      // Don't set lastSynced - leave it undefined so sync triggers on first open
+      const request = store.add(wallet);
 
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);

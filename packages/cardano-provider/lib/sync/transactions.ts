@@ -5,6 +5,7 @@ import type {
   EnhancedTransactionOutputUTXO,
 } from '@extension/storage';
 import type { AccountAddress, AddressTransaction } from '@extension/shared/lib/types/blockfrost';
+import type { SyncProgress } from '@extension/shared/lib/types/sync';
 import { devxSettings, devxData } from '@extension/storage';
 import { BlockfrostClient } from '../client/blockfrost';
 import { isExternalAddress } from '../utils/address';
@@ -14,24 +15,29 @@ import { isExternalAddress } from '../utils/address';
  * Fetches transaction details only for new transactions
  * @param wallet - Wallet record to sync
  * @param currentBlockHeight - Current blockchain block height for sync tracking
- * @param existingTransactions - Currently stored transactions from DB
- * @param onProgress - Optional callback for progress updates (current, total) - only called for new transactions
+ * @param apiUrl - Blockfrost API URL
+ * @param apiKey - Blockfrost API key
+ * @param abortSignal - AbortSignal to cancel the operation
+ * @param onProgress - Optional callback for progress updates
  * @returns Count of new transactions that were synced
  */
 export async function syncWalletTransactions(
   wallet: WalletRecord,
   currentBlockHeight: number,
-  existingTransactions: TransactionRecord[],
-  onProgress?: (current: number, total: number) => void,
+  apiUrl: string,
+  apiKey: string,
+  abortSignal?: AbortSignal,
+  onProgress?: (progress: SyncProgress) => void,
 ): Promise<number> {
   try {
-    const settings = await devxSettings.get();
-    const apiKey = wallet.network === 'Mainnet' ? settings.mainnetApiKey : settings.preprodApiKey;
-
-    if (!apiKey) {
-      throw new Error(`No API key configured for ${wallet.network} network`);
+    // Early exit: If we've already synced up to current block, no new transactions possible
+    const lastFetchedBlock = wallet.lastFetchedBlockTransactions || 0;
+    if (lastFetchedBlock >= currentBlockHeight) {
+      return 0;
     }
 
+    // Get existing transactions from DB
+    const existingTransactions = await devxData.getWalletTransactions(wallet.id);
     const client = new BlockfrostClient({ apiKey, network: wallet.network });
 
     // Get ALL payment addresses with pagination
@@ -39,6 +45,10 @@ export async function syncWalletTransactions(
     let addressPage = 1;
 
     while (true) {
+      if (abortSignal?.aborted) {
+        throw new Error('Sync aborted');
+      }
+
       const pageAddresses = await client.getAccountAddresses(wallet.stakeAddress as any, {
         count: 100,
         page: addressPage,
@@ -46,6 +56,7 @@ export async function syncWalletTransactions(
 
       if (pageAddresses.length === 0) break;
       allAddresses.push(...pageAddresses);
+
       if (pageAddresses.length < 100) break; // Stop if less than limit
       addressPage++;
     }
@@ -54,10 +65,24 @@ export async function syncWalletTransactions(
     const allTxRefs: AddressTransaction[] = [];
     const fromBlock = wallet.lastFetchedBlockTransactions || 0;
 
-    for (const addr of allAddresses) {
+    for (let addrIdx = 0; addrIdx < allAddresses.length; addrIdx++) {
+      if (abortSignal?.aborted) {
+        throw new Error('Sync aborted');
+      }
+
+      onProgress?.({
+        status: 'progress',
+        message: `Scanning addresses for new tx: ${addrIdx + 1}/${allAddresses.length}`,
+      });
+
+      const addr = allAddresses[addrIdx];
       let txPage = 1;
 
       while (true) {
+        if (abortSignal?.aborted) {
+          throw new Error('Sync aborted');
+        }
+
         const pageTxRefs = await client.getAddressTransactions(addr.address as any, {
           order: 'desc', // Newest first for efficient incremental sync
           count: 100,
@@ -91,14 +116,30 @@ export async function syncWalletTransactions(
       return 0;
     }
 
+    onProgress?.({
+      status: 'progress',
+      message: `Fetching details for ${newTxRefs.length} new transactions`,
+      current: 0,
+      total: newTxRefs.length,
+    });
+
     // Fetch full transaction details only for NEW transactions
     const newTransactions: TransactionRecord[] = [];
 
     for (let i = 0; i < newTxRefs.length; i++) {
+      if (abortSignal?.aborted) {
+        throw new Error('Sync aborted');
+      }
+
       const txRef = newTxRefs[i];
 
       // Report progress for metadata fetching
-      onProgress?.(i + 1, newTxRefs.length);
+      onProgress?.({
+        status: 'progress',
+        message: `Fetching transaction ${i + 1}/${newTxRefs.length}`,
+        current: i + 1,
+        total: newTxRefs.length,
+      });
 
       try {
         // Fetch BOTH transaction info AND input/output UTXOs in parallel
@@ -135,6 +176,11 @@ export async function syncWalletTransactions(
       }
     }
 
+    onProgress?.({
+      status: 'progress',
+      message: 'Storing transactions',
+    });
+
     // Store only new transactions
     if (newTransactions.length > 0) {
       await devxData.storeTransactions(wallet.id, newTransactions);
@@ -143,6 +189,11 @@ export async function syncWalletTransactions(
     // Update lastFetchedBlockTransactions with current blockchain height
     await devxData.updateWallet(wallet.id, {
       lastFetchedBlockTransactions: currentBlockHeight,
+    });
+
+    onProgress?.({
+      status: 'progress',
+      message: `Synced ${newTxRefs.length} transactions`,
     });
 
     return newTxRefs.length;

@@ -6,9 +6,10 @@ import type { Wallet } from '@extension/shared';
 interface WalletDropdownProps {
   currentWalletId: string | undefined;
   onSelectWallet: (walletId: string) => void;
+  disabled?: boolean;
 }
 
-function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps) {
+function WalletDropdown({ currentWalletId, onSelectWallet, disabled }: WalletDropdownProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const settings = useStorage(devxSettings);
@@ -88,14 +89,16 @@ function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps
   return (
     <div className="relative">
       <button
-        className="flex w-40 items-center justify-between rounded-md bg-transparent px-2 py-1 transition-colors hover:bg-gray-200 dark:hover:bg-gray-700"
+        className={`flex items-center gap-1 rounded-md bg-transparent px-2 py-1 transition-colors ${
+          disabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-gray-200 dark:hover:bg-gray-700'
+        }`}
+        disabled={disabled}
         onClick={e => {
           e.stopPropagation();
+          if (disabled) return;
           setDropdownOpen(!dropdownOpen);
         }}>
-        <div className="flex grow items-center justify-center">
-          <span className="truncate text-lg font-semibold">{currentWallet?.name || 'Select Wallet'}</span>
-        </div>
+        <span className="max-w-32 truncate text-lg font-semibold">{currentWallet?.name || 'Select Wallet'}</span>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           className={`size-5 shrink-0 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
