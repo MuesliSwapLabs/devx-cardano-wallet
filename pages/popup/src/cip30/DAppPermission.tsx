@@ -1,21 +1,34 @@
-import React, { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { useStorage, walletsStorage, settingsStorage } from '@extension/storage';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useStorage, devxSettings, devxData } from '@extension/storage';
 import { PrimaryButton, SecondaryButton } from '@src/components/buttons';
+import type { Wallet } from '@extension/shared';
 
 const DAppPermission = () => {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [currentWallet, setCurrentWallet] = useState<Wallet | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const origin = searchParams.get('origin');
-  const walletName = searchParams.get('walletName') || 'DevX';
   const tabId = searchParams.get('tabId');
 
-  const walletsData = useStorage(walletsStorage);
-  const settings = useStorage(settingsStorage);
+  const settings = useStorage(devxSettings);
 
-  const currentWallet = walletsData?.wallets?.find(w => w.id === settings?.activeWalletId);
+  // Load the current wallet from devxData
+  useEffect(() => {
+    const loadWallet = async () => {
+      if (!settings?.activeWalletId) {
+        setIsLoading(false);
+        return;
+      }
+      const wallets = await devxData.getWallets();
+      const wallet = wallets.find(w => w.id === settings.activeWalletId);
+      setCurrentWallet(wallet || null);
+      setIsLoading(false);
+    };
+    loadWallet();
+  }, [settings?.activeWalletId]);
 
   useEffect(() => {
     if (!origin || !tabId) {
@@ -62,10 +75,19 @@ const DAppPermission = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <p className="text-gray-500">Loading...</p>
+      </div>
+    );
+  }
+
   if (!origin || !currentWallet) {
     return (
       <div className="p-6 text-center">
         <p className="text-gray-500">Invalid permission request</p>
+        <p className="mt-2 text-xs text-gray-400">{!origin ? 'Missing origin' : 'No active wallet found'}</p>
       </div>
     );
   }

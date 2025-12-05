@@ -33,6 +33,27 @@ export class CBORConverter {
   }
 
   /**
+   * Convert bech32 address to hex-encoded bytes (CIP-30 format)
+   * CIP-30 requires addresses as hex strings of the raw address bytes
+   */
+  convertAddressToHex(bech32Address: string): string {
+    if (!this.initialized) {
+      throw new Error('CBOR Converter not initialized');
+    }
+
+    const wasm = CardanoLoader.Cardano;
+    const address = wasm.Address.from_bech32(bech32Address);
+    return bytesToHex(address.to_bytes());
+  }
+
+  /**
+   * Convert array of bech32 addresses to hex-encoded bytes
+   */
+  convertAddressesToHex(bech32Addresses: string[]): string[] {
+    return bech32Addresses.map(addr => this.convertAddressToHex(addr));
+  }
+
+  /**
    * Convert UTXORecord to TransactionUnspentOutput CBOR
    * TransactionUnspentOutput = [input, output]
    * where input = [transaction_id, index] and output = full transaction output

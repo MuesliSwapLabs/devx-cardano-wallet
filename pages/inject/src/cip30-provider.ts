@@ -19,6 +19,9 @@ interface WalletAPI {
   getUnusedAddresses(paginate?: Paginate): Promise<string[]>;
   getRewardAddresses(): Promise<string[]>;
   getChangeAddress(): Promise<string>;
+  signTx(tx: string, partialSign?: boolean): Promise<string>;
+  submitTx(tx: string): Promise<string>;
+  signData(addr: string, payload: string): Promise<{ signature: string; key: string }>;
 }
 
 interface APIError {
@@ -29,7 +32,7 @@ interface APIError {
 class DevXCIP30Provider implements CIP30API {
   public readonly name = 'DevX';
   public readonly icon =
-    'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iOCIgZmlsbD0iIzM5OTZGRiIvPgo8cGF0aCBkPSJNOCAxNkMxMSAxMyAxNSAxMyAxOCAxNkMyMSAxOSAyMSAyMyAxOCAyNkMxNSAyOSAxMSAyOSA4IDI2QzUgMjMgNSAxOSA4IDE2WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+'; // DevX logo
+    'data:image/png;base64,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';
   public readonly apiVersion = '0.1.0';
 
   private walletAPI: WalletAPI | null = null;
@@ -350,6 +353,27 @@ class DevXWalletAPI implements WalletAPI {
         info: 'Failed to get change address',
       } as APIError;
     }
+  }
+
+  async signTx(_tx: string, _partialSign?: boolean): Promise<string> {
+    throw {
+      code: 2,
+      info: 'DevX is a read-only development wallet and cannot sign transactions',
+    } as APIError;
+  }
+
+  async submitTx(_tx: string): Promise<string> {
+    throw {
+      code: 2,
+      info: 'DevX is a read-only development wallet and cannot submit transactions',
+    } as APIError;
+  }
+
+  async signData(_addr: string, _payload: string): Promise<{ signature: string; key: string }> {
+    throw {
+      code: 2,
+      info: 'DevX is a read-only development wallet and cannot sign data',
+    } as APIError;
   }
 
   private async sendMessage(message: any): Promise<any> {

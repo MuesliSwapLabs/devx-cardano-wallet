@@ -45,7 +45,10 @@ const manifest = deepmerge(
     //   newtab: 'new-tab/index.html',
     // },
     icons: {
-      128: 'icon-128.png',
+      16: 'devx-icon-16.png',
+      32: 'devx-icon-32.png',
+      48: 'devx-icon-48.png',
+      128: 'devx-icon-128.png',
     },
     content_scripts: [
       {

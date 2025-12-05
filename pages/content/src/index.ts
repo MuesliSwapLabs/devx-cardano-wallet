@@ -45,6 +45,39 @@ window.addEventListener('message', async event => {
       }
     }
 
+    // Handle address responses - convert bech32 to hex
+    if (message.type === 'CIP30_GET_USED_ADDRESSES' && response.success && response.addresses) {
+      try {
+        response.addresses = cborConverter.convertAddressesToHex(response.addresses);
+      } catch (err) {
+        console.error('Address conversion failed:', err);
+      }
+    }
+
+    if (message.type === 'CIP30_GET_UNUSED_ADDRESSES' && response.success && response.addresses) {
+      try {
+        response.addresses = cborConverter.convertAddressesToHex(response.addresses);
+      } catch (err) {
+        console.error('Address conversion failed:', err);
+      }
+    }
+
+    if (message.type === 'CIP30_GET_CHANGE_ADDRESS' && response.success && response.address) {
+      try {
+        response.address = cborConverter.convertAddressToHex(response.address);
+      } catch (err) {
+        console.error('Address conversion failed:', err);
+      }
+    }
+
+    if (message.type === 'CIP30_GET_REWARD_ADDRESSES' && response.success && response.rewardAddresses) {
+      try {
+        response.rewardAddresses = cborConverter.convertAddressesToHex(response.rewardAddresses);
+      } catch (err) {
+        console.error('Reward address conversion failed:', err);
+      }
+    }
+
     // Send response back to inject script
     window.postMessage(
       {
